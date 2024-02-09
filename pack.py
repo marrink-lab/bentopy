@@ -334,10 +334,9 @@ def configure():
 def render_to_gro(path, segments, box):
     start_file_writing = time.time()
     with open(path, "w") as gro:
-        maxx, maxy, maxz = 0.0, 0.0, 0.0
         title = "pack"
-        print(title, file=gro)  # Title.
-        print("------------", file=gro)  # Placeholder for the number of atoms.
+        gro.write(title + "\n")
+        gro.write("------------" + "\n")  # Placeholder for the number of atoms.
         total_atoms = 0
         for resnum, segment in enumerate(segments):
             u = MDA.Universe(segment.path)
@@ -374,20 +373,22 @@ def render_to_gro(path, segments, box):
                     for prefix, position in zip(prefixes, positions):
                         posx, posy, posz = position
                         line = f"{prefix}{posx:8.3f}{posy:8.3f}{posz:8.3f}"
-                        print(line, file=gro)
+                        gro.write(line + "\n")
                         total_atoms += 1
 
         # v1x, v2y, v3z = np.max(positions, axis=1)
         if len(box) == 2:
-            v1x, v2y, v3z = *box, 10.0 # HACK: This is rather temporary.
-        elif len(box) ==3:
+            v1x, v2y, v3z = *box, 10.0  # HACK: This is rather temporary.
+        elif len(box) == 3:
             v1x, v2y, v3z = box
         box_vectors = f"{v1x:.6f} {v2y:.6f} {v3z:.6f}"
-        print(box_vectors, file=gro)
+        gro.write(box_vectors + "\n")
 
         # Go back to the start and write the number of atoms.
         gro.seek(len(title) + 1)
-        print(f"{total_atoms:>12d}", file=gro)
+        gro.write(f"{total_atoms:>12d}\n")
+    end_file_writing = time.time()
+    print(f"wrote the file in {end_file_writing - start_file_writing:.3f} s")
 
 
 def main():
