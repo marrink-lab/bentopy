@@ -241,7 +241,8 @@ class Configuration:
 
 class Space:
     def __init__(self, size, shape, padding):
-        self.size = size
+        assert len(size) == 3, "The size of a space must be 3-dimensional"
+        self.size = size[:2] # For now, we do a lil 2D thing.
         self.shape = shape
         self.padding = padding
 
@@ -330,7 +331,8 @@ def configure():
     return Configuration(config_src, args.verbose)
 
 
-def render_to_gro(path, segments):
+def render_to_gro(path, segments, box):
+    start_file_writing = time.time()
     with open(path, "w") as gro:
         maxx, maxy, maxz = 0.0, 0.0, 0.0
         title = "pack"
@@ -374,15 +376,12 @@ def render_to_gro(path, segments):
                         line = f"{prefix}{posx:8.3f}{posy:8.3f}{posz:8.3f}"
                         print(line, file=gro)
                         total_atoms += 1
-                        if posx > maxx:
-                            maxx = posx
-                        if posy > maxy:
-                            maxy = posy
-                        if posz > maxz:
-                            maxz = posz
 
         # v1x, v2y, v3z = np.max(positions, axis=1)
-        v1x, v2y, v3z = maxx, maxy, maxz
+        if len(box) == 2:
+            v1x, v2y, v3z = *box, 10.0 # HACK: This is rather temporary.
+        elif len(box) ==3:
+            v1x, v2y, v3z = box
         box_vectors = f"{v1x:.6f} {v2y:.6f} {v3z:.6f}"
         print(box_vectors, file=gro)
 
@@ -419,9 +418,9 @@ def main():
 
     # TODO: This is incorrect since the output config is different than this is.
     if config.output_path.endswith(".gro"):
-        render_to_gro(config.output_path, config.segments)
+        render_to_gro(config.output_path, config.segments, config.space.size)
     elif config.output_path.endswith(".pdb"):
-        render_to_pdb(config.output_path, config.segments)
+        render_to_pdb(config.output_path, config.segments, config.space.size)
 
     # TODO: Remove when there's proper output or at least make it depend on debug output.
     plt.imsave(f"{config.output_path}.png", background)
