@@ -1,6 +1,7 @@
 import argparse
 import json
 import math
+import os
 import time
 
 import matplotlib.pyplot as plt
@@ -8,7 +9,6 @@ import MDAnalysis as MDA
 import numpy as np
 from MDAnalysis import transformations
 from scipy.signal import fftconvolve
-
 
 VERBOSE = False
 ROTATIONS = 4
@@ -234,9 +234,19 @@ class Configuration:
             for s in segments
         ]
         output = config["output"]
+        self.title = output["title"]
+        self.output_dir = output["dir"]
+        if not os.path.isdir(self.output_dir):
+            print(
+                f"Output directory '{self.output_dir}' does not exist yet and will be created."
+            )
+            os.makedir(self.output_dir)
+        self.render = output["render"]
+        if "debug_image" in output:
+            self.debug_image = output["debug_image"]
+        else:
+            self.debug_image = None
         self.output_placement_list = output["placement_list"]
-        self.output_path = output["path"]
-        self.output_config = output
         self.verbose = verbose
 
 
@@ -439,8 +449,7 @@ def main():
     print(f"Packing process took {duration:.3f} s.")
 
     if config.output_placement_list:
-        stripped_path = config.output_path.removesuffix(".gro").removesuffix(".pdb")
-        placement_list_path = f"{stripped_path}_placements.json"
+        placement_list_path = f"{config.output_dir}/{config.title}_placements.json"
         with open(placement_list_path, "w") as outfile:
             placement_list_dump = json.dumps(
                 {
@@ -459,16 +468,17 @@ def main():
             print(f"Wrote placement list to '{placement_list_path}'.")
 
     # TODO: This is incorrect since the output config is different than this is.
-    if config.output_path.endswith(".gro"):
-        render_to_gro(config.output_path, config.segments, config.space.size)
-    else:
-        print(
-            "ERROR: Couldn't write output file. Only `gro` files are supported for now."
+    if config.render:
+        render_to_gro(
+            f"{config.output_dir}/{config.title}.gro",
+            config.segments,
+            config.space.size,
         )
 
-    # TODO: Remove when there's proper output or at least make it depend on debug output.
-    plt.imsave(f"{config.output_path}.png", background)
-    plt.show()
+    if config.debug_image:
+        path = f"{config.output_dir}/{config.title}.png"
+        plt.imsave(path, background)
+        print(f"Wrote debug image to '{path}'.")
 
 
 if __name__ == "__main__":
