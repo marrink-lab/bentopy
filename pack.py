@@ -36,7 +36,12 @@ def placement_location(valid, selection, segment):
 
 
 def place_segment_convolve(
-    background, segment_voxels, max_at_once, max_tries, threshold_coefficient
+    background,
+    segment_voxels,
+    max_at_once,
+    max_tries,
+    threshold_coefficient,
+    resolution,
 ) -> list:
     query = np.flip(segment_voxels, axis=(0, 1))
     start = time.time()
@@ -108,7 +113,7 @@ def place_segment_convolve(
                 temp_selected_indices[dim] += location[dim]
 
             background[*temp_selected_indices] = 1
-            placements.append(tuple(location))
+            placements.append(tuple(int(a) for a in location * resolution))
 
         return placements
     return []
@@ -117,6 +122,7 @@ def place_segment_convolve(
 def fill_background(
     background,
     segment,
+    resolution,
     threshold_coefficient=25,
     max_iters=10000,
     max_at_once=10,
@@ -161,6 +167,7 @@ def fill_background(
             max_at_once_clamped,
             max_tries,
             threshold_coefficient,
+            resolution,
         )
         duration = time.time() - start
         if VERBOSE:
@@ -218,36 +225,48 @@ class Configuration:
         config = json.loads(json_src)
         space = config["space"]
         mask = space["mask"]
-        self.space = Space(space["size"], mask["shape"], mask["padding"])
+        self.space = Space(
+            space["size"], space["resolution"], mask["shape"], mask["padding"]
+        )
         segments = config["segments"]
-        self.segments = [Segment(s["name"], s["number"], s["path"]) for s in segments]
+        self.segments = [
+            Segment(s["name"], s["number"], s["path"], self.space.resolution)
+            for s in segments
+        ]
         output = config["output"]
+        self.output_placement_list = output["placement_list"]
         self.output_path = output["path"]
         self.output_config = output
         self.verbose = verbose
 
 
 class Space:
-    def __init__(self, size, shape, padding):
+    def __init__(self, size, resolution, shape, padding):
         assert len(size) == 3, "The size of a space must be 3-dimensional"
+        # Size in nm (unaffected by whatever value resolution has).
         self.size = size[:2]  # For now, we do a lil 2D thing.
+        self.resolution = resolution
         self.shape = shape
+        # Padding in nm (unaffected by whatever value resolution has).
         self.padding = padding
 
     def background(self):
-        # The playing field.
-        background = np.ones(self.size, dtype=np.float32)
-        width, height = self.size
+        # Adjust size and padding for resolution.
+        size = (np.array(self.size) / self.resolution).astype(int)
+        padding = self.padding / self.resolution
+
+        background = np.ones(size, dtype=np.float32)
+        width, height = size
         if VERBOSE:
             print(f"{self.shape = }")
         if self.shape == "circular":
             size = min(width, height)
             # TODO: Make this elliptical or something idk.
-            mask = circle_mask(size, size // 2 - self.padding)
+            mask = circle_mask(size, size // 2 - padding)
         elif self.shape == "rectangular":
             mask = np.index_exp[
-                self.padding : width - self.padding,
-                self.padding : height - self.padding,
+                padding : width - padding,
+                padding : height - padding,
             ]
         else:
             raise ValueError
@@ -256,16 +275,17 @@ class Space:
 
 
 class Segment:
-    def __init__(self, name, target_number, path):
+    def __init__(self, name, target_number, path, resolution):
         self.name = name
         self.target_number = target_number
         self.path = path
+        self._resolution = resolution
         self._voxels = None
         self.batches = []  # A batch is a set of placements with a particular rotation.
 
     def voxels(self):
         if self._voxels is None:
-            self._voxels = structure_to_2d(self.path)
+            self._voxels = structure_to_2d(self.path, self._resolution)
         return self._voxels
 
     def add_rotation(self, rotation, placements):
@@ -280,10 +300,11 @@ def circle_mask(size, r):
     return (x[None, :] - cx) ** 2 + (y[:, None] - cy) ** 2 < r**2
 
 
-def structure_to_2d(path):
+def structure_to_2d(path, resolution):
     # TODO: Revisit the fact that we're creating the universe two times over the runtime (depending on the output format).
     u = MDA.Universe(path)
-    positions = u.atoms.positions / 10.0  # Convert from Å to nm.
+    # Convert from Å to nm and adjust for resulotion.
+    positions = u.atoms.positions / 10.0 / resolution
     center = positions.mean(axis=0)
     positions -= center
     slicer = positions[:, 2] < 0.4
@@ -402,6 +423,7 @@ def main():
         hits = fill_background(
             background,
             segment,
+            config.space.resolution,
             max_at_once=math.ceil(
                 segment.target_number / ROTATIONS  # Because we do want rotations!
             ),  # ???: Figure out where to go from here. May become a 'pretty parameter'.
