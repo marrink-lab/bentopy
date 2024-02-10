@@ -35,9 +35,9 @@ def placement_location(valid, selection, segment):
 
 
 def place_segment_convolve(
-    background, segment, max_at_once, max_tries, threshold_coefficient
-) -> int:
-    query = np.flip(segment, axis=(0, 1))
+    background, segment_voxels, max_at_once, max_tries, threshold_coefficient
+) -> list:
+    query = np.flip(segment_voxels, axis=(0, 1))
     start = time.time()
     collisions = fftconvolve(background, query, mode="same")
     # plt.imshow(collisions)
@@ -48,106 +48,96 @@ def place_segment_convolve(
 
     valid = np.where(collisions < 1e-4)
     if valid[0].size > 0:
-        single = False
-        if single:
-            # selection = 0 # Important for consistent benchmarking.
+        # The worst-case segment_voxels diameter.
+        segment_diameter = np.linalg.norm(np.array(segment_voxels.shape))
+        locations = []
+        tries = 0  # Number of times segment placement was unsuccesful.
+        start = time.time()
+        while len(locations) < max_at_once:
+            if tries >= max_tries:
+                # Give up.
+                if VERBOSE:
+                    print("  ! tries is exceeding max_tries")
+                break
             selection = np.random.randint(0, len(valid[0]))
 
-            # For now, just place once per convolution.
-            locations = [placement_location(valid, selection, segment)]
-        else:
-            # The worst-case segment diameter.
-            segment_diameter = np.linalg.norm(np.array(segment.shape))
-            locations = []
-            tries = 0  # Number of times segment placement was unsuccesful.
-            start = time.time()
-            while len(locations) < max_at_once:
-                if tries >= max_tries:
-                    # Give up.
-                    if VERBOSE:
-                        print("  ! tries is exceeding max_tries")
+            # Check whether this selection is not too close to another
+            # previously selected location.
+            free = True
+            for location in locations:
+                attempt = placement_location(valid, selection, segment_voxels)
+                distance = np.linalg.norm(attempt - location)
+                if distance < segment_diameter:
+                    free = False
                     break
-                selection = np.random.randint(0, len(valid[0]))
 
-                # Check whether this selection is not too close to another
-                # previously selected location.
-                free = True
-                for location in locations:
-                    attempt = placement_location(valid, selection, segment)
-                    distance = np.linalg.norm(attempt - location)
-                    if distance < segment_diameter:
-                        free = False
-                        break
-
-                if free:
-                    start = time.time()
-                    locations.append(placement_location(valid, selection, segment))
-                else:
-                    tries += 1
-                    if tries % 10 == 0:
-                        if VERBOSE:
-                            print(
-                                f"        {tries = }/{max_tries},\thits = {len(locations)}/{max_at_once}",
-                                end="\r",
-                            )
-                    placement_duration = time.time() - start
-                    if (
-                        placement_duration * threshold_coefficient
-                        > convolution_duration
-                    ):
-                        # The placement is taking half as long as a convolution
-                        # takes. At that point, it is probably cheaper to just run
-                        # another convolution.
-                        if VERBOSE:
-                            print(
-                                f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
-                            )
-                        break
-            if VERBOSE:
-                print("\x1b[K", end="")  # We used a \r before.
-            if VERBOSE:
-                print(
-                    f"  . placed {len(locations)} segments with {tries}/{max_tries} misses"
+            if free:
+                start = time.time()
+                locations.append(
+                    placement_location(valid, selection, segment_voxels)
                 )
+            else:
+                tries += 1
+                if tries % 10 == 0:
+                    if VERBOSE:
+                        print(
+                            f"        {tries = }/{max_tries},\thits = {len(locations)}/{max_at_once}",
+                            end="\r",
+                        )
+                placement_duration = time.time() - start
+                if (
+                    placement_duration * threshold_coefficient
+                    > convolution_duration
+                ):
+                    # The placement is taking half as long as a convolution
+                    # takes. At that point, it is probably cheaper to just run
+                    # another convolution.
+                    if VERBOSE:
+                        print(
+                            f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
+                        )
+                    break
+        if VERBOSE:
+            print("\x1b[K", end="")  # We used a \r before.
+        if VERBOSE:
+            print(
+                f"  . placed {len(locations)} segments with {tries}/{max_tries} misses"
+            )
 
         # ??? May want to move this elsewhere.
-        selected_voxel_indices = np.asarray(np.where(segment))
+        selected_voxel_indices = np.asarray(np.where(segment_voxels))
 
-        hits = []
+        placements = []
         for location in locations:
             temp_selected_indices = selected_voxel_indices.copy()
             for dim in range(len(selected_voxel_indices)):
                 temp_selected_indices[dim] += location[dim]
 
             background[*temp_selected_indices] = 1
-            hits.append(tuple(location))
+            placements.append(tuple(location))
 
-        return hits
+        return placements
     return []
 
 
 def fill_background(
     background,
     segment,
-    max_num,
     threshold_coefficient=25,
     max_iters=10000,
     max_at_once=10,
     max_tries=4,
     target_density=None,
-) -> list:
+) -> int:
+    max_num = segment.target_number
     start_volume = np.sum(background)
     segment_volume = np.sum(segment)
     background_volume = background.shape[0] * background.shape[1]  # TODO: np.product?
     max_volume = background_volume - start_volume
     if VERBOSE:
         print("--> initiating packing")
-    segment = np.copy(segment)
-    rotation_state = 0
+    rotation = [0, 0, 0]
     segment_hits = 0
-    segment_placements = [
-        [] for _ in range(ROTATIONS)
-    ]  # A list of placements corresponding to each rotation.
     for iteration in range(max_iters):
         if segment_hits >= max_num:
             break
@@ -171,15 +161,19 @@ def fill_background(
                 f"  ^ trying to place {max_at_once_clamped} segments for this convolution",
             )
         start = time.time()
-        hits = place_segment_convolve(
-            background, segment, max_at_once_clamped, max_tries, threshold_coefficient
+        placements = place_segment_convolve(
+            background,
+            segment.voxels(),
+            max_at_once_clamped,
+            max_tries,
+            threshold_coefficient,
         )
         duration = time.time() - start
         if VERBOSE:
             print(f"        ({duration:.3f} s)")
-        segment_hits += len(hits)
+        segment_hits += len(placements)
 
-        if len(hits) == 0:
+        if len(placements) == 0:
             if VERBOSE:
                 print(f"    iteration {iteration} ended with 0 hits")
             density = (np.sum(background) - start_volume) / max_volume
@@ -190,8 +184,8 @@ def fill_background(
             break
 
         if VERBOSE:
-            print(f"        ({duration / hits:.6f} s per segment)")
-        segment_placements[rotation_state].extend(hits)
+            print(f"        ({duration / len(placements):.6f} s per segment)")
+        segment.add_rotation(rotation, placements)
 
         density = (np.sum(background) - start_volume) / max_volume
         if target_density:
@@ -215,14 +209,14 @@ def fill_background(
                 )
 
         # Silly rotation for the next round while we're testing.
-        segment = np.rot90(segment)
-        rotation_state = (rotation_state + 1) % ROTATIONS
+        segment._voxels = np.rot90(segment.voxels())
+        rotation[2] += 90  # Update the z-axis to reflect the rotation.
     end_volume = np.sum(background)
     density = (end_volume - start_volume) / max_volume
     print(
         f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%}; ρ->{density:.3f})"
     )
-    return segment_placements
+    return segment_hits
 
 
 class Configuration:
@@ -242,7 +236,7 @@ class Configuration:
 class Space:
     def __init__(self, size, shape, padding):
         assert len(size) == 3, "The size of a space must be 3-dimensional"
-        self.size = size[:2] # For now, we do a lil 2D thing.
+        self.size = size[:2]  # For now, we do a lil 2D thing.
         self.shape = shape
         self.padding = padding
 
@@ -268,16 +262,20 @@ class Space:
 
 
 class Segment:
-    def __init__(self, name, number, path):
+    def __init__(self, name, target_number, path):
         self.name = name
-        self.number = number
+        self.target_number = target_number
         self.path = path
         self._voxels = None
+        self.batches = []  # A batch is a set of placements with a particular rotation.
 
     def voxels(self):
-        if not self._voxels:
+        if self._voxels is None:
             self._voxels = structure_to_2d(self.path)
         return self._voxels
+
+    def add_rotation(self, rotation, placements):
+        self.batches.append((rotation.copy(), placements))
 
 
 def circle_mask(size, r):
@@ -354,18 +352,24 @@ def render_to_gro(path, segments, box):
 
             ts = u.trajectory.ts
             ts.positions /= 10.0  # Convert from Å to nm.
-            for rotation, rotation_group in enumerate(segment.placements):
+            ag = u.atoms
+            for rotation, placements in segment.batches:
                 # TODO: This ts bs can probably go at some point. But for now we're going for a proof-of-concept.
-                angle = 90 * rotation
-                ag = u.atoms
-                d = [0, 0, 1]  # Rotate around the z axis.
-                rotated_positions = transformations.rotate.rotateby(
-                    angle, direction=d, ag=ag
-                )(ts).positions
+                rotated = ts
+                for angle, d in zip(rotation, ([1, 0, 0], [0, 1, 0], [0, 0, 1])):
+                    if angle == 0:
+                        continue
+                    rotated = transformations.rotate.rotateby(
+                        angle, direction=d, ag=ag
+                    )(ts)
+                rotated_positions = rotated.positions
 
                 center = rotated_positions.mean(axis=0)
                 rotated_positions -= center
-                for idx, placement in enumerate(rotation_group):
+
+                mins = np.min(rotated_positions, axis=0)
+                rotated_positions[:, :2] -= mins[:2] # FIXME: The indexing here is for 2D, to get nice pancakes.
+                for idx, placement in enumerate(placements):
                     dx, dy = placement
                     translation = np.array((dx, dy, 0.0))
                     positions = rotated_positions + translation
@@ -400,19 +404,19 @@ def main():
     start = time.time()
     for segment in config.segments:
         segment_start = time.time()
-        segment_placements = fill_background(
+        hits = fill_background(
             background,
-            segment.voxels(),
-            segment.number,
+            segment,
             max_at_once=math.ceil(
-                segment.number / ROTATIONS  # Because we do want rotations!
+                segment.target_number / ROTATIONS  # Because we do want rotations!
             ),  # ???: Figure out where to go from here. May become a 'pretty parameter'.
             max_tries=4,  # Maximum number of times to fail to place a segment.
         )
-        segment.placements = segment_placements
         segment_end = time.time()
         segment_duration = segment_end - segment_start
-        print(f"packing '{segment.name}' took {segment_duration:.3f} s")
+        print(
+            f"packing '{segment.name}' with a total of {hits} segments took {segment_duration:.3f} s"
+        )
     end = time.time()
     duration = end - start
     print(f"packing process took {duration:.3f} s")
