@@ -78,12 +78,11 @@ def place_segment_convolve(
                 )
             else:
                 tries += 1
-                if tries % 10 == 0:
-                    if VERBOSE:
-                        print(
-                            f"        {tries = }/{max_tries},\thits = {len(locations)}/{max_at_once}",
-                            end="\r",
-                        )
+                if VERBOSE and tries % 10 == 0:
+                    print(
+                        f"        {tries = }/{max_tries},\thits = {len(locations)}/{max_at_once}",
+                        end="\r",
+                    )
                 placement_duration = time.time() - start
                 if (
                     placement_duration * threshold_coefficient
