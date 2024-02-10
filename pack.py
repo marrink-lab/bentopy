@@ -338,7 +338,7 @@ def render_to_gro(path, segments, box):
                 # resnum = atom.resnum
                 resname = atom.resname
                 atomname = atom.name
-                atomnum = atom.ix
+                atomnum = atom.ix + 1
                 # FIXME: resnum should not not actually be the same for every one of them I think.
                 # This sequence is constant between
                 prefix = f"{resnum:5d}{resname:<5s}{atomname:>5s}{atomnum:5d}"
