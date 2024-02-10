@@ -4,10 +4,11 @@ import math
 import time
 
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy.signal import fftconvolve
 import MDAnalysis as MDA
+import numpy as np
 from MDAnalysis import transformations
+from scipy.signal import fftconvolve
+
 
 VERBOSE = False
 ROTATIONS = 4
@@ -40,8 +41,6 @@ def place_segment_convolve(
     query = np.flip(segment_voxels, axis=(0, 1))
     start = time.time()
     collisions = fftconvolve(background, query, mode="same")
-    # plt.imshow(collisions)
-    # plt.show()
     convolution_duration = time.time() - start
     if VERBOSE:
         print(f"        (convolution took {convolution_duration:.3f} s)")
@@ -73,9 +72,8 @@ def place_segment_convolve(
 
             if free:
                 start = time.time()
-                locations.append(
-                    placement_location(valid, selection, segment_voxels)
-                )
+                location = placement_location(valid, selection, segment_voxels)
+                locations.append(location)
             else:
                 tries += 1
                 if VERBOSE and tries % 10 == 0:
@@ -84,10 +82,7 @@ def place_segment_convolve(
                         end="\r",
                     )
                 placement_duration = time.time() - start
-                if (
-                    placement_duration * threshold_coefficient
-                    > convolution_duration
-                ):
+                if placement_duration * threshold_coefficient > convolution_duration:
                     # The placement is taking half as long as a convolution
                     # takes. At that point, it is probably cheaper to just run
                     # another convolution.
@@ -367,7 +362,8 @@ def render_to_gro(path, segments, box):
                 rotated_positions -= center
 
                 mins = np.min(rotated_positions, axis=0)
-                rotated_positions[:, :2] -= mins[:2] # FIXME: The indexing here is for 2D, to get nice pancakes.
+                # FIXME: The indexing here is for 2D, to get nice pancakes.
+                rotated_positions[:, :2] -= mins[:2]
                 for idx, placement in enumerate(placements):
                     dx, dy = placement
                     translation = np.array((dx, dy, 0.0))
@@ -391,7 +387,7 @@ def render_to_gro(path, segments, box):
         gro.seek(len(title) + 1)
         gro.write(f"{total_atoms:>12d}\n")
     end_file_writing = time.time()
-    print(f"wrote the file in {end_file_writing - start_file_writing:.3f} s")
+    print(f"Wrote '{path}' in {end_file_writing - start_file_writing:.3f} s.")
 
 
 def main():
@@ -414,11 +410,11 @@ def main():
         segment_end = time.time()
         segment_duration = segment_end - segment_start
         print(
-            f"packing '{segment.name}' with a total of {hits} segments took {segment_duration:.3f} s"
+            f"Packing '{segment.name}' with a total of {hits} segments took {segment_duration:.3f} s."
         )
     end = time.time()
     duration = end - start
-    print(f"packing process took {duration:.3f} s")
+    print(f"Packing process took {duration:.3f} s.")
 
     if config.output_placement_list:
         stripped_path = config.output_path.removesuffix(".gro").removesuffix(".pdb")
@@ -438,7 +434,7 @@ def main():
                 }
             )
             outfile.write(placement_list_dump)
-            print(f"Wrote placement list to '{placement_list_path}'")
+            print(f"Wrote placement list to '{placement_list_path}'.")
 
     # TODO: This is incorrect since the output config is different than this is.
     if config.output_path.endswith(".gro"):
