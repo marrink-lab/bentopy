@@ -50,13 +50,20 @@ def place_segment_convolve(
     hits = 0
     tries = 0  # Number of times segment placement was unsuccesful.
     start = time.time()
+    previously_selected = set()
     while hits < max_at_once:
         if tries >= max_tries:
             # Give up.
             if VERBOSE:
                 print("  ! tries is exceeding max_tries")
             break
-        selection = np.random.randint(0, len(valid[0]))
+        if len(previously_selected) == len(valid[0]):
+            return None
+        while True:
+            selection = np.random.randint(0, len(valid[0]))
+            if selection not in previously_selected:
+                previously_selected.add(selection)
+                break
 
         # Make sure that this placement does not overlap with another
         # previously selected location.
