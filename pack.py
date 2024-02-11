@@ -14,15 +14,6 @@ VERBOSE = False
 ROTATIONS = 4
 
 
-def bounding_box(arr):
-    rows = np.any(arr, axis=1)
-    cols = np.any(arr, axis=0)
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
-
-    return rmin, rmax, cmin, cmax
-
-
 def placement_location(valid, selection, segment):
     """
     Returns the valid voxel placement position for the segment.
