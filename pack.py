@@ -286,11 +286,28 @@ class Segment:
 
     def voxels(self):
         if self._voxels is None:
-            self._voxels = structure_to_2d(self.path, self._resolution)
+            # FIXME: We just take one slice of the voxels cloud, for now. Revisit for 3D.
+            voxels = structure_to_3d(self.path, self._resolution)
+            zmid = voxels.shape[2] // 2
+            # And now, "tighten up those lines!"
+            slice = voxels[:, :, zmid]
+            mins = np.min(np.where(slice), axis=1)
+            slice = slice[mins[0] :, mins[1] :]
+            maxs = np.max(np.where(slice), axis=1) + 1
+            slice = slice[: maxs[0], : maxs[1]]
+            self._voxels = slice
         return self._voxels
 
     def add_rotation(self, rotation, placements):
         self.batches.append((rotation.copy(), placements))
+
+
+def plot_voxels(voxels):
+    ax = plt.figure().add_subplot(projection="3d")
+    ax.voxels(voxels, linewidth=0.5)
+    ax.set(xlabel="r", ylabel="g", zlabel="b")
+    ax.set_aspect("equal")
+    plt.show()
 
 
 def circle_mask(size, r):
@@ -301,28 +318,22 @@ def circle_mask(size, r):
     return (x[None, :] - cx) ** 2 + (y[:, None] - cy) ** 2 < r**2
 
 
-def structure_to_2d(path, resolution):
+def structure_to_3d(path, resolution):
     # TODO: Revisit the fact that we're creating the universe two times over the runtime (depending on the output format).
     u = MDA.Universe(path)
     # Convert from Å to nm and adjust for resulotion.
     positions = u.atoms.positions / 10.0 / resolution
-    center = positions.mean(axis=0)
-    positions -= center
-    slicer = positions[:, 2] < 0.4
-    slice = positions[slicer][:, :2]
+    mins = positions.min(axis=0)
+    positions -= mins
 
-    xmin = slice[:, 0].min()
-    ymin = slice[:, 1].min()
-    slice[:, 0] -= xmin
-    slice[:, 1] -= ymin
-    xmax = slice[:, 0].max()
-    ymax = slice[:, 1].max()
-    arr = np.zeros((int(xmax) + 1, int(ymax) + 1))
+    maxs = np.ceil(positions.max(axis=0)).astype(int)
+    voxels = np.zeros((maxs[0], maxs[1], maxs[2]))
 
-    for x, y in slice:
-        arr[int(x), int(y)] = 1
+    for x, y, z in positions:
+        voxels[int(x), int(y), int(z)] = 1
 
-    return arr
+    # plot_voxels(voxels)
+    return voxels
 
 
 def configure():
