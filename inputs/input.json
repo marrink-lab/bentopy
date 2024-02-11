@@ -1,0 +1,34 @@
+{
+	"space": {
+		"size": [100, 100, 100],
+		"resolution": 0.5,
+		"mask": {
+			"padding": 20,
+			"shape": "circular"
+		}
+	},
+	"segments": [
+		{
+			"name": "3emn",
+			"number": 10,
+			"path": "structures/3EMN.pdb"
+		},
+		{
+			"name": "3nir",
+			"number": 10,
+			"path": "structures/3NIR.pdb"
+		},
+		{
+			"name": "glucose",
+			"number": 10000,
+			"path": "structures/glucose.pdb"
+		}
+	],
+	"output": {
+		"title": "100x100",
+		"dir": "outputs",
+		"placement_list": true,
+		"render": false,
+		"debug_image": true
+	}
+}

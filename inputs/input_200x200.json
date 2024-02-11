@@ -1,0 +1,44 @@
+{
+	"space": {
+		"size": [200, 200, 200],
+		"resolution": 0.5,
+		"mask": {
+			"padding": 20,
+			"shape": "circular"
+		}
+	},
+	"segments": [
+		{
+			"name": "3emn",
+			"number": 2000,
+			"path": "structures/3EMN.pdb"
+		},
+		{
+			"name": "3nir",
+			"number": 1000,
+			"path": "structures/3NIR.pdb"
+		},
+		{
+			"name": "nad",
+			"number": 100,
+			"path": "structures/NAD.pdb"
+		},
+		{
+			"name": "atp",
+			"number": 100,
+			"path": "structures/ATP.pdb"
+		},
+		{
+			"name": "gluc",
+			"number": 10000,
+			"path": "structures/glucose.pdb"
+		}
+	],
+	"output": {
+		"title": "200x200",
+		"dir": "outputs",
+		"placement_list": true,
+		"render": false,
+		"debug_image": true
+	}
+}

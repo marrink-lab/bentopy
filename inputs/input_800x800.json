@@ -1,0 +1,29 @@
+{
+	"space": {
+		"size": [800, 800, 800],
+		"resolution": 0.5,
+		"mask": {
+			"padding": 20,
+			"shape": "circular"
+		}
+	},
+	"segments": [
+		{
+			"name": "3emn",
+			"number": 10000,
+			"path": "structures/3EMN.pdb"
+		},
+		{
+			"name": "3nir",
+			"number": 10000,
+			"path": "structures/3NIR.pdb"
+		}
+	],
+	"output": {
+		"title": "800x800",
+		"dir": "outputs",
+		"placement_list": true,
+		"render": false,
+		"debug_image": true
+	}
+}
