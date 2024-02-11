@@ -42,7 +42,7 @@ def place_segment_convolve(
     max_tries,
     threshold_coefficient,
     resolution,
-) -> list:
+) -> list | None:
     query = np.flip(segment_voxels, axis=(0, 1))
     start = time.time()
     collisions = fftconvolve(background, query, mode="same")
@@ -51,80 +51,70 @@ def place_segment_convolve(
         print(f"        (convolution took {convolution_duration:.3f} s)")
 
     valid = np.where(collisions < 1e-4)
-    if valid[0].size > 0:
-        # The worst-case segment_voxels diameter.
-        segment_diameter = np.linalg.norm(np.array(segment_voxels.shape))
-        locations = []
-        tries = 0  # Number of times segment placement was unsuccesful.
-        start = time.time()
-        while len(locations) < max_at_once:
-            if tries >= max_tries:
-                # Give up.
-                if VERBOSE:
-                    print("  ! tries is exceeding max_tries")
-                break
-            selection = np.random.randint(0, len(valid[0]))
+    valid_spots = valid[0].size
+    if valid_spots == 0:
+        return None
 
-            # Check whether this selection is not too close to another
-            # previously selected location.
-            free = True
-            for location in locations:
-                attempt = placement_location(valid, selection, segment_voxels)
-                distance = np.linalg.norm(attempt - location)
-                if distance < segment_diameter:
-                    free = False
-                    break
+    placements = []
+    hits = 0
+    tries = 0  # Number of times segment placement was unsuccesful.
+    start = time.time()
+    while hits < max_at_once:
+        if tries >= max_tries:
+            # Give up.
+            if VERBOSE:
+                print("  ! tries is exceeding max_tries")
+            break
+        selection = np.random.randint(0, len(valid[0]))
 
-            if free:
-                start = time.time()
-                location = placement_location(valid, selection, segment_voxels)
-                locations.append(location)
-            else:
-                tries += 1
-                if VERBOSE and tries % 10 == 0:
-                    print(
-                        f"        {tries = }/{max_tries},\thits = {len(locations)}/{max_at_once}",
-                        end="\r",
-                    )
-                placement_duration = time.time() - start
-                if placement_duration * threshold_coefficient > convolution_duration:
-                    # The placement is taking half as long as a convolution
-                    # takes. At that point, it is probably cheaper to just run
-                    # another convolution.
-                    if VERBOSE:
-                        print(
-                            f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
-                        )
-                    break
-        if VERBOSE:
-            print("\x1b[K", end="")  # We used a \r before.
-        if VERBOSE:
-            print(
-                f"  . placed {len(locations)} segments with {tries}/{max_tries} misses"
-            )
+        # Make sure that this placement does not overlap with another
+        # previously selected location.
+        location = placement_location(valid, selection, segment_voxels)
+        prospect = (
+            np.where(segment_voxels) + location[:, None] - np.array([0, 1])[:, None]
+        )
+        # Check for collisions at the prospective site.
+        free = not np.any(background[*prospect])
 
-        # ??? May want to move this elsewhere.
-        selected_voxel_indices = np.asarray(np.where(segment_voxels))
+        if free:
+            start = time.time()
 
-        placements = []
-        for location in locations:
-            temp_selected_indices = selected_voxel_indices.copy()
-            for dim in range(len(selected_voxel_indices)):
-                temp_selected_indices[dim] += location[dim]
+            temp_selected_indices = prospect
+            background[*temp_selected_indices] = 1.0
 
-            background[*temp_selected_indices] = 1
             placements.append(tuple(int(a) for a in location * resolution))
+            hits += 1
+        else:
+            tries += 1
+            if VERBOSE and tries % 10 == 0:
+                print(
+                    f"        {tries = }/{max_tries},\thits = {hits}/{max_at_once}",
+                    end="\r",
+                )
+            placement_duration = time.time() - start
+            if placement_duration * threshold_coefficient > convolution_duration:
+                # The placement is taking half as long as a convolution
+                # takes. At that point, it is probably cheaper to just run
+                # another convolution.
+                if VERBOSE:
+                    print(
+                        f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
+                    )
+                break
+    if VERBOSE:
+        print("\x1b[K", end="")  # We used a \r before.
+    if VERBOSE:
+        print(f"  . placed {hits} segments with {tries}/{max_tries} misses")
 
-        return placements
-    return []
+    return placements
 
 
 def fill_background(
     background,
     segment,
     resolution,
-    threshold_coefficient=25,
-    max_iters=10000,
+    threshold_coefficient=1,
+    max_iters=1000,
     max_at_once=10,
     max_tries=4,
     target_density=None,
@@ -172,11 +162,12 @@ def fill_background(
         duration = time.time() - start
         if VERBOSE:
             print(f"        ({duration:.3f} s)")
-        segment_hits += len(placements)
 
-        if len(placements) == 0:
+        if placements is None:
             if VERBOSE:
-                print(f"    iteration {iteration} ended with 0 hits")
+                print(
+                    f"    iteration {iteration} ended because the convolution produced no viable spots"
+                )
             density = (np.sum(background) - start_volume) / max_volume
             if VERBOSE:
                 print(
@@ -184,9 +175,11 @@ def fill_background(
                 )
             break
 
-        if VERBOSE:
-            print(f"        ({duration / len(placements):.6f} s per segment)")
+        n_placements = len(placements)
+        segment_hits += n_placements
         segment.add_rotation(rotation, placements)
+        if VERBOSE and n_placements != 0:
+            print(f"        ({duration / n_placements:.6f} s per segment)")
 
         density = (np.sum(background) - start_volume) / max_volume
         if target_density:
@@ -437,7 +430,7 @@ def main():
             max_at_once=math.ceil(
                 segment.target_number / ROTATIONS  # Because we do want rotations!
             ),  # ???: Figure out where to go from here. May become a 'pretty parameter'.
-            max_tries=4,  # Maximum number of times to fail to place a segment.
+            max_tries=400,  # Maximum number of times to fail to place a segment.
         )
         segment_end = time.time()
         segment_duration = segment_end - segment_start
