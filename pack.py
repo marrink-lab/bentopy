@@ -455,7 +455,7 @@ def main():
             max_at_once=math.ceil(
                 segment.target_number / ROTATIONS  # Because we do want rotations!
             ),  # ???: Figure out where to go from here. May become a 'pretty parameter'.
-            max_tries=400,  # Maximum number of times to fail to place a segment.
+            max_tries=100,  # Maximum number of times to fail to place a segment.
         )
         segment_end = time.time()
         segment_duration = segment_end - segment_start
