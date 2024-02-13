@@ -412,7 +412,7 @@ def render_to_gro(path, segments, box):
             v1x, v2y, v3z = *box, 10.0  # HACK: This is rather temporary.
         elif len(box) == 3:
             v1x, v2y, v3z = box
-        box_vectors = f"{v1x:.6f} {v2y:.6f} {v3z:.6f}"
+        box_vectors = f"{v1x:.3f} {v2y:.3f} {v3z:.3f}"
         gro.write(box_vectors + "\n")
 
         # Go back to the start and write the number of atoms.
