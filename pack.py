@@ -55,6 +55,9 @@ def place_segment_convolve(
     if VERBOSE:
         print(f"        (convolution took {convolution_duration:.3f} s)")
 
+    # The valid placement points will have a value of 0. Since the floating
+    # point operations leave some small errors laying around, we use a quite
+    # generous cutoff.
     valid = np.where(collisions < 1e-4)
     valid_spots = valid[0].size
     if valid_spots == 0:
