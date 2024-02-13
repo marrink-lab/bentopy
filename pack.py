@@ -34,9 +34,23 @@ def place_segment_convolve(
     threshold_coefficient,
     resolution,
 ) -> list | None:
-    query = np.flip(segment_voxels, axis=(0, 1))
+    # First, we convolve the background to reveal the points where we can
+    # safely place a segment without overlapping them.
     start = time.time()
-    collisions = fftconvolve(background, query, mode="same")
+    query = np.flip(segment_voxels, axis=(0, 1))
+    # We pad the background in order to circumvent the edge effects of the
+    # convolution. By padding and subsequently cropping the `collisions`
+    # matrix, we make sure that there will be no out-of-bounds false positives
+    # in the valid list.
+    # TODO: The choice of pad_width could be optimized, but I doubt it would
+    # make any significant difference.
+    padwidth = max(np.array(query.shape))
+    padded_background = np.pad(background, padwidth, mode="constant", constant_values=2)
+    collisions = fftconvolve(padded_background, query, mode="same")[
+        padwidth:-padwidth, padwidth:-padwidth
+    ]
+    # TODO: Maybe we can just remove this later.
+    assert collisions.shape == background.shape
     convolution_duration = time.time() - start
     if VERBOSE:
         print(f"        (convolution took {convolution_duration:.3f} s)")
