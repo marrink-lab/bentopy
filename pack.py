@@ -7,8 +7,8 @@ import time
 import matplotlib.pyplot as plt
 import MDAnalysis as MDA
 import numpy as np
-from MDAnalysis import transformations
 from scipy.signal import fftconvolve
+from scipy.spatial.transform import Rotation as R
 
 VERBOSE = False
 ROTATIONS = 4
@@ -299,7 +299,15 @@ class Segment:
         return self._voxels
 
     def add_rotation(self, rotation, placements):
-        self.batches.append((rotation.copy(), placements))
+        """
+        Add a batch of placements with a particular rotation.
+
+        The rotation is provided as an `[x, y, z]` list where the first value
+        represents the rotation in degrees around the _x_-axis, etc.
+        """
+        # Convert the rotation to a 3×3 rotation matrix.
+        r = R.from_euler("zyx", rotation, degrees=True).as_matrix().tolist()
+        self.batches.append((r, placements))
 
 
 def plot_voxels(voxels):
@@ -374,31 +382,22 @@ def render_to_gro(path, segments, box):
                 atomnum = atom.ix + 1
                 # FIXME: resnum should not not actually be the same for every one of them I think.
                 # This sequence is constant between
-                prefix = f"{resnum:5d}{resname:<5s}{atomname:>5s}{atomnum:5d}"
+                prefix = f"{resnum:>5d}{resname:<5s}{atomname:>5s}{atomnum:5d}"
                 prefixes.append(prefix)
 
             ts = u.trajectory.ts
             ts.positions /= 10.0  # Convert from Å to nm.
-            ag = u.atoms
+            center = ts.positions.mean(axis=0)
+            ts.positions -= center
             for rotation, placements in segment.batches:
-                # TODO: This ts bs can probably go at some point. But for now we're going for a proof-of-concept.
-                rotated = ts
-                for angle, d in zip(rotation, ([1, 0, 0], [0, 1, 0], [0, 0, 1])):
-                    if angle == 0:
-                        continue
-                    rotated = transformations.rotate.rotateby(
-                        angle, direction=d, ag=ag
-                    )(ts)
-                rotated_positions = rotated.positions
-
-                center = rotated_positions.mean(axis=0)
-                rotated_positions -= center
-
+                r = R.from_matrix(rotation)
+                rotated_positions = r.apply(ts.positions)
                 mins = np.min(rotated_positions, axis=0)
                 # FIXME: The indexing here is for 2D, to get nice pancakes.
                 rotated_positions[:, :2] -= mins[:2]
                 for idx, placement in enumerate(placements):
-                    dx, dy = placement
+                    dx, dy, dz = placement
+                    # This 0.0 will become dz when we go 3D.
                     translation = np.array((dx, dy, 0.0))
                     positions = rotated_positions + translation
                     # TODO: Select relevant parts only.
