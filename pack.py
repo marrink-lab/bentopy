@@ -80,7 +80,7 @@ def place_segment_convolve(
             temp_selected_indices = prospect
             background[*temp_selected_indices] = 1.0
 
-            placements.append(tuple(int(a) for a in location * resolution))
+            placements.append((*(int(a) for a in location * resolution), 0.0))
             hits += 1
         else:
             tries += 1
