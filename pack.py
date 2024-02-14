@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import MDAnalysis as MDA
 import numpy as np
-from scipy.signal import fftconvolve
+from scipy.signal import oaconvolve
 from scipy.spatial.transform import Rotation as R
 
 VERBOSE = False
@@ -46,7 +46,7 @@ def place_segment_convolve(
     # make any significant difference.
     padwidth = max(np.array(query.shape))
     padded_background = np.pad(background, padwidth, mode="constant", constant_values=2)
-    collisions = fftconvolve(padded_background, query, mode="same")[
+    collisions = oaconvolve(padded_background, query, mode="same")[
         padwidth:-padwidth, padwidth:-padwidth
     ]
     # TODO: Maybe we can just remove this later.
