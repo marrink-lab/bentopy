@@ -3,6 +3,7 @@ import json
 import math
 import os
 import time
+import itertools
 
 import matplotlib.pyplot as plt
 import MDAnalysis as MDA
@@ -12,6 +13,7 @@ from scipy.spatial.transform import Rotation as R
 
 VERBOSE = False
 ROTATIONS = 4
+RNG = np.random.default_rng()
 
 
 def placement_location(valid, selection, segment):
@@ -50,7 +52,6 @@ def place_segment_convolve(
         padwidth:-padwidth, padwidth:-padwidth, padwidth:-padwidth
     ]
     # TODO: Maybe we can just remove this later.
-    print(f"{collisions.shape = } {background.shape = }")
     assert collisions.shape == background.shape
     convolution_duration = time.time() - start
     if VERBOSE:
@@ -126,7 +127,7 @@ def place_segment_convolve(
 def fill_background(
     background,
     segment,
-    resolution,
+    rotations,
     threshold_coefficient=1,
     max_iters=1000,
     max_at_once=10,
@@ -136,11 +137,12 @@ def fill_background(
     max_num = segment.target_number
     start_volume = np.sum(background)
     segment_volume = np.sum(segment)
-    background_volume = background.shape[0] * background.shape[1] * background.shape[2]  # TODO: np.product?
+    background_volume = (
+        background.shape[0] * background.shape[1] * background.shape[2]
+    )  # TODO: np.product?
     max_volume = background_volume - start_volume
     if VERBOSE:
         print("--> initiating packing")
-    rotation = [0, 0, 0]
     segment_hits = 0
     for iteration in range(max_iters):
         if segment_hits >= max_num:
@@ -171,7 +173,7 @@ def fill_background(
             max_at_once_clamped,
             max_tries,
             threshold_coefficient,
-            resolution,
+            segment.resolution,
         )
         duration = time.time() - start
         if VERBOSE:
@@ -191,7 +193,7 @@ def fill_background(
 
         n_placements = len(placements)
         segment_hits += n_placements
-        segment.add_rotation(rotation, placements)
+        segment.add_rotation(placements)
         if VERBOSE and n_placements != 0:
             print(f"        ({duration / n_placements:.6f} s per segment)")
 
@@ -216,9 +218,7 @@ def fill_background(
                     f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
                 )
 
-        # Silly rotation for the next round while we're testing.
-        segment._voxels = np.rot90(segment.voxels())
-        rotation[2] += 90  # Update the z-axis to reflect the rotation.
+        segment.rotation = next(rotations)
     end_volume = np.sum(background)
     density = (end_volume - start_volume) / max_volume
     print(
@@ -297,32 +297,87 @@ class Segment:
         self.name = name
         self.target_number = target_number
         self.path = path
-        self._resolution = resolution
-        self._voxels = None
+        self.rotation = np.eye(3)  # We start out with the identity matrix.
+        self.resolution = resolution
+        self._points = None
+        # TODO: Perhaps this ought to be a dictionary, but then we would need a
+        # method of normalizing rotation matrices to a lower precision in order
+        # to make the bit patterns of ~identical rotations exactly the same.
+        # Otherwise there'd be no benefit.
         self.batches = []  # A batch is a set of placements with a particular rotation.
 
-    def voxels(self):
-        if self._voxels is None:
-            voxels = structure_to_3d(self.path, self._resolution)
-            # And now, "tighten up those lines!"
-            # TODO: We can do this in a more pretty manner, I'm sure.
-            mins = np.min(np.where(voxels), axis=1)
-            voxels = voxels[mins[0] :, mins[1] :, mins[2] :]
-            maxs = np.max(np.where(voxels), axis=1) + 1
-            voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
-            self._voxels = voxels
-        return self._voxels
+    def points(self):
+        """
+        Returns the centered point cloud of the atoms in this Segment.
 
-    def add_rotation(self, rotation, placements):
+        Positions are given in nanometers.
+
+        If no point cloud is stored internally, yet, it will be loaded from
+        this Segment's path.
+        """
+        if self._points is None:
+            self._points = load_points(self.path)
+
+        return self._points
+
+    def voxels(self):
+        """
+        Returns the voxels for this Segment's point cloud, with this
+        Segment's rotation applied before voxelization.
+        """
+        return voxelize(self.rotation @ self.points().T, self.resolution, tighten=True)
+
+    def add_rotation(self, placements):
         """
         Add a batch of placements with a particular rotation.
 
         The rotation is provided as an `[x, y, z]` list where the first value
         represents the rotation in degrees around the _x_-axis, etc.
         """
-        # Convert the rotation to a 3×3 rotation matrix.
-        r = R.from_euler("zyx", rotation, degrees=True).as_matrix().tolist()
-        self.batches.append((r, placements))
+        self.batches.append((self.rotation.tolist(), placements))
+
+
+def load_points(path):
+    """
+    Load atoms from a molecule file at `path` and return them as a point cloud.
+
+    Positions in nanometers.
+    """
+    # TODO: Revisit the fact that we're creating the universe two times over
+    # the runtime (depending on whether the placement list is rendered to a gro
+    # file internally).
+    # TODO: Consider whether it should be loaded into memory explicitly.
+    u = MDA.Universe(path)
+    # Convert from Å to nm.
+    return u.atoms.positions / 10.0
+
+
+def voxelize(points, resolution, tighten=False):
+    """
+    Return the voxels corresponding to a point cloud.
+
+    The value of the provided resolution will be the final voxel size.
+    """
+    points = points / resolution
+    mins = points.min(axis=1)
+    points -= mins[:, None]
+
+    maxs = np.ceil(points.max(axis=1)).astype(int)
+    voxels = np.zeros((maxs[0], maxs[1], maxs[2]))  # FIXME: Better way?
+
+    # TODO: This seems silly. Must be a better way.
+    for x, y, z in points.T:
+        voxels[int(x), int(y), int(z)] = 1
+
+    if tighten:
+        # And now, "tighten up those lines!"
+        # TODO: We can do this in a more pretty manner, I'm sure.
+        mins = np.min(np.where(voxels), axis=1)
+        voxels = voxels[mins[0] :, mins[1] :, mins[2] :]
+        maxs = np.max(np.where(voxels), axis=1) + 1
+        voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
+
+    return voxels
 
 
 def plot_voxels(voxels):
@@ -347,24 +402,6 @@ def sphere_mask(size, r):
         + (y[:, None, :] - cy) ** 2
         + (z[:, :, None] - cz) ** 2
     ) < r**2
-
-
-def structure_to_3d(path, resolution):
-    # TODO: Revisit the fact that we're creating the universe two times over the runtime (depending on the output format).
-    u = MDA.Universe(path)
-    # Convert from Å to nm and adjust for resulotion.
-    positions = u.atoms.positions / 10.0 / resolution
-    mins = positions.min(axis=0)
-    positions -= mins
-
-    maxs = np.ceil(positions.max(axis=0)).astype(int)
-    voxels = np.zeros((maxs[0], maxs[1], maxs[2]))
-
-    for x, y, z in positions:
-        voxels[int(x), int(y), int(z)] = 1
-
-    # plot_voxels(voxels)
-    return voxels
 
 
 def configure():
@@ -439,6 +476,22 @@ def render_to_gro(path, segments, box):
     print(f"Wrote '{path}' in {end_file_writing - start_file_writing:.3f} s.")
 
 
+def rotations(n):
+    """
+    Create a cycling iterator over a shuffled set of spherical rotations.
+
+    For the provided `n`, `n ** 3` rotations will be generated.
+    """
+    # TODO: I'm sure there's a better strategy for this :)
+    r = [(xa, ya, za) for za in range(n) for ya in range(n) for xa in range(n)]
+    rotations = np.array(r, dtype=np.float32)
+    RNG.shuffle(rotations)
+    rotations *= 360.0 / n  # Normalize and make into an degree angle.
+    r = R.from_euler("zyx", rotations, degrees=True).as_matrix()
+
+    return itertools.cycle(r)
+
+
 def main():
     config = configure()
     background = config.space.background()
@@ -451,10 +504,9 @@ def main():
         hits = fill_background(
             background,
             segment,
-            config.space.resolution,
-            max_at_once=math.ceil(
-                segment.target_number / ROTATIONS  # Because we do want rotations!
-            ),  # ???: Figure out where to go from here. May become a 'pretty parameter'.
+            rotations(ROTATIONS),
+            # HACK: For now, this may be necessary.
+            max_at_once=math.ceil(segment.target_number / ROTATIONS**3),
             max_tries=100,  # Maximum number of times to fail to place a segment.
         )
         segment_end = time.time()
