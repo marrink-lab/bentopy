@@ -18,15 +18,11 @@ def placement_location(valid, selection, segment):
     """
     Returns the valid voxel placement position for the segment.
     """
-    segment_shape = np.array(segment.shape)
-    # The division and remainder operations, here, serve to model where the
-    # 0-value "center of valid segment placement" from the convolution is in
-    # relation to the lower corner of the segment voxels.
-    return (
-        np.array([valid[0][selection], valid[1][selection]])
-        - (segment_shape // 2 + segment_shape % 2)
-        + 1
+    segment_center = np.array(segment.shape) // 2
+    valid_pos = np.array(
+        (valid[0][selection], valid[1][selection], valid[2][selection])
     )
+    return valid_pos - segment_center
 
 
 def place_segment_convolve(
@@ -40,7 +36,7 @@ def place_segment_convolve(
     # First, we convolve the background to reveal the points where we can
     # safely place a segment without overlapping them.
     start = time.time()
-    query = np.flip(segment_voxels, axis=(0, 1))
+    query = np.flip(segment_voxels)
     # We pad the background in order to circumvent the edge effects of the
     # convolution. By padding and subsequently cropping the `collisions`
     # matrix, we make sure that there will be no out-of-bounds false positives
@@ -49,10 +45,12 @@ def place_segment_convolve(
     # make any significant difference.
     padwidth = max(np.array(query.shape))
     padded_background = np.pad(background, padwidth, mode="constant", constant_values=2)
+    # TODO: There must be a more elegant way.
     collisions = oaconvolve(padded_background, query, mode="same")[
-        padwidth:-padwidth, padwidth:-padwidth
+        padwidth:-padwidth, padwidth:-padwidth, padwidth:-padwidth
     ]
     # TODO: Maybe we can just remove this later.
+    print(f"{collisions.shape = } {background.shape = }")
     assert collisions.shape == background.shape
     convolution_duration = time.time() - start
     if VERBOSE:
@@ -88,9 +86,7 @@ def place_segment_convolve(
         # Make sure that this placement does not overlap with another
         # previously selected location.
         location = placement_location(valid, selection, segment_voxels)
-        prospect = (
-            np.where(segment_voxels) + location[:, None] - np.array([0, 1])[:, None]
-        )
+        prospect = np.where(segment_voxels) + location[:, None]
         # Check for collisions at the prospective site.
         free = not np.any(background[*prospect])
 
@@ -100,7 +96,7 @@ def place_segment_convolve(
             temp_selected_indices = prospect
             background[*temp_selected_indices] = 1.0
 
-            placements.append((*(int(a) for a in location * resolution), 0.0))
+            placements.append(tuple(int(a) for a in location * resolution))
             hits += 1
         else:
             tries += 1
@@ -140,7 +136,7 @@ def fill_background(
     max_num = segment.target_number
     start_volume = np.sum(background)
     segment_volume = np.sum(segment)
-    background_volume = background.shape[0] * background.shape[1]  # TODO: np.product?
+    background_volume = background.shape[0] * background.shape[1] * background.shape[2]  # TODO: np.product?
     max_volume = background_volume - start_volume
     if VERBOSE:
         print("--> initiating packing")
@@ -265,7 +261,7 @@ class Space:
     def __init__(self, size, resolution, shape, padding):
         assert len(size) == 3, "The size of a space must be 3-dimensional"
         # Size in nm (unaffected by whatever value resolution has).
-        self.size = size[:2]  # For now, we do a lil 2D thing.
+        self.size = size
         self.resolution = resolution
         self.shape = shape
         # Padding in nm (unaffected by whatever value resolution has).
@@ -277,17 +273,18 @@ class Space:
         padding = self.padding / self.resolution
 
         background = np.ones(size, dtype=np.float32)
-        width, height = size
+        width, height, depth = size
         if VERBOSE:
             print(f"{self.shape = }")
         if self.shape == "circular":
-            size = min(width, height)
+            size = min(width, height, depth)
             # TODO: Make this elliptical or something idk.
-            mask = circle_mask(size, size // 2 - padding)
+            mask = sphere_mask(size, size // 2 - padding)
         elif self.shape == "rectangular":
             mask = np.index_exp[
                 padding : width - padding,
                 padding : height - padding,
+                padding : depth - padding,
             ]
         else:
             raise ValueError
@@ -306,16 +303,14 @@ class Segment:
 
     def voxels(self):
         if self._voxels is None:
-            # FIXME: We just take one slice of the voxels cloud, for now. Revisit for 3D.
             voxels = structure_to_3d(self.path, self._resolution)
-            zmid = voxels.shape[2] // 2
             # And now, "tighten up those lines!"
-            slice = voxels[:, :, zmid]
-            mins = np.min(np.where(slice), axis=1)
-            slice = slice[mins[0] :, mins[1] :]
-            maxs = np.max(np.where(slice), axis=1) + 1
-            slice = slice[: maxs[0], : maxs[1]]
-            self._voxels = slice
+            # TODO: We can do this in a more pretty manner, I'm sure.
+            mins = np.min(np.where(voxels), axis=1)
+            voxels = voxels[mins[0] :, mins[1] :, mins[2] :]
+            maxs = np.max(np.where(voxels), axis=1) + 1
+            voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
+            self._voxels = voxels
         return self._voxels
 
     def add_rotation(self, rotation, placements):
@@ -338,12 +333,20 @@ def plot_voxels(voxels):
     plt.show()
 
 
-def circle_mask(size, r):
+# TODO: There's got to be a nicer way of writing this function.
+def sphere_mask(size, r):
     x = np.arange(0, size)
     y = np.arange(0, size)
+    z = np.arange(0, size)
     cx = size // 2
     cy = size // 2
-    return (x[None, :] - cx) ** 2 + (y[:, None] - cy) ** 2 < r**2
+    cz = size // 2
+    return
+    (
+        (x[None, :, :] - cx) ** 2
+        + (y[:, None, :] - cy) ** 2
+        + (z[:, :, None] - cz) ** 2
+    ) < r**2
 
 
 def structure_to_3d(path, resolution):
@@ -387,6 +390,10 @@ def configure():
 def render_to_gro(path, segments, box):
     start_file_writing = time.time()
     with open(path, "w") as gro:
+        # Format box vecs now, to prevent discovering if they're bad much later.
+        v1x, v2y, v3z = box
+        box_vectors = f"{v1x:.3f} {v2y:.3f} {v3z:.3f}"
+
         title = "pack"
         gro.write(title + "\n")
         gro.write("------------" + "\n")  # Placeholder for the number of atoms.
@@ -412,13 +419,9 @@ def render_to_gro(path, segments, box):
             for rotation, placements in segment.batches:
                 r = R.from_matrix(rotation)
                 rotated_positions = r.apply(ts.positions)
-                mins = np.min(rotated_positions, axis=0)
-                # FIXME: The indexing here is for 2D, to get nice pancakes.
-                rotated_positions[:, :2] -= mins[:2]
                 for idx, placement in enumerate(placements):
                     dx, dy, dz = placement
-                    # This 0.0 will become dz when we go 3D.
-                    translation = np.array((dx, dy, 0.0))
+                    translation = np.array((dx, dy, dz))
                     positions = rotated_positions + translation
                     # TODO: Select relevant parts only.
                     for prefix, position in zip(prefixes, positions):
@@ -427,12 +430,6 @@ def render_to_gro(path, segments, box):
                         gro.write(line + "\n")
                         total_atoms += 1
 
-        # v1x, v2y, v3z = np.max(positions, axis=1)
-        if len(box) == 2:
-            v1x, v2y, v3z = *box, 10.0  # HACK: This is rather temporary.
-        elif len(box) == 3:
-            v1x, v2y, v3z = box
-        box_vectors = f"{v1x:.3f} {v2y:.3f} {v3z:.3f}"
         gro.write(box_vectors + "\n")
 
         # Go back to the start and write the number of atoms.
@@ -474,7 +471,7 @@ def main():
         with open(placement_list_path, "w") as outfile:
             placement_list_dump = json.dumps(
                 {
-                    "size": [*config.space.size, 0],  # HACK: This will become 3D later.
+                    "size": config.space.size,
                     "placements": [
                         {
                             "name": segment.name,
@@ -498,8 +495,9 @@ def main():
 
     if config.debug_image:
         path = f"{config.output_dir}/{config.title}.png"
-        plt.imsave(path, background)
-        print(f"Wrote debug image to '{path}'.")
+        # plt.imsave(path, background)
+        # print(f"Wrote debug image to '{path}'.")
+        print(f"ERROR: CANNOT WRITE IMAGE TO PATH")
 
 
 if __name__ == "__main__":
