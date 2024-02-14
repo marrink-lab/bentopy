@@ -19,6 +19,9 @@ def placement_location(valid, selection, segment):
     Returns the valid voxel placement position for the segment.
     """
     segment_shape = np.array(segment.shape)
+    # The division and remainder operations, here, serve to model where the
+    # 0-value "center of valid segment placement" from the convolution is in
+    # relation to the lower corner of the segment voxels.
     return (
         np.array([valid[0][selection], valid[1][selection]])
         - (segment_shape // 2 + segment_shape % 2)
