@@ -226,7 +226,7 @@ def fill_background(
 
 
 class Configuration:
-    def __init__(self, json_src: str, verbose: bool):
+    def __init__(self, json_src: str, verbose: bool, rearrange: bool):
         config = json.loads(json_src)
         space = config["space"]
         mask = space["mask"]
@@ -238,6 +238,17 @@ class Configuration:
             Segment(s["name"], s["number"], s["path"], self.space.resolution)
             for s in segments
         ]
+        if rearrange:
+            if verbose:
+                print("Order before:")
+                for segment in self.segments:
+                    print(f"\t{segment.name}")
+            self.segments.sort(key=lambda seg: seg.voxels().sum(), reverse=True)
+            if verbose:
+                print("Order after:")
+                for segment in self.segments:
+                    print(f"\t{segment.name}")
+            print("Rearranged the segments.")
         output = config["output"]
         self.title = output["title"]
         self.output_dir = output["dir"]
@@ -412,6 +423,11 @@ def configure():
         "config", metavar="path", nargs=1, type=str, help="json file to define the run"
     )
     parser.add_argument(
+        "--rearrange",
+        action="store_true",
+        help="Sort the input structures by approximate size to optimize packing",
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output"
     )
     args = parser.parse_args()
@@ -419,7 +435,7 @@ def configure():
     config_path = args.config[0]
     with open(config_path, "r") as config_file:
         config_src = config_file.read()
-    return Configuration(config_src, args.verbose)
+    return Configuration(config_src, args.verbose, args.rearrange)
 
 
 def render_to_gro(path, segments, box):
