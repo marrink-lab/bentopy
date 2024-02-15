@@ -3,7 +3,6 @@ import json
 import math
 import os
 import time
-import itertools
 
 import matplotlib.pyplot as plt
 import MDAnalysis as MDA
@@ -127,7 +126,6 @@ def place_segment_convolve(
 def fill_background(
     background,
     segment,
-    rotations,
     threshold_coefficient=1,
     max_iters=1000,
     max_at_once=10,
@@ -218,7 +216,7 @@ def fill_background(
                     f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
                 )
 
-        segment.rotation = next(rotations)
+        segment.rotation = R.random(random_state=RNG).as_matrix()
     end_volume = np.sum(background)
     density = (end_volume - start_volume) / max_volume
     print(
@@ -476,22 +474,6 @@ def render_to_gro(path, segments, box):
     print(f"Wrote '{path}' in {end_file_writing - start_file_writing:.3f} s.")
 
 
-def rotations(n):
-    """
-    Create a cycling iterator over a shuffled set of spherical rotations.
-
-    For the provided `n`, `n ** 3` rotations will be generated.
-    """
-    # TODO: I'm sure there's a better strategy for this :)
-    r = [(xa, ya, za) for za in range(n) for ya in range(n) for xa in range(n)]
-    rotations = np.array(r, dtype=np.float32)
-    RNG.shuffle(rotations)
-    rotations *= 360.0 / n  # Normalize and make into an degree angle.
-    r = R.from_euler("zyx", rotations, degrees=True).as_matrix()
-
-    return itertools.cycle(r)
-
-
 def main():
     config = configure()
     background = config.space.background()
@@ -504,9 +486,8 @@ def main():
         hits = fill_background(
             background,
             segment,
-            rotations(ROTATIONS),
             # HACK: For now, this may be necessary.
-            max_at_once=math.ceil(segment.target_number / ROTATIONS**3),
+            max_at_once=math.ceil(segment.target_number / 10),
             max_tries=100,  # Maximum number of times to fail to place a segment.
         )
         segment_end = time.time()
