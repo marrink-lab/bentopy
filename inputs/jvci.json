@@ -1,71 +1,71 @@
 {
 	"space": {
-		"size": [420, 420, 420],
+		"size": [322, 322, 322],
 		"resolution": 0.5,
 		"mask": {
-			"padding": 30,
-			"shape": "circular"
+			"padding": 0,
+			"shape": "none"
 		}
 	},
 	"segments": [
 		{
 			"name": "jvci-syn3.0/REF_model1_76285",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76285.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76288",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76288.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76290",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76290.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76291",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76291.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76293",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76293.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76295",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76295.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76300",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76300.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76302",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76302.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76306",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76306.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76309",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76309.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76310",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76310.pdb"
 		},
 		{
 			"name": "jvci-syn3.0/REF_model1_76312",
-			"number": 500,
+			"number": 5000,
 			"path": "structures/jvci-syn3.0/REF_model1_76312.pdb"
 		},
 		{
@@ -75,12 +75,12 @@
 		},
 		{
 			"name": "atp",
-			"number": 10000,
+			"number": 20988,
 			"path": "structures/ATP.pdb"
 		},
 		{
 			"name": "gluc",
-			"number": 100000,
+			"number": 20000,
 			"path": "structures/glucose.pdb"
 		}
 	],
@@ -92,5 +92,3 @@
 		"debug_image": true
 	}
 }
-
-
