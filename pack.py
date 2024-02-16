@@ -295,6 +295,8 @@ class Space:
                 padding : height - padding,
                 padding : depth - padding,
             ]
+        elif self.shape == "none":
+            mask = tuple()
         else:
             raise ValueError
         background[mask] = 0
