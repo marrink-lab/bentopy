@@ -34,7 +34,7 @@ def placement_location(valid, selection, segment):
     return valid_pos - segment_center
 
 
-def place_segment_convolve(
+def place(
     background,
     segment_voxels,
     max_at_once,
@@ -42,6 +42,9 @@ def place_segment_convolve(
     threshold_coefficient,
     resolution,
 ) -> list | None:
+    """
+    Place a number of segments into the background.
+    """
     # First, we convolve the background to reveal the points where we can
     # safely place a segment without overlapping them.
     start = time.time()
@@ -125,7 +128,7 @@ def place_segment_convolve(
     return placements
 
 
-def fill_background(
+def pack(
     background,
     segment,
     threshold_coefficient=1,
@@ -134,6 +137,9 @@ def fill_background(
     max_tries=4,
     target_density=None,
 ) -> int:
+    """
+    Pack the background with a segment.
+    """
     max_num = segment.target_number
     start_volume = np.sum(background)
     segment_volume = np.sum(segment)
@@ -164,7 +170,7 @@ def fill_background(
             f"  ^ trying to place {max_at_once_clamped} segments for this convolution",
         )
         start = time.time()
-        placements = place_segment_convolve(
+        placements = place(
             background,
             segment.voxels(),
             max_at_once_clamped,
@@ -493,7 +499,7 @@ def main():
     start = time.time()
     for segment in config.segments:
         segment_start = time.time()
-        hits = fill_background(
+        hits = pack(
             background,
             segment,
             # HACK: For now, this may be necessary.
