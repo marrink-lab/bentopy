@@ -222,7 +222,7 @@ def pack(
 
 
 class Configuration:
-    def __init__(self, json_src: str, verbose: bool, rearrange: bool):
+    def __init__(self, json_src: str, verbose: bool, rearrange: bool, seed):
         config = json.loads(json_src)
         space = config["space"]
         mask = space["mask"]
@@ -234,6 +234,7 @@ class Configuration:
             Segment(s["name"], s["number"], s["path"], self.space.resolution)
             for s in segments
         ]
+        self.seed = seed
         if rearrange:
             if verbose:
                 print("Order before:")
@@ -425,6 +426,9 @@ def configure():
         help="Sort the input structures by approximate size to optimize packing",
     )
     parser.add_argument(
+        "--seed", default=None, type=int, help="Random seed"
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output"
     )
     args = parser.parse_args()
@@ -432,7 +436,7 @@ def configure():
     config_path = args.config[0]
     with open(config_path, "r") as config_file:
         config_src = config_file.read()
-    return Configuration(config_src, args.verbose, args.rearrange)
+    return Configuration(config_src, args.verbose, args.rearrange, args.seed)
 
 
 def render_to_gro(path, segments, box):
@@ -492,6 +496,8 @@ def main():
     background = config.space.background()
     global VERBOSE
     VERBOSE = config.verbose
+    global RNG
+    RNG = np.random.default_rng(seed=config.seed)
 
     start = time.time()
     for segment in config.segments:
