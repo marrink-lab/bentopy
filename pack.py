@@ -28,9 +28,7 @@ def placement_location(valid, selection, segment):
     Returns the valid voxel placement position for the segment.
     """
     segment_center = np.array(segment.shape) // 2
-    valid_pos = np.array(
-        (valid[0][selection], valid[1][selection], valid[2][selection])
-    )
+    valid_pos = valid[:, selection]
     return valid_pos - segment_center
 
 
@@ -69,9 +67,8 @@ def place(
     # The valid placement points will have a value of 0. Since the floating
     # point operations leave some small errors laying around, we use a quite
     # generous cutoff.
-    valid = np.where(collisions < 1e-4)
-    valid_spots = valid[0].size
-    if valid_spots == 0:
+    valid = np.array(np.where(collisions < 1e-4))
+    if valid.size == 0:
         return None
 
     placements = []
