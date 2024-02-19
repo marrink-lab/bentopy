@@ -87,7 +87,7 @@ def place(
         if len(previously_selected) == len(valid[0]):
             return None
         while True:
-            selection = np.random.randint(0, len(valid[0]))
+            selection = RNG.integers(0, len(valid[0]))
             if selection not in previously_selected:
                 previously_selected.add(selection)
                 break
