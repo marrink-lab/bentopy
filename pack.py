@@ -15,6 +15,14 @@ ROTATIONS = 4
 RNG = np.random.default_rng()
 
 
+def log(*args, **kwargs):
+    """
+    Only print to console if verbose output is desired.
+    """
+    if VERBOSE:
+        print(*args, **kwargs)
+
+
 def placement_location(valid, selection, segment):
     """
     Returns the valid voxel placement position for the segment.
@@ -53,8 +61,7 @@ def place_segment_convolve(
     # TODO: Maybe we can just remove this later.
     assert collisions.shape == background.shape
     convolution_duration = time.time() - start
-    if VERBOSE:
-        print(f"        (convolution took {convolution_duration:.3f} s)")
+    log(f"        (convolution took {convolution_duration:.3f} s)")
 
     # The valid placement points will have a value of 0. Since the floating
     # point operations leave some small errors laying around, we use a quite
@@ -72,8 +79,7 @@ def place_segment_convolve(
     while hits < max_at_once:
         if tries >= max_tries:
             # Give up.
-            if VERBOSE:
-                print("  ! tries is exceeding max_tries")
+            log("  ! tries is exceeding max_tries")
             break
         if len(previously_selected) == len(valid[0]):
             return None
@@ -100,25 +106,21 @@ def place_segment_convolve(
             hits += 1
         else:
             tries += 1
-            if VERBOSE and tries % 10 == 0:
-                print(
-                    f"        {tries = }/{max_tries},\thits = {hits}/{max_at_once}",
-                    end="\r",
-                )
+            log(
+                f"        {tries = }/{max_tries},\thits = {hits}/{max_at_once}",
+                end="\r",
+            )
             placement_duration = time.time() - start
             if placement_duration * threshold_coefficient > convolution_duration:
                 # The placement is taking half as long as a convolution
                 # takes. At that point, it is probably cheaper to just run
                 # another convolution.
-                if VERBOSE:
-                    print(
-                        f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
-                    )
+                log(
+                    f"  & placement_duration ({placement_duration:.6f}) * tc ({threshold_coefficient:.2f}) > convolution_duration"
+                )
                 break
-    if VERBOSE:
-        print("\x1b[K", end="")  # We used a \r before.
-    if VERBOSE:
-        print(f"  . placed {hits} segments with {tries}/{max_tries} misses")
+    log("\x1b[K", end="")  # Clear the line since we used \r before.
+    log(f"  . placed {hits} segments with {tries}/{max_tries} misses")
 
     return placements
 
@@ -139,14 +141,12 @@ def fill_background(
         background.shape[0] * background.shape[1] * background.shape[2]
     )  # TODO: np.product?
     max_volume = background_volume - start_volume
-    if VERBOSE:
-        print("--> initiating packing")
+    log("--> initiating packing")
     segment_hits = 0
     for iteration in range(max_iters):
         if segment_hits >= max_num:
             break
-        if VERBOSE:
-            print(f" -> iteration {iteration}")
+            log(f" -> iteration {iteration}")
         if target_density:
             # In case it could overshoot the target_density, limit the maximum
             # number of elements that can be placed per convolution.
@@ -160,10 +160,9 @@ def fill_background(
             remaining_segments = max_num - segment_hits
         max_at_once_clamped = min(max_at_once, remaining_segments)
         assert max_at_once_clamped > 0
-        if VERBOSE:
-            print(
-                f"  ^ trying to place {max_at_once_clamped} segments for this convolution",
-            )
+        log(
+            f"  ^ trying to place {max_at_once_clamped} segments for this convolution",
+        )
         start = time.time()
         placements = place_segment_convolve(
             background,
@@ -174,47 +173,41 @@ def fill_background(
             segment.resolution,
         )
         duration = time.time() - start
-        if VERBOSE:
-            print(f"        ({duration:.3f} s)")
+        log(f"        ({duration:.3f} s)")
 
         if placements is None:
-            if VERBOSE:
-                print(
-                    f"    iteration {iteration} ended because the convolution produced no viable spots"
-                )
+            log(
+                f"    iteration {iteration} ended because the convolution produced no viable spots"
+            )
             density = (np.sum(background) - start_volume) / max_volume
-            if VERBOSE:
-                print(
-                    f"  * finished packing with {segment_hits} hits at a density of {density:.3f}"
-                )
+            log(
+                f"  * finished packing with {segment_hits} hits at a density of {density:.3f}"
+            )
             break
 
         n_placements = len(placements)
         segment_hits += n_placements
         segment.add_rotation(placements)
-        if VERBOSE and n_placements != 0:
-            print(f"        ({duration / n_placements:.6f} s per segment)")
+        if n_placements != 0:
+            log(f"        ({duration / n_placements:.6f} s per segment)")
 
         density = (np.sum(background) - start_volume) / max_volume
         if target_density:
             # Do a density check.
             if density >= target_density:
-                if VERBOSE:
-                    print(
-                        f"    target density of {target_density:.2} was reached with {density:.2}"
-                    )
+                log(
+                    f"    target density of {target_density:.2} was reached with {density:.2}"
+                )
                 break
 
         if target_density:
-            if VERBOSE:
-                print(
-                    f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}/{target_density:.4f}"
-                )
+            log(
+                f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}/{target_density:.4f}"
+            )
         else:
-            if VERBOSE:
-                print(
-                    f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
-                )
+            log(
+                f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
+            )
 
         segment.rotation = R.random(random_state=RNG).as_matrix()
     end_volume = np.sum(background)
@@ -283,8 +276,7 @@ class Space:
 
         background = np.ones(size, dtype=np.float32)
         width, height, depth = size
-        if VERBOSE:
-            print(f"{self.shape = }")
+        log(f"{self.shape = }")
         if self.shape == "circular":
             size = min(width, height, depth)
             # TODO: Make this elliptical or something idk.
@@ -545,10 +537,10 @@ def main():
         )
 
     if config.debug_image:
-        path = f"{config.output_dir}/{config.title}.png"
+        _path = f"{config.output_dir}/{config.title}.png"
         # plt.imsave(path, background)
         # print(f"Wrote debug image to '{path}'.")
-        print(f"ERROR: CANNOT WRITE IMAGE TO PATH")
+        print("ERROR: CANNOT WRITE IMAGE TO PATH")
 
 
 if __name__ == "__main__":
