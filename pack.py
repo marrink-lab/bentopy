@@ -281,15 +281,15 @@ class Space:
         background = np.ones(size, dtype=np.float32)
         width, height, depth = size
         log(f"{self.shape = }")
-        if self.shape == "circular":
+        if self.shape == "spherical":
             size = min(width, height, depth)
             # TODO: Make this elliptical or something idk.
-            mask = sphere_mask(size, size // 2 - padding)
-        elif self.shape == "rectangular":
-            mask = np.index_exp[
-                padding : width - padding,
-                padding : height - padding,
-                padding : depth - padding,
+            mask = sphere_mask(size, size / 2 - padding)
+        elif self.shape == "cuboid":
+            mask = np.s_[
+                int(padding) : int(width) - int(padding),
+                int(padding) : int(height) - int(padding),
+                int(padding) : int(depth) - int(padding),
             ]
         elif self.shape == "none":
             mask = tuple()
@@ -400,14 +400,11 @@ def sphere_mask(size, r):
     x = np.arange(0, size)
     y = np.arange(0, size)
     z = np.arange(0, size)
-    cx = size // 2
-    cy = size // 2
-    cz = size // 2
-    return
-    (
-        (x[None, :, :] - cx) ** 2
-        + (y[:, None, :] - cy) ** 2
-        + (z[:, :, None] - cz) ** 2
+    cx = cy = cz = size / 2 - 1
+    return (
+        (x[:, None, None] - cx) ** 2
+        + (y[None, :, None] - cy) ** 2
+        + (z[None, None, :] - cz) ** 2
     ) < r**2
 
 

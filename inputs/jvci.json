@@ -4,7 +4,7 @@
 		"resolution": 0.5,
 		"mask": {
 			"padding": 0,
-			"shape": "none"
+			"shape": "spherical"
 		}
 	},
 	"segments": [
