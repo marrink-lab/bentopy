@@ -526,6 +526,7 @@ def main():
         with open(placement_list_path, "w") as outfile:
             placement_list_dump = json.dumps(
                 {
+                    "title": config.title,
                     "size": config.space.size,
                     "topol_includes": config.topol_includes,
                     "placements": [
