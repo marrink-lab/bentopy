@@ -254,6 +254,10 @@ class Configuration:
                 f"Output directory '{self.output_dir}' does not exist yet and will be created."
             )
             os.makedirs(self.output_dir)
+        if "topol_includes" in output:
+            self.topol_includes = output["topol_includes"]
+        else:
+            self.topol_includes = []
         self.render = output["render"]
         if "debug_image" in output:
             self.debug_image = output["debug_image"]
@@ -523,6 +527,7 @@ def main():
             placement_list_dump = json.dumps(
                 {
                     "size": config.space.size,
+                    "topol_includes": config.topol_includes,
                     "placements": [
                         {
                             "name": segment.name,
