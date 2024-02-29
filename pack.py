@@ -253,7 +253,7 @@ class Configuration:
             print(
                 f"Output directory '{self.output_dir}' does not exist yet and will be created."
             )
-            os.makedir(self.output_dir)
+            os.makedirs(self.output_dir)
         self.render = output["render"]
         if "debug_image" in output:
             self.debug_image = output["debug_image"]
