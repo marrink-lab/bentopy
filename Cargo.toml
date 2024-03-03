@@ -1,0 +1,9 @@
+[package]
+name = "hose"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+arraystring = "0.3.0"
+clap = { version = "4.5.1", features = ["derive"] }
+glam = "0.25.0"
