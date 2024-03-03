@@ -20,7 +20,7 @@ struct Args {
     /// Output path.
     output: PathBuf,
     /// Cutoff radius.
-    #[arg(short, long, default_value = "0.4")]
+    #[arg(long, default_value = "0.4")]
     cutoff: f32,
     /// Center the structure in the new box.
     #[arg(short, long)]
