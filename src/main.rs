@@ -39,9 +39,19 @@ struct Args {
 fn main() -> io::Result<()> {
     let config = Args::parse();
 
+    eprint!("Loading template {:?}... ", config.template);
+    let start = std::time::Instant::now();
     let template = Structure::read_from_gro_file(config.template)?;
+    let delta = std::time::Instant::now() - start;
+    eprintln!("Took {:.6} s", delta.as_secs_f32());
+    eprint!("Loading structure {:?}... ", config.input);
+    let start = std::time::Instant::now();
     let mut structure = Structure::read_from_gro_file(config.input)?;
+    let delta = std::time::Instant::now() - start;
+    eprintln!("Took {:.3} s", delta.as_secs_f32());
 
+    eprint!("Solvating... ");
+    let start = std::time::Instant::now();
     solvate(
         &mut structure,
         &template,
@@ -50,6 +60,14 @@ fn main() -> io::Result<()> {
         // config.posions,
         // config.negions,
     );
+    let delta = std::time::Instant::now() - start;
+    eprintln!("Took {:.3} s", delta.as_secs_f32());
 
-    structure.write_to_gro_file(config.output)
+    eprintln!("Writing to {:?}...", config.output);
+    let start = std::time::Instant::now();
+    structure.write_to_gro_file(config.output)?;
+    let delta = std::time::Instant::now() - start;
+    eprintln!("Took {:.3} s", delta.as_secs_f32());
+
+    Ok(())
 }

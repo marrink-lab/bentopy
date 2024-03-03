@@ -144,6 +144,8 @@ impl Structure {
         writeln!(writer, "{n_atoms}")?;
 
         // Write the atoms.
+        let mut n = 0;
+        let start = std::time::Instant::now();
         for chunk in self.beads.chunks(0xffffff) {
             // Format this chunk in parallel.
             let formatted: String = chunk
@@ -159,7 +161,18 @@ impl Structure {
                 .collect();
             // And write it away.
             write!(writer, "{formatted}")?;
+
+            // Report the progress.
+            n += chunk.len();
+            let progress = n as f32 / n_atoms as f32;
+            let percentage = progress * 100.0;
+            let delta = std::time::Instant::now() - start;
+            let time_left = delta.as_secs_f32() * (progress.recip() - 1.0);
+            eprint!(
+                "\r({percentage:>4.1}%) Wrote {n:>9}/{n_atoms} atoms. (ETA {time_left:>4.0} s) "
+            );
         }
+        eprintln!();
 
         // End with the box vectors.
         let [v1x, v2y, v3z] = self.boxvec.to_array();
