@@ -5,6 +5,7 @@ use std::{
 
 use arraystring::{typenum::U5, ArrayString};
 use glam::Vec3;
+use rayon::prelude::*;
 
 /// The maximum number that can be represented by a 5-digit integer as found in gro files is 99999.
 /// Any value up to this number can be correctly displayed within 5 characters.
@@ -36,6 +37,20 @@ impl Bead {
             atomnum,
             pos: pos.into(),
         }
+    }
+
+    // TODO: Consider whether inlining like this is actually appropriate?
+    #[inline(always)]
+    pub fn format_gro(&self, s: &mut String) {
+        let resnum = self.resnum % GRO_INTEGER_LIMIT;
+        let resname = self.resname.to_string(); // TODO: The ArrayString size problem remains.
+        let atomname = self.atomname.to_string();
+        let atomnum = self.atomnum % GRO_INTEGER_LIMIT;
+        let [x, y, z] = self.pos.to_array();
+
+        s.push_str(&format!(
+            "{resnum:>5}{resname:<5}{atomname:>5}{atomnum:>5}{x:>8.3}{y:>8.3}{z:>8.3}"
+        ));
     }
 
     // TODO: Consider whether inlining like this is actually appropriate?
@@ -128,10 +143,22 @@ impl Structure {
         let n_atoms = self.beads.len();
         writeln!(writer, "{n_atoms}")?;
 
-        // TODO: This is a good target for parallelization. Formatting is very parallel.
         // Write the atoms.
-        for bead in &self.beads {
-            bead.write_gro(&mut writer)?;
+        for chunk in self.beads.chunks(0xffffff) {
+            // Format this chunk in parallel.
+            let formatted: String = chunk
+                .par_iter()
+                .fold(
+                    || String::new(),
+                    |mut s, bead| {
+                        bead.format_gro(&mut s);
+                        s.push('\n');
+                        s
+                    },
+                )
+                .collect();
+            // And write it away.
+            write!(writer, "{formatted}")?;
         }
 
         // End with the box vectors.
