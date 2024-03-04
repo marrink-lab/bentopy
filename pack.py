@@ -4,7 +4,6 @@ import math
 import os
 import time
 
-import matplotlib.pyplot as plt
 import MDAnalysis as MDA
 import numpy as np
 from scipy.signal import fftconvolve
@@ -383,14 +382,6 @@ def voxelize(points, resolution, tighten=False):
         voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
 
     return voxels
-
-
-def plot_voxels(voxels):
-    ax = plt.figure().add_subplot(projection="3d")
-    ax.voxels(voxels, linewidth=0.5)
-    ax.set(xlabel="r", ylabel="g", zlabel="b")
-    ax.set_aspect("equal")
-    plt.show()
 
 
 # TODO: There's got to be a nicer way of writing this function.
