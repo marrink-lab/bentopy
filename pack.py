@@ -258,7 +258,6 @@ class Configuration:
             self.topol_includes = output["topol_includes"]
         else:
             self.topol_includes = []
-        self.output_placement_list = output["placement_list"]
         self.verbose = verbose
 
 
@@ -464,26 +463,25 @@ def main():
     duration = end - start
     print(f"Packing process took {duration:.3f} s.")
 
-    if config.output_placement_list:
-        placement_list_path = f"{config.output_dir}/{config.title}_placements.json"
-        with open(placement_list_path, "w") as outfile:
-            placement_list_dump = json.dumps(
-                {
-                    "title": config.title,
-                    "size": config.space.size,
-                    "topol_includes": config.topol_includes,
-                    "placements": [
-                        {
-                            "name": segment.name,
-                            "path": segment.path,
-                            "batches": segment.batches,
-                        }
-                        for segment in config.segments
-                    ],
-                }
-            )
-            outfile.write(placement_list_dump)
-            print(f"Wrote placement list to '{placement_list_path}'.")
+    placement_list_path = f"{config.output_dir}/{config.title}_placements.json"
+    with open(placement_list_path, "w") as outfile:
+        placement_list_dump = json.dumps(
+            {
+                "title": config.title,
+                "size": config.space.size,
+                "topol_includes": config.topol_includes,
+                "placements": [
+                    {
+                        "name": segment.name,
+                        "path": segment.path,
+                        "batches": segment.batches,
+                    }
+                    for segment in config.segments
+                ],
+            }
+        )
+        outfile.write(placement_list_dump)
+        print(f"Wrote placement list to '{placement_list_path}'.")
 
 
 if __name__ == "__main__":
