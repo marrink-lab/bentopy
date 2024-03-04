@@ -258,7 +258,6 @@ class Configuration:
             self.topol_includes = output["topol_includes"]
         else:
             self.topol_includes = []
-        self.render = output["render"]
         self.output_placement_list = output["placement_list"]
         self.verbose = verbose
 
@@ -442,58 +441,6 @@ def configure():
     return config
 
 
-def render_to_gro(path, segments, box):
-    start_file_writing = time.time()
-    with open(path, "w") as gro:
-        # Format box vecs now, to prevent discovering if they're bad much later.
-        v1x, v2y, v3z = box
-        box_vectors = f"{v1x:.3f} {v2y:.3f} {v3z:.3f}"
-
-        title = "pack"
-        gro.write(title + "\n")
-        gro.write("------------" + "\n")  # Placeholder for the number of atoms.
-        total_atoms = 0
-        for resnum, segment in enumerate(segments):
-            u = MDA.Universe(segment.path)
-
-            prefixes = []
-            for atom in u.atoms:
-                # resnum = atom.resnum
-                resname = atom.resname
-                atomname = atom.name
-                atomnum = atom.ix + 1
-                # FIXME: resnum should not not actually be the same for every one of them I think.
-                # This sequence is constant between
-                prefix = f"{resnum:>5d}{resname:<5s}{atomname:>5s}{atomnum:5d}"
-                prefixes.append(prefix)
-
-            ts = u.trajectory.ts
-            ts.positions /= 10.0  # Convert from Å to nm.
-            center = ts.positions.mean(axis=0)
-            ts.positions -= center
-            for rotation, placements in segment.batches:
-                r = R.from_matrix(rotation)
-                rotated_positions = r.apply(ts.positions)
-                for idx, placement in enumerate(placements):
-                    dx, dy, dz = placement
-                    translation = np.array((dx, dy, dz))
-                    positions = rotated_positions + translation
-                    # TODO: Select relevant parts only.
-                    for prefix, position in zip(prefixes, positions):
-                        posx, posy, posz = position
-                        line = f"{prefix}{posx:8.3f}{posy:8.3f}{posz:8.3f}"
-                        gro.write(line + "\n")
-                        total_atoms += 1
-
-        gro.write(box_vectors + "\n")
-
-        # Go back to the start and write the number of atoms.
-        gro.seek(len(title) + 1)
-        gro.write(f"{total_atoms:>12d}\n")
-    end_file_writing = time.time()
-    print(f"Wrote '{path}' in {end_file_writing - start_file_writing:.3f} s.")
-
-
 def main():
     config = configure()
     background = config.space.background()
@@ -537,14 +484,6 @@ def main():
             )
             outfile.write(placement_list_dump)
             print(f"Wrote placement list to '{placement_list_path}'.")
-
-    # TODO: This is incorrect since the output config is different than this is.
-    if config.render:
-        render_to_gro(
-            f"{config.output_dir}/{config.title}.gro",
-            config.segments,
-            config.space.size,
-        )
 
 
 if __name__ == "__main__":
