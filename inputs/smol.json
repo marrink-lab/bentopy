@@ -1,0 +1,2307 @@
+{
+	"space": {
+		"size": [20, 20, 20],
+		"resolution": 0.5,
+		"mask": {
+			"padding": 0,
+			"shape": "spherical"
+		}
+	},
+	"output": {
+		"title": "smol",
+		"dir": "outputs",
+		"topol_includes": [
+			"martini_v3.0.0/martini_v3.0.0.itp",
+			"martini_v3.0.0/martini_v3.0.0_ions_v1.itp",
+			"martini_v3.0.0/martini_v3.0.0_solvents_v1.itp",
+			"structures/syn.itp"
+		]
+	},
+	"segments": [
+		{
+			"name": "syn1",
+			"number": 1,
+			"path": "structures/syn1.pdb"
+		},
+		{
+			"name": "syn10",
+			"number": 1,
+			"path": "structures/syn10.pdb"
+		},
+		{
+			"name": "syn105",
+			"number": 1,
+			"path": "structures/syn105.pdb"
+		},
+		{
+			"name": "syn106",
+			"number": 1,
+			"path": "structures/syn106.pdb"
+		},
+		{
+			"name": "syn107",
+			"number": 1,
+			"path": "structures/syn107.pdb"
+		},
+		{
+			"name": "syn108",
+			"number": 1,
+			"path": "structures/syn108.pdb"
+		},
+		{
+			"name": "syn109",
+			"number": 1,
+			"path": "structures/syn109.pdb"
+		},
+		{
+			"name": "syn11",
+			"number": 1,
+			"path": "structures/syn11.pdb"
+		},
+		{
+			"name": "syn113",
+			"number": 1,
+			"path": "structures/syn113.pdb"
+		},
+		{
+			"name": "syn114",
+			"number": 1,
+			"path": "structures/syn114.pdb"
+		},
+		{
+			"name": "syn115",
+			"number": 1,
+			"path": "structures/syn115.pdb"
+		},
+		{
+			"name": "syn116",
+			"number": 1,
+			"path": "structures/syn116.pdb"
+		},
+		{
+			"name": "syn117",
+			"number": 1,
+			"path": "structures/syn117.pdb"
+		},
+		{
+			"name": "syn12",
+			"number": 1,
+			"path": "structures/syn12.pdb"
+		},
+		{
+			"name": "syn126",
+			"number": 1,
+			"path": "structures/syn126.pdb"
+		},
+		{
+			"name": "syn127",
+			"number": 1,
+			"path": "structures/syn127.pdb"
+		},
+		{
+			"name": "syn128",
+			"number": 1,
+			"path": "structures/syn128.pdb"
+		},
+		{
+			"name": "syn129",
+			"number": 1,
+			"path": "structures/syn129.pdb"
+		},
+		{
+			"name": "syn131",
+			"number": 1,
+			"path": "structures/syn131.pdb"
+		},
+		{
+			"name": "syn132",
+			"number": 1,
+			"path": "structures/syn132.pdb"
+		},
+		{
+			"name": "syn133",
+			"number": 1,
+			"path": "structures/syn133.pdb"
+		},
+		{
+			"name": "syn137",
+			"number": 1,
+			"path": "structures/syn137.pdb"
+		},
+		{
+			"name": "syn138",
+			"number": 1,
+			"path": "structures/syn138.pdb"
+		},
+		{
+			"name": "syn139",
+			"number": 1,
+			"path": "structures/syn139.pdb"
+		},
+		{
+			"name": "syn140",
+			"number": 1,
+			"path": "structures/syn140.pdb"
+		},
+		{
+			"name": "syn141",
+			"number": 1,
+			"path": "structures/syn141.pdb"
+		},
+		{
+			"name": "syn142",
+			"number": 1,
+			"path": "structures/syn142.pdb"
+		},
+		{
+			"name": "syn143",
+			"number": 1,
+			"path": "structures/syn143.pdb"
+		},
+		{
+			"name": "syn144",
+			"number": 1,
+			"path": "structures/syn144.pdb"
+		},
+		{
+			"name": "syn145",
+			"number": 1,
+			"path": "structures/syn145.pdb"
+		},
+		{
+			"name": "syn146",
+			"number": 1,
+			"path": "structures/syn146.pdb"
+		},
+		{
+			"name": "syn147",
+			"number": 1,
+			"path": "structures/syn147.pdb"
+		},
+		{
+			"name": "syn148",
+			"number": 1,
+			"path": "structures/syn148.pdb"
+		},
+		{
+			"name": "syn149",
+			"number": 1,
+			"path": "structures/syn149.pdb"
+		},
+		{
+			"name": "syn150",
+			"number": 1,
+			"path": "structures/syn150.pdb"
+		},
+		{
+			"name": "syn151",
+			"number": 1,
+			"path": "structures/syn151.pdb"
+		},
+		{
+			"name": "syn154",
+			"number": 1,
+			"path": "structures/syn154.pdb"
+		},
+		{
+			"name": "syn163",
+			"number": 1,
+			"path": "structures/syn163.pdb"
+		},
+		{
+			"name": "syn164",
+			"number": 1,
+			"path": "structures/syn164.pdb"
+		},
+		{
+			"name": "syn165",
+			"number": 1,
+			"path": "structures/syn165.pdb"
+		},
+		{
+			"name": "syn166",
+			"number": 1,
+			"path": "structures/syn166.pdb"
+		},
+		{
+			"name": "syn167",
+			"number": 1,
+			"path": "structures/syn167.pdb"
+		},
+		{
+			"name": "syn168",
+			"number": 1,
+			"path": "structures/syn168.pdb"
+		},
+		{
+			"name": "syn169",
+			"number": 1,
+			"path": "structures/syn169.pdb"
+		},
+		{
+			"name": "syn195",
+			"number": 1,
+			"path": "structures/syn195.pdb"
+		},
+		{
+			"name": "syn196",
+			"number": 1,
+			"path": "structures/syn196.pdb"
+		},
+		{
+			"name": "syn197",
+			"number": 1,
+			"path": "structures/syn197.pdb"
+		},
+		{
+			"name": "syn198",
+			"number": 1,
+			"path": "structures/syn198.pdb"
+		},
+		{
+			"name": "syn199",
+			"number": 1,
+			"path": "structures/syn199.pdb"
+		},
+		{
+			"name": "syn2",
+			"number": 1,
+			"path": "structures/syn2.pdb"
+		},
+		{
+			"name": "syn200",
+			"number": 1,
+			"path": "structures/syn200.pdb"
+		},
+		{
+			"name": "syn201",
+			"number": 1,
+			"path": "structures/syn201.pdb"
+		},
+		{
+			"name": "syn202",
+			"number": 1,
+			"path": "structures/syn202.pdb"
+		},
+		{
+			"name": "syn203",
+			"number": 1,
+			"path": "structures/syn203.pdb"
+		},
+		{
+			"name": "syn213",
+			"number": 1,
+			"path": "structures/syn213.pdb"
+		},
+		{
+			"name": "syn214",
+			"number": 1,
+			"path": "structures/syn214.pdb"
+		},
+		{
+			"name": "syn215",
+			"number": 1,
+			"path": "structures/syn215.pdb"
+		},
+		{
+			"name": "syn216",
+			"number": 1,
+			"path": "structures/syn216.pdb"
+		},
+		{
+			"name": "syn218",
+			"number": 1,
+			"path": "structures/syn218.pdb"
+		},
+		{
+			"name": "syn220",
+			"number": 1,
+			"path": "structures/syn220.pdb"
+		},
+		{
+			"name": "syn221",
+			"number": 1,
+			"path": "structures/syn221.pdb"
+		},
+		{
+			"name": "syn222",
+			"number": 1,
+			"path": "structures/syn222.pdb"
+		},
+		{
+			"name": "syn227",
+			"number": 1,
+			"path": "structures/syn227.pdb"
+		},
+		{
+			"name": "syn228",
+			"number": 1,
+			"path": "structures/syn228.pdb"
+		},
+		{
+			"name": "syn229",
+			"number": 1,
+			"path": "structures/syn229.pdb"
+		},
+		{
+			"name": "syn230",
+			"number": 1,
+			"path": "structures/syn230.pdb"
+		},
+		{
+			"name": "syn233",
+			"number": 1,
+			"path": "structures/syn233.pdb"
+		},
+		{
+			"name": "syn234",
+			"number": 1,
+			"path": "structures/syn234.pdb"
+		},
+		{
+			"name": "syn235",
+			"number": 1,
+			"path": "structures/syn235.pdb"
+		},
+		{
+			"name": "syn238",
+			"number": 1,
+			"path": "structures/syn238.pdb"
+		},
+		{
+			"name": "syn239",
+			"number": 1,
+			"path": "structures/syn239.pdb"
+		},
+		{
+			"name": "syn240",
+			"number": 1,
+			"path": "structures/syn240.pdb"
+		},
+		{
+			"name": "syn247",
+			"number": 1,
+			"path": "structures/syn247.pdb"
+		},
+		{
+			"name": "syn248",
+			"number": 1,
+			"path": "structures/syn248.pdb"
+		},
+		{
+			"name": "syn249",
+			"number": 1,
+			"path": "structures/syn249.pdb"
+		},
+		{
+			"name": "syn25",
+			"number": 1,
+			"path": "structures/syn25.pdb"
+		},
+		{
+			"name": "syn250",
+			"number": 1,
+			"path": "structures/syn250.pdb"
+		},
+		{
+			"name": "syn253",
+			"number": 1,
+			"path": "structures/syn253.pdb"
+		},
+		{
+			"name": "syn254",
+			"number": 1,
+			"path": "structures/syn254.pdb"
+		},
+		{
+			"name": "syn257",
+			"number": 1,
+			"path": "structures/syn257.pdb"
+		},
+		{
+			"name": "syn259",
+			"number": 1,
+			"path": "structures/syn259.pdb"
+		},
+		{
+			"name": "syn26",
+			"number": 1,
+			"path": "structures/syn26.pdb"
+		},
+		{
+			"name": "syn260",
+			"number": 1,
+			"path": "structures/syn260.pdb"
+		},
+		{
+			"name": "syn262",
+			"number": 1,
+			"path": "structures/syn262.pdb"
+		},
+		{
+			"name": "syn263",
+			"number": 1,
+			"path": "structures/syn263.pdb"
+		},
+		{
+			"name": "syn264",
+			"number": 1,
+			"path": "structures/syn264.pdb"
+		},
+		{
+			"name": "syn27",
+			"number": 1,
+			"path": "structures/syn27.pdb"
+		},
+		{
+			"name": "syn270",
+			"number": 1,
+			"path": "structures/syn270.pdb"
+		},
+		{
+			"name": "syn271",
+			"number": 1,
+			"path": "structures/syn271.pdb"
+		},
+		{
+			"name": "syn281",
+			"number": 1,
+			"path": "structures/syn281.pdb"
+		},
+		{
+			"name": "syn282",
+			"number": 1,
+			"path": "structures/syn282.pdb"
+		},
+		{
+			"name": "syn283",
+			"number": 1,
+			"path": "structures/syn283.pdb"
+		},
+		{
+			"name": "syn285",
+			"number": 1,
+			"path": "structures/syn285.pdb"
+		},
+		{
+			"name": "syn286",
+			"number": 1,
+			"path": "structures/syn286.pdb"
+		},
+		{
+			"name": "syn287",
+			"number": 1,
+			"path": "structures/syn287.pdb"
+		},
+		{
+			"name": "syn288",
+			"number": 1,
+			"path": "structures/syn288.pdb"
+		},
+		{
+			"name": "syn289",
+			"number": 1,
+			"path": "structures/syn289.pdb"
+		},
+		{
+			"name": "syn29",
+			"number": 1,
+			"path": "structures/syn29.pdb"
+		},
+		{
+			"name": "syn290",
+			"number": 1,
+			"path": "structures/syn290.pdb"
+		},
+		{
+			"name": "syn291",
+			"number": 1,
+			"path": "structures/syn291.pdb"
+		},
+		{
+			"name": "syn294",
+			"number": 1,
+			"path": "structures/syn294.pdb"
+		},
+		{
+			"name": "syn296",
+			"number": 1,
+			"path": "structures/syn296.pdb"
+		},
+		{
+			"name": "syn297",
+			"number": 1,
+			"path": "structures/syn297.pdb"
+		},
+		{
+			"name": "syn298",
+			"number": 1,
+			"path": "structures/syn298.pdb"
+		},
+		{
+			"name": "syn299",
+			"number": 1,
+			"path": "structures/syn299.pdb"
+		},
+		{
+			"name": "syn3",
+			"number": 1,
+			"path": "structures/syn3.pdb"
+		},
+		{
+			"name": "syn30",
+			"number": 1,
+			"path": "structures/syn30.pdb"
+		},
+		{
+			"name": "syn300",
+			"number": 1,
+			"path": "structures/syn300.pdb"
+		},
+		{
+			"name": "syn301",
+			"number": 1,
+			"path": "structures/syn301.pdb"
+		},
+		{
+			"name": "syn302",
+			"number": 1,
+			"path": "structures/syn302.pdb"
+		},
+		{
+			"name": "syn303",
+			"number": 1,
+			"path": "structures/syn303.pdb"
+		},
+		{
+			"name": "syn304",
+			"number": 1,
+			"path": "structures/syn304.pdb"
+		},
+		{
+			"name": "syn305",
+			"number": 1,
+			"path": "structures/syn305.pdb"
+		},
+		{
+			"name": "syn308",
+			"number": 1,
+			"path": "structures/syn308.pdb"
+		},
+		{
+			"name": "syn314",
+			"number": 1,
+			"path": "structures/syn314.pdb"
+		},
+		{
+			"name": "syn315",
+			"number": 1,
+			"path": "structures/syn315.pdb"
+		},
+		{
+			"name": "syn316",
+			"number": 1,
+			"path": "structures/syn316.pdb"
+		},
+		{
+			"name": "syn317",
+			"number": 1,
+			"path": "structures/syn317.pdb"
+		},
+		{
+			"name": "syn325",
+			"number": 1,
+			"path": "structures/syn325.pdb"
+		},
+		{
+			"name": "syn326",
+			"number": 1,
+			"path": "structures/syn326.pdb"
+		},
+		{
+			"name": "syn327",
+			"number": 1,
+			"path": "structures/syn327.pdb"
+		},
+		{
+			"name": "syn328",
+			"number": 1,
+			"path": "structures/syn328.pdb"
+		},
+		{
+			"name": "syn329",
+			"number": 1,
+			"path": "structures/syn329.pdb"
+		},
+		{
+			"name": "syn33",
+			"number": 1,
+			"path": "structures/syn33.pdb"
+		},
+		{
+			"name": "syn330",
+			"number": 1,
+			"path": "structures/syn330.pdb"
+		},
+		{
+			"name": "syn332",
+			"number": 1,
+			"path": "structures/syn332.pdb"
+		},
+		{
+			"name": "syn338",
+			"number": 1,
+			"path": "structures/syn338.pdb"
+		},
+		{
+			"name": "syn34",
+			"number": 1,
+			"path": "structures/syn34.pdb"
+		},
+		{
+			"name": "syn344",
+			"number": 1,
+			"path": "structures/syn344.pdb"
+		},
+		{
+			"name": "syn345",
+			"number": 1,
+			"path": "structures/syn345.pdb"
+		},
+		{
+			"name": "syn346",
+			"number": 1,
+			"path": "structures/syn346.pdb"
+		},
+		{
+			"name": "syn347",
+			"number": 1,
+			"path": "structures/syn347.pdb"
+		},
+		{
+			"name": "syn348",
+			"number": 1,
+			"path": "structures/syn348.pdb"
+		},
+		{
+			"name": "syn350",
+			"number": 1,
+			"path": "structures/syn350.pdb"
+		},
+		{
+			"name": "syn352",
+			"number": 1,
+			"path": "structures/syn352.pdb"
+		},
+		{
+			"name": "syn353",
+			"number": 1,
+			"path": "structures/syn353.pdb"
+		},
+		{
+			"name": "syn359",
+			"number": 1,
+			"path": "structures/syn359.pdb"
+		},
+		{
+			"name": "syn360",
+			"number": 1,
+			"path": "structures/syn360.pdb"
+		},
+		{
+			"name": "syn361",
+			"number": 1,
+			"path": "structures/syn361.pdb"
+		},
+		{
+			"name": "syn362",
+			"number": 1,
+			"path": "structures/syn362.pdb"
+		},
+		{
+			"name": "syn363",
+			"number": 1,
+			"path": "structures/syn363.pdb"
+		},
+		{
+			"name": "syn364",
+			"number": 1,
+			"path": "structures/syn364.pdb"
+		},
+		{
+			"name": "syn365",
+			"number": 1,
+			"path": "structures/syn365.pdb"
+		},
+		{
+			"name": "syn366",
+			"number": 1,
+			"path": "structures/syn366.pdb"
+		},
+		{
+			"name": "syn371",
+			"number": 1,
+			"path": "structures/syn371.pdb"
+		},
+		{
+			"name": "syn372",
+			"number": 1,
+			"path": "structures/syn372.pdb"
+		},
+		{
+			"name": "syn373",
+			"number": 1,
+			"path": "structures/syn373.pdb"
+		},
+		{
+			"name": "syn375",
+			"number": 1,
+			"path": "structures/syn375.pdb"
+		},
+		{
+			"name": "syn376",
+			"number": 1,
+			"path": "structures/syn376.pdb"
+		},
+		{
+			"name": "syn377",
+			"number": 1,
+			"path": "structures/syn377.pdb"
+		},
+		{
+			"name": "syn378",
+			"number": 1,
+			"path": "structures/syn378.pdb"
+		},
+		{
+			"name": "syn379",
+			"number": 1,
+			"path": "structures/syn379.pdb"
+		},
+		{
+			"name": "syn380",
+			"number": 1,
+			"path": "structures/syn380.pdb"
+		},
+		{
+			"name": "syn381",
+			"number": 1,
+			"path": "structures/syn381.pdb"
+		},
+		{
+			"name": "syn382",
+			"number": 1,
+			"path": "structures/syn382.pdb"
+		},
+		{
+			"name": "syn387",
+			"number": 1,
+			"path": "structures/syn387.pdb"
+		},
+		{
+			"name": "syn388",
+			"number": 1,
+			"path": "structures/syn388.pdb"
+		},
+		{
+			"name": "syn389",
+			"number": 1,
+			"path": "structures/syn389.pdb"
+		},
+		{
+			"name": "syn39",
+			"number": 1,
+			"path": "structures/syn39.pdb"
+		},
+		{
+			"name": "syn390",
+			"number": 1,
+			"path": "structures/syn390.pdb"
+		},
+		{
+			"name": "syn391",
+			"number": 1,
+			"path": "structures/syn391.pdb"
+		},
+		{
+			"name": "syn392",
+			"number": 1,
+			"path": "structures/syn392.pdb"
+		},
+		{
+			"name": "syn394",
+			"number": 1,
+			"path": "structures/syn394.pdb"
+		},
+		{
+			"name": "syn398",
+			"number": 1,
+			"path": "structures/syn398.pdb"
+		},
+		{
+			"name": "syn399",
+			"number": 1,
+			"path": "structures/syn399.pdb"
+		},
+		{
+			"name": "syn4",
+			"number": 1,
+			"path": "structures/syn4.pdb"
+		},
+		{
+			"name": "syn40",
+			"number": 1,
+			"path": "structures/syn40.pdb"
+		},
+		{
+			"name": "syn400",
+			"number": 1,
+			"path": "structures/syn400.pdb"
+		},
+		{
+			"name": "syn401",
+			"number": 1,
+			"path": "structures/syn401.pdb"
+		},
+		{
+			"name": "syn402",
+			"number": 1,
+			"path": "structures/syn402.pdb"
+		},
+		{
+			"name": "syn403",
+			"number": 1,
+			"path": "structures/syn403.pdb"
+		},
+		{
+			"name": "syn404",
+			"number": 1,
+			"path": "structures/syn404.pdb"
+		},
+		{
+			"name": "syn405",
+			"number": 1,
+			"path": "structures/syn405.pdb"
+		},
+		{
+			"name": "syn406",
+			"number": 1,
+			"path": "structures/syn406.pdb"
+		},
+		{
+			"name": "syn407",
+			"number": 1,
+			"path": "structures/syn407.pdb"
+		},
+		{
+			"name": "syn408",
+			"number": 1,
+			"path": "structures/syn408.pdb"
+		},
+		{
+			"name": "syn409",
+			"number": 1,
+			"path": "structures/syn409.pdb"
+		},
+		{
+			"name": "syn410",
+			"number": 1,
+			"path": "structures/syn410.pdb"
+		},
+		{
+			"name": "syn411",
+			"number": 1,
+			"path": "structures/syn411.pdb"
+		},
+		{
+			"name": "syn412",
+			"number": 1,
+			"path": "structures/syn412.pdb"
+		},
+		{
+			"name": "syn413",
+			"number": 1,
+			"path": "structures/syn413.pdb"
+		},
+		{
+			"name": "syn414",
+			"number": 1,
+			"path": "structures/syn414.pdb"
+		},
+		{
+			"name": "syn415",
+			"number": 1,
+			"path": "structures/syn415.pdb"
+		},
+		{
+			"name": "syn416",
+			"number": 1,
+			"path": "structures/syn416.pdb"
+		},
+		{
+			"name": "syn418",
+			"number": 1,
+			"path": "structures/syn418.pdb"
+		},
+		{
+			"name": "syn419",
+			"number": 1,
+			"path": "structures/syn419.pdb"
+		},
+		{
+			"name": "syn42",
+			"number": 1,
+			"path": "structures/syn42.pdb"
+		},
+		{
+			"name": "syn420",
+			"number": 1,
+			"path": "structures/syn420.pdb"
+		},
+		{
+			"name": "syn421",
+			"number": 1,
+			"path": "structures/syn421.pdb"
+		},
+		{
+			"name": "syn422",
+			"number": 1,
+			"path": "structures/syn422.pdb"
+		},
+		{
+			"name": "syn424",
+			"number": 1,
+			"path": "structures/syn424.pdb"
+		},
+		{
+			"name": "syn425",
+			"number": 1,
+			"path": "structures/syn425.pdb"
+		},
+		{
+			"name": "syn426",
+			"number": 1,
+			"path": "structures/syn426.pdb"
+		},
+		{
+			"name": "syn427",
+			"number": 1,
+			"path": "structures/syn427.pdb"
+		},
+		{
+			"name": "syn428",
+			"number": 1,
+			"path": "structures/syn428.pdb"
+		},
+		{
+			"name": "syn429",
+			"number": 1,
+			"path": "structures/syn429.pdb"
+		},
+		{
+			"name": "syn43",
+			"number": 1,
+			"path": "structures/syn43.pdb"
+		},
+		{
+			"name": "syn430",
+			"number": 1,
+			"path": "structures/syn430.pdb"
+		},
+		{
+			"name": "syn431",
+			"number": 1,
+			"path": "structures/syn431.pdb"
+		},
+		{
+			"name": "syn432",
+			"number": 1,
+			"path": "structures/syn432.pdb"
+		},
+		{
+			"name": "syn433",
+			"number": 1,
+			"path": "structures/syn433.pdb"
+		},
+		{
+			"name": "syn434",
+			"number": 1,
+			"path": "structures/syn434.pdb"
+		},
+		{
+			"name": "syn435",
+			"number": 1,
+			"path": "structures/syn435.pdb"
+		},
+		{
+			"name": "syn437",
+			"number": 1,
+			"path": "structures/syn437.pdb"
+		},
+		{
+			"name": "syn438",
+			"number": 1,
+			"path": "structures/syn438.pdb"
+		},
+		{
+			"name": "syn439",
+			"number": 1,
+			"path": "structures/syn439.pdb"
+		},
+		{
+			"name": "syn44",
+			"number": 1,
+			"path": "structures/syn44.pdb"
+		},
+		{
+			"name": "syn440",
+			"number": 1,
+			"path": "structures/syn440.pdb"
+		},
+		{
+			"name": "syn441",
+			"number": 1,
+			"path": "structures/syn441.pdb"
+		},
+		{
+			"name": "syn442",
+			"number": 1,
+			"path": "structures/syn442.pdb"
+		},
+		{
+			"name": "syn443",
+			"number": 1,
+			"path": "structures/syn443.pdb"
+		},
+		{
+			"name": "syn444",
+			"number": 1,
+			"path": "structures/syn444.pdb"
+		},
+		{
+			"name": "syn445",
+			"number": 1,
+			"path": "structures/syn445.pdb"
+		},
+		{
+			"name": "syn447",
+			"number": 1,
+			"path": "structures/syn447.pdb"
+		},
+		{
+			"name": "syn448",
+			"number": 1,
+			"path": "structures/syn448.pdb"
+		},
+		{
+			"name": "syn45",
+			"number": 1,
+			"path": "structures/syn45.pdb"
+		},
+		{
+			"name": "syn451",
+			"number": 1,
+			"path": "structures/syn451.pdb"
+		},
+		{
+			"name": "syn452",
+			"number": 1,
+			"path": "structures/syn452.pdb"
+		},
+		{
+			"name": "syn453",
+			"number": 1,
+			"path": "structures/syn453.pdb"
+		},
+		{
+			"name": "syn46",
+			"number": 1,
+			"path": "structures/syn46.pdb"
+		},
+		{
+			"name": "syn47",
+			"number": 1,
+			"path": "structures/syn47.pdb"
+		},
+		{
+			"name": "syn475",
+			"number": 1,
+			"path": "structures/syn475.pdb"
+		},
+		{
+			"name": "syn478",
+			"number": 1,
+			"path": "structures/syn478.pdb"
+		},
+		{
+			"name": "syn479",
+			"number": 1,
+			"path": "structures/syn479.pdb"
+		},
+		{
+			"name": "syn481",
+			"number": 1,
+			"path": "structures/syn481.pdb"
+		},
+		{
+			"name": "syn482",
+			"number": 1,
+			"path": "structures/syn482.pdb"
+		},
+		{
+			"name": "syn493",
+			"number": 1,
+			"path": "structures/syn493.pdb"
+		},
+		{
+			"name": "syn494",
+			"number": 1,
+			"path": "structures/syn494.pdb"
+		},
+		{
+			"name": "syn495",
+			"number": 1,
+			"path": "structures/syn495.pdb"
+		},
+		{
+			"name": "syn499",
+			"number": 1,
+			"path": "structures/syn499.pdb"
+		},
+		{
+			"name": "syn5",
+			"number": 1,
+			"path": "structures/syn5.pdb"
+		},
+		{
+			"name": "syn500",
+			"number": 1,
+			"path": "structures/syn500.pdb"
+		},
+		{
+			"name": "syn501",
+			"number": 1,
+			"path": "structures/syn501.pdb"
+		},
+		{
+			"name": "syn503",
+			"number": 1,
+			"path": "structures/syn503.pdb"
+		},
+		{
+			"name": "syn504",
+			"number": 1,
+			"path": "structures/syn504.pdb"
+		},
+		{
+			"name": "syn505",
+			"number": 1,
+			"path": "structures/syn505.pdb"
+		},
+		{
+			"name": "syn511",
+			"number": 1,
+			"path": "structures/syn511.pdb"
+		},
+		{
+			"name": "syn512",
+			"number": 1,
+			"path": "structures/syn512.pdb"
+		},
+		{
+			"name": "syn513",
+			"number": 1,
+			"path": "structures/syn513.pdb"
+		},
+		{
+			"name": "syn515",
+			"number": 1,
+			"path": "structures/syn515.pdb"
+		},
+		{
+			"name": "syn516",
+			"number": 1,
+			"path": "structures/syn516.pdb"
+		},
+		{
+			"name": "syn517",
+			"number": 1,
+			"path": "structures/syn517.pdb"
+		},
+		{
+			"name": "syn518",
+			"number": 1,
+			"path": "structures/syn518.pdb"
+		},
+		{
+			"name": "syn519",
+			"number": 1,
+			"path": "structures/syn519.pdb"
+		},
+		{
+			"name": "syn520",
+			"number": 1,
+			"path": "structures/syn520.pdb"
+		},
+		{
+			"name": "syn521",
+			"number": 1,
+			"path": "structures/syn521.pdb"
+		},
+		{
+			"name": "syn522",
+			"number": 1,
+			"path": "structures/syn522.pdb"
+		},
+		{
+			"name": "syn523",
+			"number": 1,
+			"path": "structures/syn523.pdb"
+		},
+		{
+			"name": "syn524",
+			"number": 1,
+			"path": "structures/syn524.pdb"
+		},
+		{
+			"name": "syn525",
+			"number": 1,
+			"path": "structures/syn525.pdb"
+		},
+		{
+			"name": "syn526",
+			"number": 1,
+			"path": "structures/syn526.pdb"
+		},
+		{
+			"name": "syn527",
+			"number": 1,
+			"path": "structures/syn527.pdb"
+		},
+		{
+			"name": "syn528",
+			"number": 1,
+			"path": "structures/syn528.pdb"
+		},
+		{
+			"name": "syn529",
+			"number": 1,
+			"path": "structures/syn529.pdb"
+		},
+		{
+			"name": "syn530",
+			"number": 1,
+			"path": "structures/syn530.pdb"
+		},
+		{
+			"name": "syn535",
+			"number": 1,
+			"path": "structures/syn535.pdb"
+		},
+		{
+			"name": "syn536",
+			"number": 1,
+			"path": "structures/syn536.pdb"
+		},
+		{
+			"name": "syn537",
+			"number": 1,
+			"path": "structures/syn537.pdb"
+		},
+		{
+			"name": "syn538",
+			"number": 1,
+			"path": "structures/syn538.pdb"
+		},
+		{
+			"name": "syn539",
+			"number": 1,
+			"path": "structures/syn539.pdb"
+		},
+		{
+			"name": "syn54",
+			"number": 1,
+			"path": "structures/syn54.pdb"
+		},
+		{
+			"name": "syn540",
+			"number": 1,
+			"path": "structures/syn540.pdb"
+		},
+		{
+			"name": "syn541",
+			"number": 1,
+			"path": "structures/syn541.pdb"
+		},
+		{
+			"name": "syn542",
+			"number": 1,
+			"path": "structures/syn542.pdb"
+		},
+		{
+			"name": "syn543",
+			"number": 1,
+			"path": "structures/syn543.pdb"
+		},
+		{
+			"name": "syn544",
+			"number": 1,
+			"path": "structures/syn544.pdb"
+		},
+		{
+			"name": "syn545",
+			"number": 1,
+			"path": "structures/syn545.pdb"
+		},
+		{
+			"name": "syn546",
+			"number": 1,
+			"path": "structures/syn546.pdb"
+		},
+		{
+			"name": "syn548",
+			"number": 1,
+			"path": "structures/syn548.pdb"
+		},
+		{
+			"name": "syn549",
+			"number": 1,
+			"path": "structures/syn549.pdb"
+		},
+		{
+			"name": "syn592",
+			"number": 1,
+			"path": "structures/syn592.pdb"
+		},
+		{
+			"name": "syn593",
+			"number": 1,
+			"path": "structures/syn593.pdb"
+		},
+		{
+			"name": "syn599",
+			"number": 1,
+			"path": "structures/syn599.pdb"
+		},
+		{
+			"name": "syn6",
+			"number": 1,
+			"path": "structures/syn6.pdb"
+		},
+		{
+			"name": "syn60",
+			"number": 1,
+			"path": "structures/syn60.pdb"
+		},
+		{
+			"name": "syn600",
+			"number": 1,
+			"path": "structures/syn600.pdb"
+		},
+		{
+			"name": "syn601",
+			"number": 1,
+			"path": "structures/syn601.pdb"
+		},
+		{
+			"name": "syn602",
+			"number": 1,
+			"path": "structures/syn602.pdb"
+		},
+		{
+			"name": "syn604",
+			"number": 1,
+			"path": "structures/syn604.pdb"
+		},
+		{
+			"name": "syn605",
+			"number": 1,
+			"path": "structures/syn605.pdb"
+		},
+		{
+			"name": "syn606",
+			"number": 1,
+			"path": "structures/syn606.pdb"
+		},
+		{
+			"name": "syn607",
+			"number": 1,
+			"path": "structures/syn607.pdb"
+		},
+		{
+			"name": "syn608",
+			"number": 1,
+			"path": "structures/syn608.pdb"
+		},
+		{
+			"name": "syn609",
+			"number": 1,
+			"path": "structures/syn609.pdb"
+		},
+		{
+			"name": "syn61",
+			"number": 1,
+			"path": "structures/syn61.pdb"
+		},
+		{
+			"name": "syn610",
+			"number": 1,
+			"path": "structures/syn610.pdb"
+		},
+		{
+			"name": "syn611",
+			"number": 1,
+			"path": "structures/syn611.pdb"
+		},
+		{
+			"name": "syn612",
+			"number": 1,
+			"path": "structures/syn612.pdb"
+		},
+		{
+			"name": "syn613",
+			"number": 1,
+			"path": "structures/syn613.pdb"
+		},
+		{
+			"name": "syn614",
+			"number": 1,
+			"path": "structures/syn614.pdb"
+		},
+		{
+			"name": "syn615",
+			"number": 1,
+			"path": "structures/syn615.pdb"
+		},
+		{
+			"name": "syn616",
+			"number": 1,
+			"path": "structures/syn616.pdb"
+		},
+		{
+			"name": "syn617",
+			"number": 1,
+			"path": "structures/syn617.pdb"
+		},
+		{
+			"name": "syn620",
+			"number": 1,
+			"path": "structures/syn620.pdb"
+		},
+		{
+			"name": "syn621",
+			"number": 1,
+			"path": "structures/syn621.pdb"
+		},
+		{
+			"name": "syn622",
+			"number": 1,
+			"path": "structures/syn622.pdb"
+		},
+		{
+			"name": "syn623",
+			"number": 1,
+			"path": "structures/syn623.pdb"
+		},
+		{
+			"name": "syn63",
+			"number": 1,
+			"path": "structures/syn63.pdb"
+		},
+		{
+			"name": "syn634",
+			"number": 1,
+			"path": "structures/syn634.pdb"
+		},
+		{
+			"name": "syn636",
+			"number": 1,
+			"path": "structures/syn636.pdb"
+		},
+		{
+			"name": "syn637",
+			"number": 1,
+			"path": "structures/syn637.pdb"
+		},
+		{
+			"name": "syn638",
+			"number": 1,
+			"path": "structures/syn638.pdb"
+		},
+		{
+			"name": "syn639",
+			"number": 1,
+			"path": "structures/syn639.pdb"
+		},
+		{
+			"name": "syn64",
+			"number": 1,
+			"path": "structures/syn64.pdb"
+		},
+		{
+			"name": "syn640",
+			"number": 1,
+			"path": "structures/syn640.pdb"
+		},
+		{
+			"name": "syn641",
+			"number": 1,
+			"path": "structures/syn641.pdb"
+		},
+		{
+			"name": "syn642",
+			"number": 1,
+			"path": "structures/syn642.pdb"
+		},
+		{
+			"name": "syn643",
+			"number": 1,
+			"path": "structures/syn643.pdb"
+		},
+		{
+			"name": "syn644",
+			"number": 1,
+			"path": "structures/syn644.pdb"
+		},
+		{
+			"name": "syn645",
+			"number": 1,
+			"path": "structures/syn645.pdb"
+		},
+		{
+			"name": "syn646",
+			"number": 1,
+			"path": "structures/syn646.pdb"
+		},
+		{
+			"name": "syn647",
+			"number": 1,
+			"path": "structures/syn647.pdb"
+		},
+		{
+			"name": "syn648",
+			"number": 1,
+			"path": "structures/syn648.pdb"
+		},
+		{
+			"name": "syn649",
+			"number": 1,
+			"path": "structures/syn649.pdb"
+		},
+		{
+			"name": "syn65",
+			"number": 1,
+			"path": "structures/syn65.pdb"
+		},
+		{
+			"name": "syn650",
+			"number": 1,
+			"path": "structures/syn650.pdb"
+		},
+		{
+			"name": "syn651",
+			"number": 1,
+			"path": "structures/syn651.pdb"
+		},
+		{
+			"name": "syn652",
+			"number": 1,
+			"path": "structures/syn652.pdb"
+		},
+		{
+			"name": "syn653",
+			"number": 1,
+			"path": "structures/syn653.pdb"
+		},
+		{
+			"name": "syn654",
+			"number": 1,
+			"path": "structures/syn654.pdb"
+		},
+		{
+			"name": "syn655",
+			"number": 1,
+			"path": "structures/syn655.pdb"
+		},
+		{
+			"name": "syn656",
+			"number": 1,
+			"path": "structures/syn656.pdb"
+		},
+		{
+			"name": "syn657",
+			"number": 1,
+			"path": "structures/syn657.pdb"
+		},
+		{
+			"name": "syn658",
+			"number": 1,
+			"path": "structures/syn658.pdb"
+		},
+		{
+			"name": "syn659",
+			"number": 1,
+			"path": "structures/syn659.pdb"
+		},
+		{
+			"name": "syn66",
+			"number": 1,
+			"path": "structures/syn66.pdb"
+		},
+		{
+			"name": "syn660",
+			"number": 1,
+			"path": "structures/syn660.pdb"
+		},
+		{
+			"name": "syn661",
+			"number": 1,
+			"path": "structures/syn661.pdb"
+		},
+		{
+			"name": "syn662",
+			"number": 1,
+			"path": "structures/syn662.pdb"
+		},
+		{
+			"name": "syn663",
+			"number": 1,
+			"path": "structures/syn663.pdb"
+		},
+		{
+			"name": "syn664",
+			"number": 1,
+			"path": "structures/syn664.pdb"
+		},
+		{
+			"name": "syn665",
+			"number": 1,
+			"path": "structures/syn665.pdb"
+		},
+		{
+			"name": "syn666",
+			"number": 1,
+			"path": "structures/syn666.pdb"
+		},
+		{
+			"name": "syn667",
+			"number": 1,
+			"path": "structures/syn667.pdb"
+		},
+		{
+			"name": "syn668",
+			"number": 1,
+			"path": "structures/syn668.pdb"
+		},
+		{
+			"name": "syn669",
+			"number": 1,
+			"path": "structures/syn669.pdb"
+		},
+		{
+			"name": "syn670",
+			"number": 1,
+			"path": "structures/syn670.pdb"
+		},
+		{
+			"name": "syn671",
+			"number": 1,
+			"path": "structures/syn671.pdb"
+		},
+		{
+			"name": "syn672",
+			"number": 1,
+			"path": "structures/syn672.pdb"
+		},
+		{
+			"name": "syn684",
+			"number": 1,
+			"path": "structures/syn684.pdb"
+		},
+		{
+			"name": "syn685",
+			"number": 1,
+			"path": "structures/syn685.pdb"
+		},
+		{
+			"name": "syn686",
+			"number": 1,
+			"path": "structures/syn686.pdb"
+		},
+		{
+			"name": "syn687",
+			"number": 1,
+			"path": "structures/syn687.pdb"
+		},
+		{
+			"name": "syn688",
+			"number": 1,
+			"path": "structures/syn688.pdb"
+		},
+		{
+			"name": "syn689",
+			"number": 1,
+			"path": "structures/syn689.pdb"
+		},
+		{
+			"name": "syn690",
+			"number": 1,
+			"path": "structures/syn690.pdb"
+		},
+		{
+			"name": "syn691",
+			"number": 1,
+			"path": "structures/syn691.pdb"
+		},
+		{
+			"name": "syn692",
+			"number": 1,
+			"path": "structures/syn692.pdb"
+		},
+		{
+			"name": "syn693",
+			"number": 1,
+			"path": "structures/syn693.pdb"
+		},
+		{
+			"name": "syn694",
+			"number": 1,
+			"path": "structures/syn694.pdb"
+		},
+		{
+			"name": "syn695",
+			"number": 1,
+			"path": "structures/syn695.pdb"
+		},
+		{
+			"name": "syn696",
+			"number": 1,
+			"path": "structures/syn696.pdb"
+		},
+		{
+			"name": "syn697",
+			"number": 1,
+			"path": "structures/syn697.pdb"
+		},
+		{
+			"name": "syn7",
+			"number": 1,
+			"path": "structures/syn7.pdb"
+		},
+		{
+			"name": "syn706",
+			"number": 1,
+			"path": "structures/syn706.pdb"
+		},
+		{
+			"name": "syn707",
+			"number": 1,
+			"path": "structures/syn707.pdb"
+		},
+		{
+			"name": "syn708",
+			"number": 1,
+			"path": "structures/syn708.pdb"
+		},
+		{
+			"name": "syn710",
+			"number": 1,
+			"path": "structures/syn710.pdb"
+		},
+		{
+			"name": "syn726",
+			"number": 1,
+			"path": "structures/syn726.pdb"
+		},
+		{
+			"name": "syn727",
+			"number": 1,
+			"path": "structures/syn727.pdb"
+		},
+		{
+			"name": "syn728",
+			"number": 1,
+			"path": "structures/syn728.pdb"
+		},
+		{
+			"name": "syn729",
+			"number": 1,
+			"path": "structures/syn729.pdb"
+		},
+		{
+			"name": "syn730",
+			"number": 1,
+			"path": "structures/syn730.pdb"
+		},
+		{
+			"name": "syn732",
+			"number": 1,
+			"path": "structures/syn732.pdb"
+		},
+		{
+			"name": "syn733",
+			"number": 1,
+			"path": "structures/syn733.pdb"
+		},
+		{
+			"name": "syn747",
+			"number": 1,
+			"path": "structures/syn747.pdb"
+		},
+		{
+			"name": "syn76",
+			"number": 1,
+			"path": "structures/syn76.pdb"
+		},
+		{
+			"name": "syn77",
+			"number": 1,
+			"path": "structures/syn77.pdb"
+		},
+		{
+			"name": "syn771",
+			"number": 1,
+			"path": "structures/syn771.pdb"
+		},
+		{
+			"name": "syn772",
+			"number": 1,
+			"path": "structures/syn772.pdb"
+		},
+		{
+			"name": "syn773",
+			"number": 1,
+			"path": "structures/syn773.pdb"
+		},
+		{
+			"name": "syn774",
+			"number": 1,
+			"path": "structures/syn774.pdb"
+		},
+		{
+			"name": "syn775",
+			"number": 1,
+			"path": "structures/syn775.pdb"
+		},
+		{
+			"name": "syn776",
+			"number": 1,
+			"path": "structures/syn776.pdb"
+		},
+		{
+			"name": "syn777",
+			"number": 1,
+			"path": "structures/syn777.pdb"
+		},
+		{
+			"name": "syn778",
+			"number": 1,
+			"path": "structures/syn778.pdb"
+		},
+		{
+			"name": "syn779",
+			"number": 1,
+			"path": "structures/syn779.pdb"
+		},
+		{
+			"name": "syn787",
+			"number": 1,
+			"path": "structures/syn787.pdb"
+		},
+		{
+			"name": "syn789",
+			"number": 1,
+			"path": "structures/syn789.pdb"
+		},
+		{
+			"name": "syn79",
+			"number": 1,
+			"path": "structures/syn79.pdb"
+		},
+		{
+			"name": "syn790",
+			"number": 1,
+			"path": "structures/syn790.pdb"
+		},
+		{
+			"name": "syn791",
+			"number": 1,
+			"path": "structures/syn791.pdb"
+		},
+		{
+			"name": "syn792",
+			"number": 1,
+			"path": "structures/syn792.pdb"
+		},
+		{
+			"name": "syn793",
+			"number": 1,
+			"path": "structures/syn793.pdb"
+		},
+		{
+			"name": "syn794",
+			"number": 1,
+			"path": "structures/syn794.pdb"
+		},
+		{
+			"name": "syn795",
+			"number": 1,
+			"path": "structures/syn795.pdb"
+		},
+		{
+			"name": "syn796",
+			"number": 1,
+			"path": "structures/syn796.pdb"
+		},
+		{
+			"name": "syn797",
+			"number": 1,
+			"path": "structures/syn797.pdb"
+		},
+		{
+			"name": "syn798",
+			"number": 1,
+			"path": "structures/syn798.pdb"
+		},
+		{
+			"name": "syn799",
+			"number": 1,
+			"path": "structures/syn799.pdb"
+		},
+		{
+			"name": "syn8",
+			"number": 1,
+			"path": "structures/syn8.pdb"
+		},
+		{
+			"name": "syn80",
+			"number": 1,
+			"path": "structures/syn80.pdb"
+		},
+		{
+			"name": "syn800",
+			"number": 1,
+			"path": "structures/syn800.pdb"
+		},
+		{
+			"name": "syn803",
+			"number": 1,
+			"path": "structures/syn803.pdb"
+		},
+		{
+			"name": "syn804",
+			"number": 1,
+			"path": "structures/syn804.pdb"
+		},
+		{
+			"name": "syn805",
+			"number": 1,
+			"path": "structures/syn805.pdb"
+		},
+		{
+			"name": "syn806",
+			"number": 1,
+			"path": "structures/syn806.pdb"
+		},
+		{
+			"name": "syn807",
+			"number": 1,
+			"path": "structures/syn807.pdb"
+		},
+		{
+			"name": "syn809",
+			"number": 1,
+			"path": "structures/syn809.pdb"
+		},
+		{
+			"name": "syn81",
+			"number": 1,
+			"path": "structures/syn81.pdb"
+		},
+		{
+			"name": "syn810",
+			"number": 1,
+			"path": "structures/syn810.pdb"
+		},
+		{
+			"name": "syn813",
+			"number": 1,
+			"path": "structures/syn813.pdb"
+		},
+		{
+			"name": "syn814",
+			"number": 1,
+			"path": "structures/syn814.pdb"
+		},
+		{
+			"name": "syn817",
+			"number": 1,
+			"path": "structures/syn817.pdb"
+		},
+		{
+			"name": "syn818",
+			"number": 1,
+			"path": "structures/syn818.pdb"
+		},
+		{
+			"name": "syn819",
+			"number": 1,
+			"path": "structures/syn819.pdb"
+		},
+		{
+			"name": "syn82",
+			"number": 1,
+			"path": "structures/syn82.pdb"
+		},
+		{
+			"name": "syn820",
+			"number": 1,
+			"path": "structures/syn820.pdb"
+		},
+		{
+			"name": "syn821",
+			"number": 1,
+			"path": "structures/syn821.pdb"
+		},
+		{
+			"name": "syn822",
+			"number": 1,
+			"path": "structures/syn822.pdb"
+		},
+		{
+			"name": "syn823",
+			"number": 1,
+			"path": "structures/syn823.pdb"
+		},
+		{
+			"name": "syn824",
+			"number": 1,
+			"path": "structures/syn824.pdb"
+		},
+		{
+			"name": "syn825",
+			"number": 1,
+			"path": "structures/syn825.pdb"
+		},
+		{
+			"name": "syn826",
+			"number": 1,
+			"path": "structures/syn826.pdb"
+		},
+		{
+			"name": "syn827",
+			"number": 1,
+			"path": "structures/syn827.pdb"
+		},
+		{
+			"name": "syn830",
+			"number": 1,
+			"path": "structures/syn830.pdb"
+		},
+		{
+			"name": "syn831",
+			"number": 1,
+			"path": "structures/syn831.pdb"
+		},
+		{
+			"name": "syn832",
+			"number": 1,
+			"path": "structures/syn832.pdb"
+		},
+		{
+			"name": "syn833",
+			"number": 1,
+			"path": "structures/syn833.pdb"
+		},
+		{
+			"name": "syn834",
+			"number": 1,
+			"path": "structures/syn834.pdb"
+		},
+		{
+			"name": "syn835",
+			"number": 1,
+			"path": "structures/syn835.pdb"
+		},
+		{
+			"name": "syn836",
+			"number": 1,
+			"path": "structures/syn836.pdb"
+		},
+		{
+			"name": "syn837",
+			"number": 1,
+			"path": "structures/syn837.pdb"
+		},
+		{
+			"name": "syn838",
+			"number": 1,
+			"path": "structures/syn838.pdb"
+		},
+		{
+			"name": "syn839",
+			"number": 1,
+			"path": "structures/syn839.pdb"
+		},
+		{
+			"name": "syn840",
+			"number": 1,
+			"path": "structures/syn840.pdb"
+		},
+		{
+			"name": "syn851",
+			"number": 1,
+			"path": "structures/syn851.pdb"
+		},
+		{
+			"name": "syn852",
+			"number": 1,
+			"path": "structures/syn852.pdb"
+		},
+		{
+			"name": "syn853",
+			"number": 1,
+			"path": "structures/syn853.pdb"
+		},
+		{
+			"name": "syn859",
+			"number": 1,
+			"path": "structures/syn859.pdb"
+		},
+		{
+			"name": "syn870",
+			"number": 1,
+			"path": "structures/syn870.pdb"
+		},
+		{
+			"name": "syn872",
+			"number": 1,
+			"path": "structures/syn872.pdb"
+		},
+		{
+			"name": "syn873",
+			"number": 1,
+			"path": "structures/syn873.pdb"
+		},
+		{
+			"name": "syn874",
+			"number": 1,
+			"path": "structures/syn874.pdb"
+		},
+		{
+			"name": "syn875",
+			"number": 1,
+			"path": "structures/syn875.pdb"
+		},
+		{
+			"name": "syn876",
+			"number": 1,
+			"path": "structures/syn876.pdb"
+		},
+		{
+			"name": "syn877",
+			"number": 1,
+			"path": "structures/syn877.pdb"
+		},
+		{
+			"name": "syn878",
+			"number": 1,
+			"path": "structures/syn878.pdb"
+		},
+		{
+			"name": "syn879",
+			"number": 1,
+			"path": "structures/syn879.pdb"
+		},
+		{
+			"name": "syn881",
+			"number": 1,
+			"path": "structures/syn881.pdb"
+		},
+		{
+			"name": "syn885",
+			"number": 1,
+			"path": "structures/syn885.pdb"
+		},
+		{
+			"name": "syn886",
+			"number": 1,
+			"path": "structures/syn886.pdb"
+		},
+		{
+			"name": "syn887",
+			"number": 1,
+			"path": "structures/syn887.pdb"
+		},
+		{
+			"name": "syn9",
+			"number": 1,
+			"path": "structures/syn9.pdb"
+		},
+		{
+			"name": "syn906",
+			"number": 1,
+			"path": "structures/syn906.pdb"
+		},
+		{
+			"name": "syn907",
+			"number": 1,
+			"path": "structures/syn907.pdb"
+		},
+		{
+			"name": "syn908",
+			"number": 1,
+			"path": "structures/syn908.pdb"
+		},
+		{
+			"name": "syn909",
+			"number": 1,
+			"path": "structures/syn909.pdb"
+		},
+		{
+			"name": "syn910",
+			"number": 1,
+			"path": "structures/syn910.pdb"
+		},
+		{
+			"name": "syn913",
+			"number": 1,
+			"path": "structures/syn913.pdb"
+		},
+		{
+			"name": "syn918",
+			"number": 1,
+			"path": "structures/syn918.pdb"
+		},
+		{
+			"name": "syn930",
+			"number": 1,
+			"path": "structures/syn930.pdb"
+		},
+		{
+			"name": "syn931",
+			"number": 1,
+			"path": "structures/syn931.pdb"
+		},
+		{
+			"name": "syn932",
+			"number": 1,
+			"path": "structures/syn932.pdb"
+		},
+		{
+			"name": "syn94",
+			"number": 1,
+			"path": "structures/syn94.pdb"
+		},
+		{
+			"name": "syn95",
+			"number": 1,
+			"path": "structures/syn95.pdb"
+		},
+		{
+			"name": "syn97",
+			"number": 1,
+			"path": "structures/syn97.pdb"
+		}
+	]
+}

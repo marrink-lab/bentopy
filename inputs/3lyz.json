@@ -1,0 +1,21 @@
+{
+	"space": {
+		"size": [100, 100, 100],
+		"resolution": 0.5,
+		"mask": {
+			"padding": 0,
+			"shape": "none"
+		}
+	},
+	"output": {
+		"title": "3lyz",
+		"dir": "outputs"
+	},
+	"segments": [
+		{
+			"name": "3lyz",
+			"number": 100000,
+			"path": "structures/3lyz.pdb"
+		}
+	]
+}
