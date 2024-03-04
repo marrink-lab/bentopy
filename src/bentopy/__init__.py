@@ -1,0 +1,1 @@
+from .bentopy import main

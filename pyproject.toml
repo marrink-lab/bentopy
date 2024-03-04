@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bentopy"
+version = "0.0.1"
+authors = [
+  { name="Marieke Westendorp", email="ma3ke.cyber@gmail.com" },
+  { name="Bart Bruininks", email="bartbruininks@gmail.com" },
+  { name="Jan Stevens", email="j.a.stevens@rug.nl" },
+]
+description = "Packs stuff in boxes"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "MDAnalysis",
+]
+
+[project.urls]
+Homepage = "https://github.com/marrink-lab/bentopy"
+Issues = "https://github.com/marrink-lab/bentopy/issues"
+
+[project.scripts]
+bentopy = "bentopy:main"
