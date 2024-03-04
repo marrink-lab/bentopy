@@ -259,10 +259,6 @@ class Configuration:
         else:
             self.topol_includes = []
         self.render = output["render"]
-        if "debug_image" in output:
-            self.debug_image = output["debug_image"]
-        else:
-            self.debug_image = None
         self.output_placement_list = output["placement_list"]
         self.verbose = verbose
 
@@ -549,12 +545,6 @@ def main():
             config.segments,
             config.space.size,
         )
-
-    if config.debug_image:
-        _path = f"{config.output_dir}/{config.title}.png"
-        # plt.imsave(path, background)
-        # print(f"Wrote debug image to '{path}'.")
-        print("ERROR: CANNOT WRITE IMAGE TO PATH")
 
 
 if __name__ == "__main__":
