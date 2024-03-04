@@ -80,7 +80,9 @@ impl Structure {
         let mut lines = reader.lines();
 
         // Skip the title.
-        let _title = lines.next();
+        let _title = lines
+            .next()
+            .expect("unexpected end of file: no title specified")?;
 
         // Read the number of upcoming atoms.
         let n_atoms: usize = lines
