@@ -10,6 +10,9 @@ use rayon::prelude::*;
 /// The maximum number that can be represented by a 5-digit integer as found in gro files is 99999.
 /// Any value up to this number can be correctly displayed within 5 characters.
 const GRO_INTEGER_LIMIT: u32 = 100000;
+const GRO_LINE_LENGTH: usize = 44 + 1;
+const WRITE_CHUNK_SIZE: usize = 0x1000000;
+const FORMAT_CHUNK_SIZE: usize = WRITE_CHUNK_SIZE / 0x10;
 
 type GroStr = ArrayString<U5>;
 
@@ -148,21 +151,23 @@ impl Structure {
         // Write the atoms.
         let mut n = 0;
         let start = std::time::Instant::now();
-        for chunk in self.beads.chunks(0xffffff) {
+        for chunk in self.beads.chunks(WRITE_CHUNK_SIZE) {
             // Format this chunk in parallel.
-            let formatted: String = chunk
-                .par_iter()
-                .fold(
-                    || String::new(),
-                    |mut s, bead| {
+            let formatted = chunk
+                .par_chunks(FORMAT_CHUNK_SIZE)
+                .map(|beads| {
+                    let mut s = String::with_capacity(GRO_LINE_LENGTH * FORMAT_CHUNK_SIZE);
+                    for bead in beads {
                         bead.format_gro(&mut s);
                         s.push('\n');
-                        s
-                    },
-                )
-                .collect();
+                    }
+                    s
+                })
+                .collect_vec_list();
             // And write it away.
-            write!(writer, "{formatted}")?;
+            for f in formatted.iter().flatten() {
+                writer.write_all(f.as_bytes())?;
+            }
 
             // Report the progress.
             n += chunk.len();
