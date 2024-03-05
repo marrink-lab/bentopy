@@ -93,13 +93,17 @@ def place(
         location = placement_location(valid, selection, segment_voxels)
         prospect = np.where(segment_voxels) + location[:, None]
         # Check for collisions at the prospective site.
-        free = not np.any(background[*prospect])
+        free = not np.any(background[prospect[0, :], prospect[1, :], prospect[2, :]])
 
         if free:
             start = time.time()
 
             temp_selected_indices = prospect
-            background[*temp_selected_indices] = 1.0
+            background[
+                temp_selected_indices[0, :],
+                temp_selected_indices[1, :],
+                temp_selected_indices[2, :],
+            ] = 1.0
 
             placements.append(tuple(int(a) for a in location * resolution))
             hits += 1
