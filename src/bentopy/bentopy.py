@@ -401,19 +401,19 @@ def sphere_mask(size, r):
     ) < r**2
 
 
-def format_placement_list(config):
+def format_placement_list(state):
     return json.dumps(
         {
-            "title": config.title,
-            "size": config.space.size,
-            "topol_includes": config.topol_includes,
+            "title": state.title,
+            "size": state.space.size,
+            "topol_includes": state.topol_includes,
             "placements": [
                 {
                     "name": segment.name,
                     "path": segment.path,
                     "batches": segment.batches,
                 }
-                for segment in config.segments
+                for segment in state.segments
             ],
         }
     )
@@ -454,11 +454,11 @@ def configure():
 
 
 def main():
-    config = configure()
-    background = config.space.background()
+    state = configure()
+    background = state.space.background()
 
     start = time.time()
-    for segment in config.segments:
+    for segment in state.segments:
         segment_start = time.time()
         hits = pack(
             background,
@@ -476,9 +476,9 @@ def main():
     duration = end - start
     print(f"Packing process took {duration:.3f} s.")
 
-    placement_list_path = f"{config.output_dir}/{config.title}_placements.json"
+    placement_list_path = f"{state.output_dir}/{state.title}_placements.json"
     with open(placement_list_path, "w") as file:
-        placement_list = format_placement_list(config)
+        placement_list = format_placement_list(state)
         file.write(placement_list)
         print(f"Wrote placement list to '{placement_list_path}'.")
 
