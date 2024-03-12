@@ -1,4 +1,4 @@
-#![allow(non_local_definitions, dead_code)]
+#![allow(dead_code)]
 
 use std::{path::PathBuf, str::FromStr};
 
