@@ -3,3 +3,4 @@
 /structures
 /outputs
 *.egg-info
+*.so
