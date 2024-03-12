@@ -19,9 +19,14 @@ def main():
         help="Print the version and exit",
     )
 
-    subparsers = parser.add_subparsers(dest="subcommand")
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    pack_parser = subparsers.add_parser("pack")
+    pack_parser = subparsers.add_parser(
+        "pack",
+        help="""
+        Pack a space with structures and produce a placement list of this packing.
+        """,
+    )
     pack.setup_parser(pack_parser)
 
     render_parser = subparsers.add_parser(
@@ -69,7 +74,7 @@ def main():
         For example, `none,none,none,none,90,110` produces a 20 nm slice.
         """,
     )
-    mode_or_topol =  render_parser.add_mutually_exclusive_group()
+    mode_or_topol = render_parser.add_mutually_exclusive_group()
     mode_or_topol.add_argument(
         "-t",
         "--topology",
@@ -89,6 +94,7 @@ def main():
     if args.version:
         import importlib.metadata
         import sys
+
         version = importlib.metadata.version("bentopy")
         print(version)
         sys.exit(0)
