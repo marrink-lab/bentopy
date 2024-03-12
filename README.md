@@ -113,6 +113,7 @@ this config is written to a topology file.
 > [!NOTE]
 > For this example, we do not actually fill this field. It is shown here for
 > the purpose of explanation, not as a useful example.
+> See #9.
 
 Finally, in the **segments** section, we define a list of structures to place.
 In our case that is only one: which we give the **name** "3lyz", and we set the
