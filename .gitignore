@@ -2,3 +2,4 @@
 /dist
 /structures
 /outputs
+*.egg-info

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools-rust"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -29,3 +29,8 @@ Issues = "https://github.com/marrink-lab/bentopy/issues"
 
 [project.scripts]
 bentopy = "bentopy:main"
+
+[[tool.setuptools-rust.ext-modules]]
+target = "render._render"
+path = "Cargo.toml"
+binding = "PyO3"
