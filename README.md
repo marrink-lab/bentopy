@@ -64,7 +64,7 @@ Let's try to pack a system that is full of lysozyme structures. First, we want
 to get a structure to pack. Let's download the structure for [`3LYZ`][3lyz] and
 put it into a `structures` directory to stay organized.
 
-```
+```console
 wget https://files.rcsb.org/download/3lyz.pdb
 mkdir structures
 mv 3lyz.pdb structures
