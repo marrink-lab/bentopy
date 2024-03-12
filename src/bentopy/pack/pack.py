@@ -3,6 +3,7 @@ import json
 import math
 import os
 import time
+import pathlib
 
 import MDAnalysis as MDA
 import numpy as np
@@ -440,28 +441,36 @@ def format_placement_list(state):
     )
 
 
-def configure():
-    parser = argparse.ArgumentParser(
-        description="Pack a space.",
-        prog="pack",
-        epilog='"Maybe one minute is a bit optimistic."',
-    )
+def setup_parser(parser=None):
+    if parser is None:
+        parser = argparse.ArgumentParser(
+            description="Pack a space.",
+            prog="pack",
+            epilog='"Maybe one minute is a bit optimistic."',
+        )
     parser.add_argument(
-        "config", metavar="path", nargs=1, type=str, help="json file to define the run"
+        "path",
+        type=pathlib.Path,
+        help="The json configuration file to define the run.",
     )
     parser.add_argument(
         "--rearrange",
         action="store_true",
-        help="Sort the input structures by approximate size to optimize packing",
+        help="Sort the input structures by approximate size to optimize packing.",
     )
-    parser.add_argument("--seed", default=None, type=int, help="Random seed")
+    parser.add_argument("--seed", default=None, type=int, help="Random number generator seed.")
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Use verbose output"
+        "-v", "--verbose", action="store_true", help="Use verbose output."
     )
-    args = parser.parse_args()
+    return parser
 
-    config_path = args.config[0]
-    with open(config_path, "r") as config_file:
+
+def configure(args=None):
+    if args is None:
+        parser = setup_parser()
+        args = parser.parse_args()
+
+    with open(args.path, "r") as config_file:
         config_src = config_file.read()
 
     config = Configuration(config_src, args.verbose, args.rearrange, args.seed)
@@ -474,8 +483,9 @@ def configure():
     return config
 
 
-def main():
-    state = configure()
+def main(state=None):
+    if state is None:
+        state = configure()
     background = state.space.background()
 
     start = time.time()
