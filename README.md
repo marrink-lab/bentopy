@@ -38,6 +38,10 @@ python3 -m venv venv && source venv/bin/activate
 pip3 install .
 ```
 
+## Tutorial
+
+Want to go through a detailed example? Take a look at our [in-depth tutorial](tutorial/tutorial.md).
+
 ## Usage
 
 _bentopy_ currently features two subcommands, _pack_ and _render_.
