@@ -250,13 +250,16 @@ class Configuration:
     def __init__(self, json_src: str, verbose: bool, rearrange: bool, seed):
         config = json.loads(json_src)
         space = config["space"]
-        mask = space["mask"]
-        self.space = Space(
-            space["size"], space["resolution"], mask["shape"], mask["padding"]
-        )
+        self.space = Space(space["size"], space["resolution"], space["compartments"])
         segments = config["segments"]
         self.segments = [
-            Segment(s["name"], s["number"], s["path"], self.space.resolution)
+            Segment(
+                s["name"],
+                s["number"],
+                s["path"],
+                self.space.resolution,
+                s["compartments"],
+            )
             for s in segments
         ]
         self.seed = seed
@@ -286,49 +289,114 @@ class Configuration:
         self.verbose = verbose
 
 
+class Voxels:
+    def __init__(self, path, resolution, position):
+        self.path = path
+        self.resolution = resolution
+        self.position = position
+        self.voxels_cache = None
+        self.mask_cache = None
+
+    def voxels(self):
+        if self.voxels_cache is None:
+            self.voxels_cache = np.load(self.path)
+        return self.voxels_cache
+
+    def mask(self, _width, _height, _depth, _padding):
+        if self.mask_cache is None:
+            voxels = self.voxels()
+            # TODO: Apply the width, height, depth, padding parameters?
+            self.mask_cache = np.where(voxels)
+        return self.mask_cache
+
+
+class Shape:
+    kind_spherical = "spherical"
+    kind_cuboid = "cuboid"
+    kind_none = "none"
+    available = [kind_spherical, kind_cuboid, kind_none]
+
+    def __init__(self, kind):
+        if kind not in self.available:
+            raise ValueError(f"Unknown Shape kind: '{kind}' not in {self.available}")
+        self.kind = kind
+        self.mask_cache = None
+
+    def mask(self, width, height, depth, padding):
+        if self.mask_cache is None:
+            if self.kind == self.kind_spherical:
+                size = min(width, height, depth)
+                # TODO: Make this elliptical or something idk.
+                self.mask_cache = np.where(sphere_mask(size, size / 2 - padding))
+            elif self.kind == self.kind_cuboid:
+                self.mask_cache = cuboid_mask(width, height, depth, padding)
+            elif self.kind == self.kind_none:
+                self.mask_cache = tuple()
+        return self.mask_cache
+
+
+class Compartment:
+    def __init__(self, id, shape=None, voxels=None):
+        # Take care of the two incorrect input scenarios.
+        both_none = shape is None and voxels is None
+        both_some = shape is not None and voxels is not None
+        if both_none or both_some:
+            raise ValueError("Provide either a `shape` or `voxels` definition.")
+        self.id = id
+        if shape is not None:
+            self.definition = Shape(shape)
+        if voxels is not None:
+            path = voxels["path"]
+            resolution = voxels["resolution"]
+            position = voxels["position"]
+            self.definition = Voxels(path, resolution, position)
+
+    def mask(self, width, height, depth, padding):
+        return self.definition.mask(width, height, depth, padding)
+
+
 class Space:
-    def __init__(self, size, resolution, shape, padding):
+    def __init__(self, size, resolution, compartments):
         assert len(size) == 3, "The size of a space must be 3-dimensional"
         # Size in nm (unaffected by whatever value resolution has).
         self.size = size
         self.resolution = resolution
-        self.shape = shape
-        # Padding in nm (unaffected by whatever value resolution has).
-        self.padding = padding
+        self.compartments = []
+        for c in compartments:
+            id = c["id"]
+            if "shape" in c:
+                compartment = Compartment(id, shape=c["shape"])
+            elif "voxels" in c:
+                compartment = Compartment(id, voxels=c["voxels"])
+            self.compartments.append(compartment)
 
-    def background(self):
+    def background(self, compartment_ids, onto=None):
         # Adjust size and padding for resolution.
         size = (np.array(self.size) / self.resolution).astype(int)
-        padding = self.padding / self.resolution
 
-        background = np.ones(size, dtype=np.float32)
-        width, height, depth = size
-        log(f"{self.shape = }")
-        if self.shape == "spherical":
-            size = min(width, height, depth)
-            # TODO: Make this elliptical or something idk.
-            mask = sphere_mask(size, size / 2 - padding)
-        elif self.shape == "cuboid":
-            mask = np.s_[
-                int(padding) : int(width) - int(padding),
-                int(padding) : int(height) - int(padding),
-                int(padding) : int(depth) - int(padding),
-            ]
-        elif self.shape == "none":
-            mask = tuple()
+        if onto is None:
+            background = np.ones(size, dtype=np.float32)
         else:
-            raise ValueError
-        background[mask] = 0
+            background = onto
+
+        width, height, depth = size
+        for compartment in filter(
+            lambda compartment: compartment.id in compartment_ids, self.compartments
+        ):
+            mask = compartment.mask(width, height, depth, padding=0)
+            # Apply the mask
+            background[mask] = 0
         return background
 
 
 class Segment:
-    def __init__(self, name, target_number, path, resolution):
+    def __init__(self, name, target_number, path, resolution, compartment_ids):
         self.name = name
         self.target_number = target_number
         self.path = path
         self.rotation = np.eye(3)  # We start out with the identity matrix.
         self.resolution = resolution
+        self.compartment_ids = compartment_ids
         self._points = None
         # TODO: Perhaps this ought to be a dictionary, but then we would need a
         # method of normalizing rotation matrices to a lower precision in order
@@ -423,6 +491,14 @@ def sphere_mask(size, r):
     ) < r**2
 
 
+def cuboid_mask(width, height, depth, padding):
+    np.s_[
+        int(padding) : int(width) - int(padding),
+        int(padding) : int(height) - int(padding),
+        int(padding) : int(depth) - int(padding),
+    ]
+
+
 def format_placement_list(state):
     return json.dumps(
         {
@@ -458,7 +534,9 @@ def setup_parser(parser=None):
         action="store_true",
         help="Sort the input structures by approximate size to optimize packing.",
     )
-    parser.add_argument("--seed", default=None, type=int, help="Random number generator seed.")
+    parser.add_argument(
+        "--seed", default=None, type=int, help="Random number generator seed."
+    )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output."
     )
@@ -486,13 +564,16 @@ def configure(args=None):
 def main(state=None):
     if state is None:
         state = configure()
-    background = state.space.background()
+    background = state.space.background([])
 
     start = time.time()
     for segment in state.segments:
+        segment_background = state.space.background(
+            segment.compartment_ids, onto=background
+        )
         segment_start = time.time()
         hits = pack(
-            background,
+            segment_background,
             segment,
             # HACK: For now, this may be necessary.
             max_at_once=math.ceil(segment.target_number / 10),

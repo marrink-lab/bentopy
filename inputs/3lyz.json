@@ -2,10 +2,12 @@
 	"space": {
 		"size": [100, 100, 100],
 		"resolution": 0.5,
-		"mask": {
-			"padding": 0,
-			"shape": "spherical"
-		}
+		"compartments": [
+			{
+				"id": "main",
+				"shape": "spherical"
+			}
+		]
 	},
 	"output": {
 		"title": "3lyz",
@@ -15,7 +17,8 @@
 		{
 			"name": "3lyz",
 			"number": 100000,
-			"path": "structures/3lyz.pdb"
+			"path": "structures/3lyz.pdb",
+			"compartments": ["main"]
 		}
 	]
 }
