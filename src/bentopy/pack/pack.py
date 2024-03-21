@@ -370,7 +370,7 @@ class Space:
                 compartment = Compartment(id, voxels=c["voxels"])
             self.compartments.append(compartment)
 
-    def background(self, compartment_ids, onto=None):
+    def background(self, compartment_ids=[], onto=None):
         # Adjust size and padding for resolution.
         size = (np.array(self.size) / self.resolution).astype(int)
 
@@ -564,7 +564,7 @@ def configure(args=None):
 def main(state=None):
     if state is None:
         state = configure()
-    background = state.space.background([])
+    background = state.space.background()
 
     start = time.time()
     for segment in state.segments:
