@@ -290,16 +290,18 @@ class Configuration:
 
 
 class Voxels:
-    def __init__(self, path, resolution, position):
+    def __init__(self, path):
         self.path = path
-        self.resolution = resolution
-        self.position = position
         self.voxels_cache = None
         self.mask_cache = None
 
     def voxels(self):
         if self.voxels_cache is None:
-            self.voxels_cache = np.load(self.path)
+            if self.path.endswith(".npz"):
+                with np.load(self.path) as npz:
+                    self.voxels_cache = npz[npz.files[0]]  # FIXME: Seems silly.
+            else:
+                self.voxels_cache = np.load(self.path)
         return self.voxels_cache
 
     def mask(self, _width, _height, _depth, _padding):
@@ -346,10 +348,7 @@ class Compartment:
         if shape is not None:
             self.definition = Shape(shape)
         if voxels is not None:
-            path = voxels["path"]
-            resolution = voxels["resolution"]
-            position = voxels["position"]
-            self.definition = Voxels(path, resolution, position)
+            self.definition = Voxels(voxels["path"])
 
     def mask(self, width, height, depth, padding):
         return self.definition.mask(width, height, depth, padding)
@@ -373,16 +372,13 @@ class Space:
     def background(self, compartment_ids=[], onto=None):
         # Adjust size and padding for resolution.
         size = (np.array(self.size) / self.resolution).astype(int)
-
         if onto is None:
             background = np.ones(size, dtype=np.float32)
         else:
             background = onto
 
         width, height, depth = size
-        for compartment in filter(
-            lambda compartment: compartment.id in compartment_ids, self.compartments
-        ):
+        for compartment in filter(lambda c: c.id in compartment_ids, self.compartments):
             mask = compartment.mask(width, height, depth, padding=0)
             # Apply the mask
             background[mask] = 0
