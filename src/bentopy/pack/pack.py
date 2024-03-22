@@ -304,9 +304,14 @@ class Voxels:
                 self.voxels_cache = np.load(self.path)
         return self.voxels_cache
 
-    def mask(self, _width, _height, _depth, _padding):
+    def mask(self, width, height, depth, _padding):
         if self.mask_cache is None:
             voxels = self.voxels()
+            space_size = (width, height, depth)
+            if voxels.shape != space_size:
+                raise ValueError(
+                    f"The provided voxel mask has the size {voxels.shape}, but must have the same size as its encapsulating Space {space_size}."
+                )
             # TODO: Apply the width, height, depth, padding parameters?
             self.mask_cache = np.where(voxels)
         return self.mask_cache
