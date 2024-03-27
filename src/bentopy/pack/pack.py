@@ -33,8 +33,7 @@ def placement_location(valid, selection, segment):
 
 
 def place(
-    padded_background,
-    inside,  # A slice object to get the background from the padded_background.
+    background,
     segment_voxels,
     max_at_once,
     max_tries,
@@ -44,38 +43,21 @@ def place(
     """
     Place a number of segments into the background.
     """
-    # First, we convolve the background to reveal the points where we can
-    # safely place a segment without overlapping them.
+
     start = time.time()
 
-    # The padded_background is padded very conservatively, and we don't need
-    # all of its padding. We want to construct a slice object that we use to
-    # select only the minimally needed section of the padded_background.
-    minimal_padsize = np.array(segment_voxels.shape)
-    # Minimal inside of the padded_background.
-    inside_minimal = tuple(
-        slice(sl.start - nps, sl.stop + nps)
-        for (nps, sl) in zip(minimal_padsize, inside)
-    )
-    # The inside of collisions, such that its size equals the original background.
-    inside_collisions = tuple(slice(p, -p) for p in minimal_padsize)
-
+    # First, we convolve the background to reveal the points where we can
+    # safely place a segment without overlapping them.
     query = np.flip(segment_voxels)
-    # We pad the background in order to circumvent the edge effects of the
-    # convolution. By padding and subsequently cropping the `collisions`
-    # matrix, we make sure that there will be no out-of-bounds false positives
-    # in the valid list.
-    # TODO: There must be a more elegant way.
-    collisions_padded = fftconvolve(
-        padded_background[inside_minimal], query, mode="same"
-    )
+    collisions = fftconvolve(background, query, mode="valid")
+    valid_offset = np.array(query.shape) // 2
     convolution_duration = time.time() - start
     log(f"        (convolution took {convolution_duration:.3f} s)")
 
     # The valid placement points will have a value of 0. Since the floating
     # point operations leave some small errors laying around, we use a quite
     # generous cutoff.
-    valid = np.array(np.where(collisions_padded[inside_collisions] < 1e-4))
+    valid = np.array(np.where(collisions < 1e-4)) + valid_offset[:, None]
     if valid.size == 0:
         return None
 
@@ -102,15 +84,13 @@ def place(
         location = placement_location(valid, selection, segment_voxels)
         prospect = np.where(segment_voxels) + location[:, None]
         # Check for collisions at the prospective site.
-        free = not np.any(
-            padded_background[inside][prospect[0, :], prospect[1, :], prospect[2, :]]
-        )
+        free = not np.any(background[prospect[0, :], prospect[1, :], prospect[2, :]])
 
         if free:
             start = time.time()
 
             temp_selected_indices = prospect
-            padded_background[inside][
+            background[
                 temp_selected_indices[0, :],
                 temp_selected_indices[1, :],
                 temp_selected_indices[2, :],
@@ -159,12 +139,6 @@ def pack(
     )  # TODO: np.product?
     max_volume = background_volume - start_volume
 
-    diagonal = segment.points().max(axis=1)
-    padsize = int(np.ceil(np.linalg.norm(diagonal)))
-    padded_background = np.pad(background, padsize, mode="constant", constant_values=2)
-    # This slice object helps us retrieve the original background from a padded background array.
-    inside = tuple(slice(padsize, -padsize) for _ in range(3))
-
     log("--> initiating packing")
     segment_hits = 0
     for iteration in range(max_iters):
@@ -191,8 +165,7 @@ def pack(
 
         query = segment.voxels()
         placements = place(
-            padded_background,
-            inside,
+            background,
             query,
             max_at_once_clamped,
             max_tries,
@@ -202,7 +175,7 @@ def pack(
         duration = time.time() - start
         log(f"        ({duration:.3f} s)")
 
-        density = (np.sum(padded_background[inside]) - start_volume) / max_volume
+        density = (np.sum(background) - start_volume) / max_volume
         if placements is None:
             log(
                 f"    iteration {iteration} ended because the convolution produced no viable spots"
@@ -236,17 +209,12 @@ def pack(
             )
 
         segment.rotation = R.random(random_state=RNG).as_matrix()
-    assert background.shape == padded_background[inside].shape
-    background = padded_background[inside]
     end_volume = np.sum(background)
     density = (end_volume - start_volume) / max_volume
     print(
         f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%}; ρ->{density:.3f})"
     )
     return segment_hits
-
-
-
 
 
 def format_placement_list(state):
