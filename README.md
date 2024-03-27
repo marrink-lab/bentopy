@@ -77,10 +77,12 @@ Now we can set up our input configuration, which we will call `3lyz_input.json`:
 	"space": {
 		"size": [100, 100, 100],
 		"resolution": 0.5,
-		"mask": {
-			"padding": 0,
-			"shape": "spherical"
-		}
+		"compartments": [
+			{
+				"id": "main",
+				"shape": "spherical"
+			}
+		]
 	},
 	"output": {
 		"title": "3lyz",
@@ -94,7 +96,8 @@ Now we can set up our input configuration, which we will call `3lyz_input.json`:
 		{
 			"name": "3lyz",
 			"number": 6500,
-			"path": "structures/3lyz.pdb"
+			"path": "structures/3lyz.pdb",
+			"compartments": ["main"]
 		}
 	]
 }
@@ -102,8 +105,31 @@ Now we can set up our input configuration, which we will call `3lyz_input.json`:
 
 We set the **space** up to a **size** of 100&times;100&times;100 nm, with a
 **resulution** of 0.5 nm. The mask&mdash;the volume that defines where
-structures can be placed&mdash;is set to be **spherical**, without any
-**padding**.
+structures can be placed&mdash;is set to be derived from a **spherical** analytical function.
+
+In case you want to use a custom **mask**, you could specify one in the following manner.
+
+```json
+		"compartments": [
+			{
+				"id": "main",
+				"voxels": {
+					"path": "inputs/sphere.npz"
+				}
+			}
+		]
+```
+
+Here, **voxels** and the associated **path** point to a precomputed voxel mask.
+This mask can be any data that can be loaded by [`np.load()`][np-load] to be
+interpreted as a three-dimensional boolean mask. The provided mask must have
+the same shape as specified in the **space** section's **dimensions**.
+By specifying custom masks, a great range of systems can be packed!
+
+> [!CAUTION]
+> Currently, multiple masks (beyond the single arbitrarily named "main" from
+> this example) are either broken or very unstable.
+> See #7.
 
 In **output**, we set a **title** and **dir**ectory to write the product files
 to. With the optional field **topol_includes**, we can specify what 
@@ -284,3 +310,4 @@ to any relative structure path that is defined in the placement list.
 [top]: https://manual.gromacs.org/current/reference-manual/file-formats.html#itp
 [3lyz]: https://www.rcsb.org/structure/3LYZ
 [jq]: https://github.com/jqlang/jq
+[np-load]: https://numpy.org/doc/stable/reference/generated/numpy.load.html
