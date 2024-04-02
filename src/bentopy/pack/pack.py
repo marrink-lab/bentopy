@@ -82,6 +82,7 @@ def place(
     # this distribution, the closer a valid placement is to the end of the
     # domain, the less likely it becomes the placement is accepted.
     n_domains = 5
+    segments_per_domain = max_at_once / n_domains
     # The size of the background in the direction of the domain layers.
     background_size = background.shape[2]
     assert (
@@ -141,7 +142,7 @@ def place(
         tries = 0  # Number of times segment placement was unsuccesful.
         start = time.time()
         previously_selected = set()
-        while hits < max_at_once:
+        while hits < segments_per_domain:
             if tries >= max_tries:
                 # Give up.
                 log("  ! tries is exceeding max_tries")
@@ -204,7 +205,7 @@ def place(
             else:
                 tries += 1
                 log(
-                    f"        {tries = }/{max_tries},\thits = {hits}/{max_at_once}",
+                    f"        {tries = }/{max_tries},\thits = {hits}/{segments_per_domain}({max_at_once})",
                     end="\r",
                 )
                 placement_duration = time.time() - start
