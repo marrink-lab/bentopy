@@ -57,11 +57,9 @@ def place(
 
     start = time.time()
 
-    # TODO: Make sure this axis is either user-definable or just depends on the
-    # longest axis in `Space.dimensions`.
     # FIXME(domains): Revisit and reformat this comment. Really needs to be correct ;)
-    # We break up the background into a set of layers over the z-axis. We call
-    # these layers 'domains'. Each of these domains will be packed
+    # We break up the background into a set of layers over the the longest axis.
+    # We call these layers 'domains'. Each of these domains will be packed
     # sequentially, such that we place the segment over the entire space,
     # eventually. This breaking up into domains serves to reduce the peak
     # memory footprint during the convolution. For large spaces, the memory
@@ -82,13 +80,14 @@ def place(
     # this distribution, the closer a valid placement is to the end of the
     # domain, the less likely it becomes the placement is accepted.
     n_domains = 5
+    domain_axis = np.argmax(background.shape)  # The longest axis.
     segments_per_domain = max_at_once / n_domains
     # The size of the background in the direction of the domain layers.
-    background_size = background.shape[2]
+    background_size = background.shape[domain_axis]
     assert (
-        background.shape[2] % n_domains == 0
+        background.shape[domain_axis] % n_domains == 0
     ), "For now, make sure we can neatly divide the background into domains"
-    domain_size = background.shape[2] // n_domains
+    domain_size = background.shape[domain_axis] // n_domains
     assert (
         domain_size % 2 == 0
     ), "For now, make sure we can neatly divide a domain into two halves"
@@ -97,7 +96,7 @@ def place(
     # domain_indices = (*range(0, n_domains, 2), *range(1, n_domains, 2))
     white_domains = [
         ((2 * i) * half_domain_size, (2 * i + 2) * half_domain_size)
-        for i in range(n_domains * 2)
+        for i in range(n_domains)
     ]
     # The black domains should also cover the first and last 'half' domains.
     black_domains = [
@@ -111,16 +110,22 @@ def place(
                 background_size,
             ),
         )
-        for i in range((n_domains + 1) * 2)
+        for i in range(n_domains + 1)
     ]
 
     query = np.flip(segment_voxels)
 
     placements = []
     for domain_start, domain_end in itertools.chain(white_domains, black_domains):
-        print("doing one domain")
-        domain = background[:, :, domain_start:domain_end]
-        domain_offset = np.array([0, 0, domain_start])
+        domain_slice = slice(domain_start, domain_end)
+        if domain_axis == 0:
+            domain = background[domain_slice, :, :]
+        elif domain_axis == 1:
+            domain = background[:, domain_slice, :]
+        elif domain_axis == 2:
+            domain = background[:, :, domain_slice]
+        domain_offset = np.roll(np.array([domain_start, 0, 0]), domain_axis)
+        print(f"{domain_offset = }")
         # First, we convolve the domain to reveal the points where we can
         # safely place a segment without overlapping them.
         collisions = fftconvolve(domain, query, mode="valid")
@@ -142,7 +147,7 @@ def place(
         tries = 0  # Number of times segment placement was unsuccesful.
         start = time.time()
         previously_selected = set()
-        while hits < segments_per_domain:
+        while hits < segments_per_domain and hits < max_at_once:
             if tries >= max_tries:
                 # Give up.
                 log("  ! tries is exceeding max_tries")
@@ -166,14 +171,14 @@ def place(
             if free:
                 start = time.time()
 
-                z_location = location[2]
+                domain_axis_location = location[domain_axis]
                 # FIXME(domains): This is truly weird and can probably all be integrated in one well-formed if statement.
                 is_half_domain = domain_end - domain_start == half_domain_size
                 if is_half_domain:
                     # We need to deal with a half-sized domain at the start or end of the black pass.
                     if domain_start == 0:
                         acceptance_probability = trail_off(
-                            z_location / half_domain_size
+                            domain_axis_location / half_domain_size
                         )
                     elif domain_end == background_size:
                         acceptance_probability = 1.0
@@ -181,11 +186,11 @@ def place(
                         assert False, "Unreachable! Encountered a half domain that is not at the start or end of the background. This should be impossible."
                 else:
                     # The common case.
-                    if z_location < half_domain_size:
+                    if domain_axis_location < half_domain_size:
                         acceptance_probability = 1.0
-                    if z_location >= half_domain_size:
+                    if domain_axis_location >= half_domain_size:
                         acceptance_probability = trail_off(
-                            (z_location - half_domain_size) / half_domain_size
+                            (domain_axis_location - half_domain_size) / half_domain_size
                         )
 
                 # Only actually place it if we accept it according to the
