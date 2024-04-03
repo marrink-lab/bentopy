@@ -92,7 +92,7 @@ class Space:
         # Adjust size and padding for resolution.
         size = (np.array(self.size) / self.resolution).astype(int)
         if onto is None:
-            background = np.ones(size, dtype=np.float32)
+            background = np.ones(size, dtype=np.bool_)
         else:
             background = onto
 
