@@ -46,3 +46,4 @@ class Configuration:
         else:
             self.topol_includes = []
         self.verbose = verbose
+        self.rotations = 10

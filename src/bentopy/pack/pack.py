@@ -11,7 +11,6 @@ from scipy.spatial.transform import Rotation as R
 from .config import Configuration
 
 VERBOSE = False
-ROTATIONS = 4
 RNG = np.random.default_rng()
 
 
@@ -294,7 +293,7 @@ def main(state=None):
             segment_background,
             segment,
             # HACK: For now, this may be necessary.
-            max_at_once=math.ceil(segment.target_number / 10),
+            max_at_once=math.ceil(segment.target_number / state.rotations),
             max_tries=100,  # Maximum number of times to fail to place a segment.
         )
         segment_end = time.time()
