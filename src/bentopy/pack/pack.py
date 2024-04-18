@@ -33,6 +33,7 @@ def placement_location(valid, selection, segment):
 
 def place(
     background,
+    location_offset,
     segment_voxels,
     max_at_once,
     max_tries,
@@ -95,7 +96,10 @@ def place(
                 temp_selected_indices[2, :],
             ] = 1.0
 
-            placements.append(tuple(int(a) for a in location * resolution))
+            # If we are looking at a squeezed background, we need to correct the offset.
+            corrected_location = location + location_offset
+
+            placements.append(tuple(int(a) for a in corrected_location * resolution))
             hits += 1
         else:
             tries += 1
@@ -138,6 +142,19 @@ def pack(
     )  # TODO: np.product?
     max_volume = background_volume - start_volume
 
+    # We want to use a 'squeezed' background, where any unavailable space that
+    # can be sliced off is not considered.
+    indices = np.where(background == False)
+    mins = np.min(indices, axis=1)
+    maxs = np.max(indices, axis=1)
+    squeezed_background = background[
+        mins[0] : maxs[0], mins[1] : maxs[1], mins[2] : maxs[2]
+    ]
+
+    # We need to keep track of the new origin so that we can correct for it
+    # when writing positions to the placement list.
+    location_offset = mins
+
     log("--> initiating packing")
     segment_hits = 0
     for iteration in range(max_iters):
@@ -164,7 +181,8 @@ def pack(
 
         query = segment.voxels()
         placements = place(
-            background,
+            squeezed_background,
+            location_offset,
             query,
             max_at_once_clamped,
             max_tries,
