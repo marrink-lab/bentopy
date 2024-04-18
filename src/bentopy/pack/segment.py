@@ -74,7 +74,10 @@ def voxelize(points, resolution, tighten=False):
     points -= mins[:, None]
 
     maxs = np.ceil(points.max(axis=1)).astype(int)
-    voxels = np.zeros((maxs[0], maxs[1], maxs[2]))  # FIXME: Better way?
+    voxels = np.zeros(tuple(max(1, m) for m in maxs))  # FIXME: Better way?
+    assert all(
+        v >= 1 for v in voxels.shape
+    ), f"The voxels array should have a shape of at least (1, 1, 1). It was {voxels.shape}"
 
     # TODO: This seems silly. Must be a better way.
     for x, y, z in points.T:
