@@ -6,7 +6,14 @@ from .space import Space
 
 
 class Configuration:
-    def __init__(self, json_src: str, verbose: bool, rearrange: bool, seed):
+    def __init__(
+        self,
+        json_src: str,
+        verbose: bool,
+        rearrange: bool,
+        seed: int,
+        rotations: int,
+    ):
         config = json.loads(json_src)
         space = config["space"]
         self.space = Space(space["size"], space["resolution"], space["compartments"])
@@ -46,4 +53,4 @@ class Configuration:
         else:
             self.topol_includes = []
         self.verbose = verbose
-        self.rotations = 10
+        self.rotations = rotations

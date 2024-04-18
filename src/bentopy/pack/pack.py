@@ -273,6 +273,9 @@ def setup_parser(parser=None):
         "--seed", default=None, type=int, help="Random number generator seed."
     )
     parser.add_argument(
+        "--rotations", default=10, type=int, help="Set the number of random rotations per segment kind."
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output."
     )
     return parser
@@ -286,7 +289,7 @@ def configure(args=None):
     with open(args.path, "r") as config_file:
         config_src = config_file.read()
 
-    config = Configuration(config_src, args.verbose, args.rearrange, args.seed)
+    config = Configuration(config_src, args.verbose, args.rearrange, args.seed, args.rotations)
 
     global VERBOSE
     VERBOSE = config.verbose
