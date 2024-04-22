@@ -21,6 +21,7 @@ dependencies = [
     "numpy",
     "scipy",
     "MDAnalysis",
+    "mdvcontainment",
 ]
 
 [project.urls]
