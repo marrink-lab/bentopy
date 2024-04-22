@@ -3,6 +3,7 @@ import pathlib
 
 from render._render import py_render_placements as render_placements
 from .pack import pack
+from .mask import mask
 
 __all__ = ["render_placements"]
 
@@ -89,6 +90,14 @@ def main():
         help="Granularity of the produced output.",
     )
 
+    mask_parser = subparsers.add_parser(
+        "mask",
+        help="""
+        Set up masks based on structures and compartment segmentations.
+        """,
+    )
+    mask.setup_parser(mask_parser)
+
     args = parser.parse_args()
 
     if args.version:
@@ -106,3 +115,5 @@ def main():
         render_placements(
             args.input, args.output, args.topol, args.root, args.limits, args.mode
         )
+    elif args.subcommand == "mask":
+        mask.main(args)
