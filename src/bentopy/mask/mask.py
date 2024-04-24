@@ -9,7 +9,6 @@ from mdvcontainment import Containers
 DEFAULT_CONTAINMENT_RESOLUTION = 1.0
 DEFAULT_MASK_RESOLUTION = 0.5
 
-# TODO: Use a proper log function that is subject to the --verbose flag?
 log = print
 
 
@@ -90,13 +89,6 @@ def setup_parser(parser=None):
         type=Path,
         help="""Write the final voxel mask as a gro file for inspection with molecule viewers. 
         This can be useful when you want to verify the voxel mask that is produced for some selection of labels.""",
-    )
-    parser.add_argument(
-        # TODO: Currently a no-op. Will change in the future.
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Use verbose output.",
     )
     return parser
 
