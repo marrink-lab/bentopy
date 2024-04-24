@@ -12,6 +12,15 @@ log = print
 
 
 def main(args):
+    # First, we want to see whether everything is set in case --no-interactive is used.
+    if not args.interactive:
+        log("Running in non-interactive mode.")
+        if args.labels is None:
+            log("ERROR: No labels were specified.", end=" ")
+            log("In non-interactive mode, at least one label must be provided.")
+            exit(1)
+
+    # Read in structures.
     structure_path = args.input
     log(f"Reading in structure from {structure_path}... ", end="")
     u = mda.Universe(structure_path)
@@ -70,29 +79,35 @@ def main(args):
         voxels_to_gro(labels_path, label_array)
         log("done.")
 
-    # TODO: Is there a neater way of getting the different labels from the Containment?
+    # Let's select our labels.
     possible_labels = np.unique(label_array)
-
-    # TODO: Let the behavior depend on whether --interactive is set. Now we will always ask for input().
-    if args.labels is None:
-        log(
-            "No compartment labels have been selected, yet. Select one or more to continue."
-        )
-        log(
-            f"Options: {possible_labels}. Provide them as a space-separated list followed by a return."
-        )
+    if args.interactive and args.labels is None:
+        log("No compartment labels have been selected, yet.", end=" ")
+        log("Select one or more to continue.")
+        log(f"Options: {possible_labels}.", end=" ")
+        log("Provide them as a space-separated list followed by a return.")
         labels = []
         while len(labels) == 0:
-            labels.extend(map(lambda label: int(label), input("-> ").split()))
+            try:
+                labels.extend(map(lambda label: int(label), input("-> ").split()))
+            except ValueError:
+                log("Could not parse the labels. Make sure they are well-formed.")
             for label in labels:
                 if label not in possible_labels:
-                    log(
-                        f"'{label}' is not a valid compartment label. Please try again."
-                    )
+                    log(f"'{label}' is not a valid compartment label.", end=" ")
+                    log("Please try again.")
                     labels.clear()
                     break
     else:
+        # Making sure we this is the case, even though we do this check at the top as well.
+        assert (
+            args.labels is not None
+        ), "No labels are specified and the mode is non-interactive so we can't ask."
         labels = args.labels
+        for label in labels:
+            if label not in possible_labels:
+                log(f"ERROR: '{label}' is not a valid compartment label.")
+                exit(1)
     log(f"Selected the following labels: {labels}.")
 
     compartment = np.isin(label_array, labels)
