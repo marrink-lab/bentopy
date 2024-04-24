@@ -56,9 +56,9 @@ def main(args):
     log("--- >8 --- mdvcontainment ---\n")
 
     # Show what we found.
-    log("Found the following components:")
-    log(f"\troot:\t{containment.get_root_components()}")
-    log(f"\tleaf:\t{containment.get_leaf_components()}")
+    log("Found the following component groups:")
+    log(f"        root:\t{containment.get_root_components()}")
+    log(f"      leaves:\t{containment.get_leaf_components()}")
 
     # Write the plot of the containments if desired.
     if args.plot is None and args.interactive:
