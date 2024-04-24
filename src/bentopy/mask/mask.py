@@ -147,15 +147,6 @@ def main(args):
         labels = args.labels
     log(f"Selected the following labels: {labels}.")
 
-    # TODO: Reconsider if args.output should be mandatory when --interactive is also there.
-    if args.output is None:
-        log("Please specify an output path or name for the mask (npz).")
-        mask_path = ""
-        while len(mask_path) == 0:
-            mask_path = input("-> ").trim()
-    else:
-        mask_path = args.output
-
     compartment = np.isin(label_array, labels)
     # TODO: Display this as % voxels as placeable space.
     (_things, (full, free)) = np.unique(compartment, return_counts=True)
@@ -180,6 +171,6 @@ def main(args):
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
         voxels_to_gro(voxels_path, zoomed)
         log("done.")
-    log(f"Writing the voxel mask to {mask_path}... ", end="")
-    np.savez(mask_path, zoomed)
+    log(f"Writing the voxel mask to {args.output}... ", end="")
+    np.savez(args.output, zoomed)
     log("done.")
