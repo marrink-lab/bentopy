@@ -48,9 +48,24 @@ def main(args):
         log(f"Plotting to {plot_path}.")
         containment.plot(name=str(plot_path))
 
+    # Get the label array that forms the basis of our masking.
     label_array = containment.data["relabeled_combined_label_array"]
-    if args.inspect_labels_path is not None:
+    # Write the labels to a gro file if desired.
+    if args.inspect_labels_path is None and args.interactive:
+        log("Do you want to write a label map as a gro file to view the containments?")
+        log("Leave empty to skip or provide an output path.")
+        while True:
+            path = input("(gro) -> ").strip()
+            if len(path) == 0:
+                labels_path = None
+                break
+            labels_path = Path(path)
+            if labels_path.suffix == ".gro":
+                break
+            log(f"Path must have a gro extension. Found '{labels_path.suffix}'.")
+    else:
         labels_path = args.inspect_labels_path
+    if labels_path is not None:
         log(f"Writing labels voxels debug file to {labels_path}... ", end="")
         voxels_to_gro(labels_path, label_array)
         log("done.")
