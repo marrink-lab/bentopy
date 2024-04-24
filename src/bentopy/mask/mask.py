@@ -12,7 +12,22 @@ log = print
 
 
 def main(args):
-    # First, we want to see whether everything is set in case --no-interactive is used.
+    # First, we want to verify our arguments.
+    # Down the line, we assume that the containment resolution can be treated
+    # as integer multiple of the mask resolution. Let's check that at the top.
+    if args.containment_resolution % args.mask_resolution > 0.01:
+        log("ERROR: The containment and mask resolutions are not well-formed.")
+        log(
+            f"The containment resolution ({args.containment_resolution})",
+            f"must be a multiple of the mask resolution ({args.mask_resolution}),",
+            "such that `containment_resolution % mask resolution == 0`.",
+        )
+        exit(1)
+    if args.mask_resolution < 0:
+        log(f"ERROR: The mask resolution ({args.mask_resolution}) cannot be negative.")
+        exit(1)
+    zoom = int(args.containment_resolution / args.mask_resolution)
+    # Everything must be set correctly in case --no-interactive is used.
     if not args.interactive:
         log("Running in non-interactive mode.")
         if args.labels is None:
@@ -123,8 +138,6 @@ def main(args):
     log(f"   available:\t{free} voxels\t({free * containment_voxel_volume:.1f} nm³)")
 
     # Produce our final output mask according to the specified output mask resolution.
-    # HACK: We are just assuming that args.containment_resolution and args.mask_resolution are integer-divisible by each other.
-    zoom = int(args.containment_resolution / args.mask_resolution)
     log(f"Output mask resolution is set to {args.mask_resolution} nm.")
     log(f"Zoom factor from containment voxels to mask voxels is {zoom}.")
     zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
