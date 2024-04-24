@@ -166,10 +166,11 @@ def main(args):
 
     compartment = np.isin(label_array, labels)
     # TODO: Display this as % voxels as placeable space.
-    contents = np.unique(compartment, return_counts=True)
+    (_things, (full, free)) = np.unique(compartment, return_counts=True)
+    containment_voxel_volume = args.containment_resolution**3
     log("Selected compartment contains:")
-    for thing, count in zip(*contents):
-        log(f"{thing:>14}: {count}")
+    log(f"    occupied:\t{full} voxels\t({full * containment_voxel_volume:.1f} nm³)")
+    log(f"   available:\t{free} voxels\t({free * containment_voxel_volume:.1f} nm³)")
 
     # HACK: We are just assuming that args.containment_resolution and args.mask_resolution are integer-divisible by each other.
     zoom = int(args.containment_resolution / args.mask_resolution)
