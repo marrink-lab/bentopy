@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 import MDAnalysis as mda
@@ -7,6 +8,9 @@ from mdvcontainment import Containers
 # Import .config.setup_parser here so it is accessible through mask.setup_parser.
 from .config import setup_parser as setup_parser
 from .utilities import voxels_to_gro
+
+# Let's ignore the wordy warnings we tend to get from MDAnalysis.
+warnings.filterwarnings("ignore")
 
 log = print
 
