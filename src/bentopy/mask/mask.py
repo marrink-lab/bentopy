@@ -136,12 +136,16 @@ def main(args):
 
     # Get our compartment by masking out all voxels that have our selected labels.
     compartment = np.isin(label_array, labels)
-    # TODO: Display this as % voxels as placeable space.
     (_things, (full, free)) = np.unique(compartment, return_counts=True)
     containment_voxel_volume = args.containment_resolution**3
+    full_volume = full * containment_voxel_volume
+    free_volume = free * containment_voxel_volume
+    total_volume = full_volume + free_volume
+    full_frac = full_volume / total_volume
+    free_frac = free_volume / total_volume
     log("Selected compartment contains:")
-    log(f"    occupied:\t{full} voxels\t({full * containment_voxel_volume:.1f} nm³)")
-    log(f"   available:\t{free} voxels\t({free * containment_voxel_volume:.1f} nm³)")
+    log(f"    occupied:\t{full} voxels\t({full_frac:.1%}, {full_volume:.1f} nm³)")
+    log(f"   available:\t{free} voxels\t({free_frac:.1%}, {free_volume:.1f} nm³)")
 
     # Produce our final output mask according to the specified output mask resolution.
     log(f"Output mask resolution is set to {args.mask_resolution} nm.")
