@@ -103,7 +103,7 @@ def main(args):
 
     # Let's select our labels.
     possible_labels = np.unique(label_array)
-    if args.interactive and args.labels is None:
+    if args.interactive and args.labels is None and args.autofill is False:
         log(
             "No compartment labels have been selected, yet.",
             "Select one or more to continue.\n",
@@ -122,6 +122,9 @@ def main(args):
                     log("Please try again.")
                     labels.clear()
                     break
+    elif args.autofill is True:
+        labels = containment.get_leaf_components()
+        log(f"Automatically choosing leaf components: {labels}.")
     else:
         # Making sure we this is the case, even though we do this check at the top as well.
         assert (

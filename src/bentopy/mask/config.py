@@ -52,10 +52,16 @@ def setup_parser(parser=None):
         type=str,
         help="MDAnalysis selection string for the atom group over which to perform the segmentation. (default: '%(default)s')",
     )
-    parser.add_argument(
+    labels_group = parser.add_mutually_exclusive_group()
+    labels_group.add_argument(
         "--labels",
         type=process_labels,
         help="Pre-selected compartment labels, comma-separated.",
+    )
+    labels_group.add_argument(
+        "--autofill",
+        action="store_true",
+        help="Automatically select the leaf nodes from the containment graph, which commonly represent the 'insides' of the system.",
     )
     parser.add_argument(
         "--plot",
