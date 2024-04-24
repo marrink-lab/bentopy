@@ -115,9 +115,9 @@ def main(args):
     containment = Containers(selection, args.containment_resolution)
     log("--- >8 --- mdvcontainment ---\n")
 
-    log("Found the following compartments:")
-    log(f"\t  root:\t{containment.get_root_components()}")
-    log(f"\tleaves:\t{containment.get_leaf_components()}")
+    log("Found the following components:")
+    log(f"\troot:\t{containment.get_root_components()}")
+    log(f"\tleaf:\t{containment.get_leaf_components()}")
     # TODO: Add an interactive question about whether to plot and if so what path if it is not provided through the args.
     if args.plot is not None:
         log(f"Plotting to {args.plot}.")
