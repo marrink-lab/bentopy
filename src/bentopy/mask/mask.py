@@ -121,7 +121,7 @@ def main(args):
     # TODO: Add an interactive question about whether to plot and if so what path if it is not provided through the args.
     if args.plot is not None:
         log(f"Plotting to {args.plot}.")
-        containment.plot(name=args.plot)
+        containment.plot(name=str(args.plot))
 
     label_array = containment.data["relabeled_combined_label_array"]
     if args.inspect_labels_path is not None:
