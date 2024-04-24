@@ -26,14 +26,17 @@ def main(args):
     u = mda.Universe(structure_path)
     log(f"done. (Read {u.atoms.n_atoms} atoms.)")
 
+    # Apply the selection before we hand it to mdvcontainment.
     selection = u.select_atoms(args.selection)
     log(f"Selected {selection.n_atoms} atoms according to '{args.selection}'.")
 
+    # Calculate the containments. This is all in the hands of mdvcontainment.
     log("Calculating containment...")
     log("\n--- mdvcontainment --- 8< ---")
     containment = Containers(selection, args.containment_resolution)
     log("--- >8 --- mdvcontainment ---\n")
 
+    # Show what we found.
     log("Found the following components:")
     log(f"\troot:\t{containment.get_root_components()}")
     log(f"\tleaf:\t{containment.get_leaf_components()}")
@@ -110,6 +113,7 @@ def main(args):
                 exit(1)
     log(f"Selected the following labels: {labels}.")
 
+    # Get our compartment by masking out all voxels that have our selected labels.
     compartment = np.isin(label_array, labels)
     # TODO: Display this as % voxels as placeable space.
     (_things, (full, free)) = np.unique(compartment, return_counts=True)
@@ -118,12 +122,14 @@ def main(args):
     log(f"    occupied:\t{full} voxels\t({full * containment_voxel_volume:.1f} nm³)")
     log(f"   available:\t{free} voxels\t({free * containment_voxel_volume:.1f} nm³)")
 
+    # Produce our final output mask according to the specified output mask resolution.
     # HACK: We are just assuming that args.containment_resolution and args.mask_resolution are integer-divisible by each other.
     zoom = int(args.containment_resolution / args.mask_resolution)
     log(f"Output mask resolution is set to {args.mask_resolution} nm.")
     log(f"Zoom factor from containment voxels to mask voxels is {zoom}.")
     zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
 
+    # Report a summary of the final mask's dimensions.
     mask_res = args.mask_resolution
     mask_shape = zoomed.shape
     mask_size = tuple(np.array(mask_shape) / mask_res)
@@ -134,6 +140,8 @@ def main(args):
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
         voxels_to_gro(voxels_path, zoomed)
         log("done.")
+
+    # Finally, write out the voxel mask.
     log(f"Writing the voxel mask to {args.output}... ", end="")
     np.savez(args.output, zoomed)
     log("done.")
