@@ -31,7 +31,7 @@ def main(args):
     if not args.interactive:
         log("Running in non-interactive mode.")
         if args.labels is None:
-            log("ERROR: No labels were specified.", end=" ")
+            log("ERROR: No labels were specified.")
             log("In non-interactive mode, at least one label must be provided.")
             exit(1)
 
@@ -100,10 +100,12 @@ def main(args):
     # Let's select our labels.
     possible_labels = np.unique(label_array)
     if args.interactive and args.labels is None:
-        log("No compartment labels have been selected, yet.", end=" ")
-        log("Select one or more to continue.")
-        log(f"Options: {possible_labels}.", end=" ")
-        log("Provide them as a space-separated list followed by a return.")
+        log(
+            "No compartment labels have been selected, yet.",
+            "Select one or more to continue.\n",
+            f"Options: {possible_labels}.",
+            "Provide them as a space-separated list followed by a return.",
+        )
         labels = []
         while len(labels) == 0:
             try:
@@ -112,7 +114,7 @@ def main(args):
                 log("Could not parse the labels. Make sure they are well-formed.")
             for label in labels:
                 if label not in possible_labels:
-                    log(f"'{label}' is not a valid compartment label.", end=" ")
+                    log(f"'{label}' is not a valid compartment label.")
                     log("Please try again.")
                     labels.clear()
                     break
