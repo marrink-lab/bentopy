@@ -170,7 +170,11 @@ def main(args):
     log(f"Zoom factor from containment voxels to mask voxels is {zoom}.")
     zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
 
-    log(f"Size of final voxel mask is {zoomed.shape}.")
+    mask_res = args.mask_resolution
+    mask_shape = zoomed.shape
+    mask_size = tuple(np.array(mask_shape) / mask_res)
+    log(f"Size of final voxel mask is {mask_shape} at a {mask_res} nm resolution.")
+    log(f"This corresponds to a final mask size of {mask_size} nm.")
     if args.debug_voxels is not None:
         voxels_path = args.debug_voxels
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
