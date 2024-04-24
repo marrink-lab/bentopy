@@ -135,8 +135,24 @@ def main(args):
     mask_size = tuple(np.array(mask_shape) / mask_res)
     log(f"Size of final voxel mask is {mask_shape} at a {mask_res} nm resolution.")
     log(f"This corresponds to a final mask size of {mask_size} nm.")
-    if args.debug_voxels is not None:
+
+    # Write out a debug voxels gro of the mask if desired.
+    if args.debug_voxels is None and args.interactive:
+        log("Do you want to write the voxel mask as a gro file to inspect it?")
+        log("Warning: This file may be quite large, depending on the mask resolution.")
+        log("Leave empty to skip or provide an output path.")
+        while True:
+            path = input("(gro) -> ").strip()
+            if len(path) == 0:
+                voxels_path = None
+                break
+            voxels_path = Path(path)
+            if voxels_path.suffix == ".gro":
+                break
+            log(f"Path must have a gro extension. Found '{voxels_path.suffix}'.")
+    else:
         voxels_path = args.debug_voxels
+    if voxels_path is not None:
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
         voxels_to_gro(voxels_path, zoomed)
         log("done.")
