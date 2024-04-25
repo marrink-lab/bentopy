@@ -92,9 +92,7 @@ def main():
 
     mask_parser = subparsers.add_parser(
         "mask",
-        help="""
-        Set up masks based on structures and compartment segmentations.
-        """,
+        help=mask.DESCRIPTION,
     )
     mask.setup_parser(mask_parser)
 
