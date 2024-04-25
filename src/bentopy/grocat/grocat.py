@@ -1,7 +1,26 @@
+from argparse import FileType
 from sys import exit, stderr
 
 # This should be sufficient space to write the final natoms into.
 NATOMS_PLACEHOLDER = " " * 32
+RESNAME_MAX_LEN = 5
+
+
+class InputFile:
+    divider = ":"
+
+    def __init__(self, s: str):
+        if self.divider in s:
+            path, resname = s.split(self.divider)
+            if len(resname) > RESNAME_MAX_LEN:
+                raise ValueError(
+                    f"A resname cannot be longer than 5 characters, found '{resname}' with {len(resname)} characters"
+                )
+        else:
+            path = s
+            resname = None
+        self.file = FileType("r")(path)
+        self.resname = resname
 
 
 def eprint(*args, **kwargs):
@@ -52,8 +71,20 @@ def main(args):
     natoms_total = 0
     natoms_location = None  # The location in output where the natoms are written.
     # We know that there will be at least one file provided through args.
-    for file in args.files:
-        eprint(f"Reading from {file.name}...")
+    for input_file in args.files:
+        # TODO: Unpack this with a tuple in the for loop? How can we implement that for a custom class?
+        file = input_file.file
+        resname = input_file.resname
+
+        # Report on the file and if we replace the resnames.
+        if resname is None:
+            info = "Leaving resnames in place."
+        else:
+            assert (
+                len(resname) <= RESNAME_MAX_LEN
+            )  # Already verified during argument parsing.
+            info = f"Replacing resnames with '{resname}'."
+        eprint(f"Reading from {file.name}...", info)
 
         # Set the title if it has not been set, yet.
         if title is None:
@@ -69,9 +100,20 @@ def main(args):
 
         # Read the number of atoms that are in this file.
         natoms = int(next(file).strip())
+
         # Write that number of lines into the output file.
-        for _ in range(natoms):
-            output.write(next(file))
+        if resname is not None:
+            # Modify the resname for each atom.
+            padded_resname = f"{resname:<5}"
+            for _ in range(natoms):
+                line = next(file)
+                output.write(line[:5])
+                output.write(padded_resname)
+                output.write(line[10:])
+        else:
+            for _ in range(natoms):
+                output.write(next(file))
+
         # Now that we have written the lines, we'll add them to our total.
         natoms_total += natoms
 

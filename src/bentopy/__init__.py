@@ -105,9 +105,16 @@ def main():
     )
     grocat_parser.add_argument(
         "files",
-        type=argparse.FileType("r"),
+        type=grocat.InputFile,
         nargs="+",
-        help="Files to concatenate (gro).",
+        help="""Files to concatenate (gro; <path>[:<resname>]). 
+
+        Optionally, a residue name can be set for all atoms in a file by 
+        appending a colon followed by the residue name. 
+        Note that this name can be at most 5 characters long. 
+
+        Replacing the residue names can be very useful in distinguishing between 
+        parts of very large systems within a concatenated file.""",
     )
     grocat_parser.add_argument(
         "-o",
