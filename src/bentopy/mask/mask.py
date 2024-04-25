@@ -63,7 +63,7 @@ def main(args):
     # Write the plot of the containments if desired.
     if args.plot is None and args.interactive:
         log("Do you want to write an interactive plot to inspect the containments?")
-        log("Leave empty to skip or provide an output path.")
+        log("Provide an output path. To skip this step, leave this field empty.")
         while True:
             path = input("(html) -> ").strip()
             if len(path) == 0:
@@ -84,7 +84,7 @@ def main(args):
     # Write the labels to a gro file if desired.
     if args.inspect_labels_path is None and args.interactive:
         log("Do you want to write a label map as a gro file to view the containments?")
-        log("Leave empty to skip or provide an output path.")
+        log("Provide an output path. To skip this step, leave this field empty.")
         while True:
             path = input("(gro) -> ").strip()
             if len(path) == 0:
@@ -166,7 +166,7 @@ def main(args):
     if args.debug_voxels is None and args.interactive:
         log("Do you want to write the voxel mask as a gro file to inspect it?")
         log("Warning: This file may be quite large, depending on the mask resolution.")
-        log("Leave empty to skip or provide an output path.")
+        log("Provide an output path. To skip this step, leave this field empty.")
         while True:
             path = input("(gro) -> ").strip()
             if len(path) == 0:
