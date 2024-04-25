@@ -127,7 +127,8 @@ def main():
         "-t",
         "--title",
         type=str,
-        help="Set the final title. By default, the first file's title is used.",
+        default="bentopy grocat",
+        help="Set the final title. (default: %(default)s)",
     )
     grocat_parser.add_argument(
         "-b",

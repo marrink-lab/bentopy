@@ -62,10 +62,9 @@ def main(args):
         eprint("ERROR: Output into non-seekable files is currently not supported.")
         exit(1)
 
-    title = args.title
-    # Write the title if we already know what it is.
-    if title is not None:
-        output.write(guarantee_newline(title))
+    # Write the title.
+    if args.title is not None:
+        output.write(guarantee_newline(args.title))
 
     boxvecs = []
     natoms_total = 0
@@ -86,12 +85,7 @@ def main(args):
             info = f"Replacing resnames with '{resname}'."
         eprint(f"Reading from {file.name}...", info)
 
-        # Set the title if it has not been set, yet.
-        if title is None:
-            title = next(file)
-            output.write(title)
-        else:
-            next(file)  # Skip this title since we already set it.
+        next(file)  # Skip the title.
 
         # Put in a natoms placeholder if this is the first file that is written.
         if natoms_location is None:
