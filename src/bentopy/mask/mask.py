@@ -5,8 +5,8 @@ import MDAnalysis as mda
 import numpy as np
 from mdvcontainment import Containers
 
-# Import .config.setup_parser here so it is accessible through mask.setup_parser.
-from .config import setup_parser as setup_parser
+# Import the parser setup and description here so it is neatly accessible from this module's root.
+from .config import DESCRIPTION as DESCRIPTION, setup_parser as setup_parser
 from .utilities import voxels_to_gro
 
 # Let's ignore the wordy warnings we tend to get from MDAnalysis.

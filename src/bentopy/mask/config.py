@@ -1,6 +1,12 @@
 import argparse
 from pathlib import Path
 
+EPILOG = """
+Compartments are determined using the MDVContainment package created by Bart Bruininks.
+More information is available at <https://github.com/BartBruininks/mdvcontainment>.
+"""
+DESCRIPTION = "Set up masks based on structures and compartment segmentations."
+
 DEFAULT_CONTAINMENT_RESOLUTION = 1.0
 DEFAULT_MASK_RESOLUTION = 0.5
 
@@ -12,10 +18,13 @@ def process_labels(labels: str) -> list[int]:
 def setup_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(
-            description="Set up masks based on structures and compartment segmentations.",
+            description=DESCRIPTION,
             prog="mask",
-            epilog='"Relabel, relabel, relabel."',
+            epilog=EPILOG,
         )
+    else:
+        parser.description = DESCRIPTION
+        parser.epilog = EPILOG
     parser.add_argument(
         "input",
         type=Path,
