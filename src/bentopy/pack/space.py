@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.signal import fftconvolve
 
 from .mask import cuboid_mask, sphere_mask
 
@@ -79,6 +80,8 @@ class Space:
         # Size in nm (unaffected by whatever value resolution has).
         self.size = size
         self.resolution = resolution
+        # The size, adjusted for the resolution.
+        self.effective_size = (np.array(self.size) / self.resolution).astype(int)
         self.compartments = []
         for c in compartments:
             id = c["id"]
@@ -88,17 +91,73 @@ class Space:
                 compartment = Compartment(id, voxels=c["voxels"])
             self.compartments.append(compartment)
 
-    def background(self, compartment_ids=[], onto=None):
-        # Adjust size and padding for resolution.
-        size = (np.array(self.size) / self.resolution).astype(int)
-        if onto is None:
-            background = np.ones(size, dtype=np.float32)
-        else:
-            background = onto
+        # The global background remains untouched by any masks and tracks all placements.
+        self.global_background = np.zeros(self.effective_size, dtype=np.float32)
+        # The session background adopts the relevant masks as well as the placements for some segment.
+        self.session_background = None
 
-        width, height, depth = size
+    def enter_session(self, compartment_ids=[]):
+        if self.session_background is not None:
+            raise ValueError(
+                "Big whoop. Entering a session while the session background was already set."
+            )
+
+        self.session_background = np.ones(self.effective_size, dtype=np.float32)
+        width, height, depth = self.effective_size
         for compartment in filter(lambda c: c.id in compartment_ids, self.compartments):
             mask = compartment.mask(width, height, depth, padding=0)
-            # Apply the mask
-            background[mask] = 0
-        return background
+            self.session_background[mask] = 0  # Apply the mask.
+        self.session_background[self.global_background == 1.0] = 1.0
+
+        indices = np.where(self.session_background == 0.0)
+        mins = np.min(indices, axis=1)
+        maxs = np.max(indices, axis=1)
+        self.squeezed_global_background = self.global_background[
+            mins[0] : maxs[0], mins[1] : maxs[1], mins[2] : maxs[2]
+        ]
+        self.squeezed_session_background = self.session_background[
+            mins[0] : maxs[0], mins[1] : maxs[1], mins[2] : maxs[2]
+        ]
+        self.squeezed_location_offset = mins
+
+    # TODO: Make something with __entry__ here, so it can be used in a with block?
+    def exit_session(self):
+        if self.session_background is None:
+            raise ValueError(
+                "Big whoop. Exited the session while the session background was already unset."
+            )
+        self.session_background = None
+
+    def collisions(self, segment_voxels):
+        """
+        Identify collisions between the inner session background and the segment voxels using an fft convolution.
+
+        Returns an array of the valid placement points.
+        """
+        query = np.flip(segment_voxels)
+        collisions = fftconvolve(self.squeezed_session_background, query, mode="valid")
+
+        valid_offset = np.array(query.shape) // 2
+        # The valid placement points will have a value of 0. Since the floating
+        # point operations leave some small errors laying around, we use a quite
+        # generous cutoff.
+        valid = np.array(np.where(collisions < 1e-4)) + valid_offset[:, None]
+        return valid
+
+    def stamp(self, voxels_indices):
+        """
+        Stamp a set of voxels onto the session and global backgrounds.
+
+        Stomp on its stamps, if you will.
+        """
+
+        self.squeezed_global_background[
+            voxels_indices[0, :],
+            voxels_indices[1, :],
+            voxels_indices[2, :],
+        ] = 1.0
+        self.squeezed_session_background[
+            voxels_indices[0, :],
+            voxels_indices[1, :],
+            voxels_indices[2, :],
+        ] = 1.0

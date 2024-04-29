@@ -5,7 +5,6 @@ import time
 import pathlib
 
 import numpy as np
-from scipy.signal import fftconvolve
 from scipy.spatial.transform import Rotation as R
 
 from .config import Configuration
@@ -32,8 +31,7 @@ def placement_location(valid, selection, segment):
 
 
 def place(
-    background,
-    location_offset,
+    space,
     segment_voxels,
     max_at_once,
     max_tries,
@@ -45,19 +43,12 @@ def place(
     """
 
     start = time.time()
-
     # First, we convolve the background to reveal the points where we can
     # safely place a segment without overlapping them.
-    query = np.flip(segment_voxels)
-    collisions = fftconvolve(background, query, mode="valid")
-    valid_offset = np.array(query.shape) // 2
+    valid = space.collisions(segment_voxels)
     convolution_duration = time.time() - start
     log(f"        (convolution took {convolution_duration:.3f} s)")
 
-    # The valid placement points will have a value of 0. Since the floating
-    # point operations leave some small errors laying around, we use a quite
-    # generous cutoff.
-    valid = np.array(np.where(collisions < 1e-4)) + valid_offset[:, None]
     if valid.size == 0:
         return None
 
@@ -84,20 +75,17 @@ def place(
         location = placement_location(valid, selection, segment_voxels)
         prospect = np.where(segment_voxels) + location[:, None]
         # Check for collisions at the prospective site.
-        free = not np.any(background[prospect[0, :], prospect[1, :], prospect[2, :]])
+        free = not np.any(
+            space.squeezed_session_background[prospect[0, :], prospect[1, :], prospect[2, :]]
+        )
 
         if free:
             start = time.time()
 
-            temp_selected_indices = prospect
-            background[
-                temp_selected_indices[0, :],
-                temp_selected_indices[1, :],
-                temp_selected_indices[2, :],
-            ] = 1.0
+            space.stamp(prospect)
 
             # If we are looking at a squeezed background, we need to correct the offset.
-            corrected_location = location + location_offset
+            corrected_location = location + space.squeezed_location_offset
 
             placements.append(tuple(int(a) for a in corrected_location * resolution))
             hits += 1
@@ -123,7 +111,7 @@ def place(
 
 
 def pack(
-    background,
+    space,
     segment,
     threshold_coefficient=1,
     max_iters=1000,
@@ -135,25 +123,11 @@ def pack(
     Pack the background with a segment.
     """
     max_num = segment.target_number
-    start_volume = np.sum(background)
+    start_volume = np.sum(space.global_background)
     segment_volume = np.sum(segment)
-    background_volume = (
-        background.shape[0] * background.shape[1] * background.shape[2]
-    )  # TODO: np.product?
+    bgshape = space.global_background.shape
+    background_volume = bgshape[0] * bgshape[1] * bgshape[2]  # TODO: np.product?
     max_volume = background_volume - start_volume
-
-    # We want to use a 'squeezed' background, where any unavailable space that
-    # can be sliced off is not considered.
-    indices = np.where(background == False)
-    mins = np.min(indices, axis=1)
-    maxs = np.max(indices, axis=1)
-    squeezed_background = background[
-        mins[0] : maxs[0], mins[1] : maxs[1], mins[2] : maxs[2]
-    ]
-
-    # We need to keep track of the new origin so that we can correct for it
-    # when writing positions to the placement list.
-    location_offset = mins
 
     log("--> initiating packing")
     segment_hits = 0
@@ -164,7 +138,9 @@ def pack(
         if target_density:
             # In case it could overshoot the target_density, limit the maximum
             # number of elements that can be placed per convolution.
-            current_density = (np.sum(background) - start_volume) / max_volume
+            current_density = (
+                np.sum(space.global_background) - start_volume
+            ) / max_volume
             remaining_density = target_density - current_density
             remaining_segment_volume = (
                 remaining_density * max_volume
@@ -181,8 +157,7 @@ def pack(
 
         query = segment.voxels()
         placements = place(
-            squeezed_background,
-            location_offset,
+            space,
             query,
             max_at_once_clamped,
             max_tries,
@@ -192,7 +167,7 @@ def pack(
         duration = time.time() - start
         log(f"        ({duration:.3f} s)")
 
-        density = (np.sum(background) - start_volume) / max_volume
+        density = (np.sum(space.global_background) - start_volume) / max_volume
         if placements is None:
             log(
                 f"    iteration {iteration} ended because the convolution produced no viable spots"
@@ -226,7 +201,7 @@ def pack(
             )
 
         segment.rotation = R.random(random_state=RNG).as_matrix()
-    end_volume = np.sum(background)
+    end_volume = np.sum(space.global_background)
     density = (end_volume - start_volume) / max_volume
     print(
         f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%}; ρ->{density:.3f})"
@@ -273,7 +248,10 @@ def setup_parser(parser=None):
         "--seed", default=None, type=int, help="Random number generator seed."
     )
     parser.add_argument(
-        "--rotations", default=10, type=int, help="Set the number of random rotations per segment kind."
+        "--rotations",
+        default=10,
+        type=int,
+        help="Set the number of random rotations per segment kind.",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output."
@@ -289,7 +267,9 @@ def configure(args=None):
     with open(args.path, "r") as config_file:
         config_src = config_file.read()
 
-    config = Configuration(config_src, args.verbose, args.rearrange, args.seed, args.rotations)
+    config = Configuration(
+        config_src, args.verbose, args.rearrange, args.seed, args.rotations
+    )
 
     global VERBOSE
     VERBOSE = config.verbose
@@ -302,16 +282,14 @@ def configure(args=None):
 def main(state=None):
     if state is None:
         state = configure()
-    background = state.space.background()
+    space = state.space
 
     start = time.time()
     for segment in state.segments:
-        segment_background = state.space.background(
-            segment.compartment_ids, onto=background
-        )
+        space.enter_session(segment.compartment_ids)
         segment_start = time.time()
         hits = pack(
-            segment_background,
+            space,
             segment,
             # HACK: For now, this may be necessary.
             max_at_once=math.ceil(segment.target_number / state.rotations),
@@ -319,6 +297,7 @@ def main(state=None):
         )
         segment_end = time.time()
         segment_duration = segment_end - segment_start
+        space.exit_session()
         print(
             f"Packing '{segment.name}' with a total of {hits} segments took {segment_duration:.3f} s."
         )
