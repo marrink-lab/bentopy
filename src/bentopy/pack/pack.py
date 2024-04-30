@@ -63,7 +63,8 @@ def place(
             log("  ! tries is exceeding max_tries")
             break
         if len(previously_selected) == len(valid[0]):
-            return None
+            log("  ! all open positions have been tried")
+            break
         while True:
             selection = RNG.integers(0, len(valid[0]))
             if selection not in previously_selected:
