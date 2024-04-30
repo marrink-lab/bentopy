@@ -67,8 +67,19 @@ def voxelize(points, resolution, tighten=False):
     """
     Return the voxels corresponding to a point cloud.
 
+    The number of points must be at least 1. Since there are no sensible return
+    values for that case, we throw a ValueError.
+
+    Any voxels returned by this function are quaranteed to have at least one
+    filled-in voxel.
+
     The value of the provided resolution will be the final voxel size.
     """
+    _, npoints = points.shape
+    if npoints == 0:
+        raise ValueError("Cannot meaningfully voxelize a structure without any points.")
+    # From here on out, we know that there is at least one point. We will use that knowledge to check our work.
+
     points = points / resolution
     mins = points.min(axis=1)
     points -= mins[:, None]
@@ -90,5 +101,9 @@ def voxelize(points, resolution, tighten=False):
         voxels = voxels[mins[0] :, mins[1] :, mins[2] :]
         maxs = np.max(np.where(voxels), axis=1) + 1
         voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
+
+    assert (
+        np.sum(voxels) > 0
+    ), f"There is at least one point in this structure, yet not a single voxel was filled in."
 
     return voxels
