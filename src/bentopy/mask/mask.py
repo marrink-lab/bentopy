@@ -158,7 +158,7 @@ def main(args):
     # Report a summary of the final mask's dimensions.
     mask_res = args.mask_resolution
     mask_shape = zoomed.shape
-    mask_size = tuple(np.array(mask_shape) / mask_res)
+    mask_size = tuple(np.array(mask_shape) * mask_res)
     log(f"Size of final voxel mask is {mask_shape} at a {mask_res} nm resolution.")
     log(f"This corresponds to a final mask size of {mask_size} nm.")
 
