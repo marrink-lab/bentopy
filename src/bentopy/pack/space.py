@@ -141,7 +141,7 @@ class Space:
         # The valid placement points will have a value of 0. Since the floating
         # point operations leave some small errors laying around, we use a quite
         # generous cutoff.
-        valid = np.array(np.where(collisions < 1e-4)) + valid_offset[:, None]
+        valid = np.array(np.where(collisions < 1e-6)) + valid_offset[:, None]
         return valid
 
     def stamp(self, voxels_indices):
