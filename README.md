@@ -9,15 +9,16 @@ about correctness or stability can be made.
 
 ### Prerequisites
 
-As of now, _bentopy_ requires a [Rust][rust] compiler to be installed. To check
-whether this is the case, you can run
+_bentopy_ uses [Rust][rust] to speed up some I/O operations of large files.
+Hence, a Rust compiler is required during installation. To check whether this
+is the case, you can run
 
 ```console
 cargo --version
 ```
 
 If it is not present, [you can install it][rust-installation] by any means you
-prefer. Generally, installation through _rustup_ is most convenient.
+prefer. Installation through [_rustup_][rust-rustup] is very convenient.
 
 ### Install _bentopy_ through _pip_ directly
 
@@ -305,6 +306,7 @@ to any relative structure path that is defined in the placement list.
 
 [rust]: https://rust-lang.org/
 [rust-installation]: https://www.rust-lang.org/learn/get-started
+[rust-rustup]: https://rustup.rs/
 [gro]: https://manual.gromacs.org/current/reference-manual/file-formats.html#gro
 [top]: https://manual.gromacs.org/current/reference-manual/file-formats.html#top
 [top]: https://manual.gromacs.org/current/reference-manual/file-formats.html#itp
