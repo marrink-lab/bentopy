@@ -2,7 +2,7 @@
 
 ## State
 
-This project is under development. Many parts are in flux, and no guarantees
+This project is under development and solely for internal use. Many parts are in flux, and no guarantees
 about correctness or stability can be made.
 
 ## Installation
