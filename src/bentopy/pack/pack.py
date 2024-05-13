@@ -77,7 +77,9 @@ def place(
         prospect = np.where(segment_voxels) + location[:, None]
         # Check for collisions at the prospective site.
         free = not np.any(
-            space.squeezed_session_background[prospect[0, :], prospect[1, :], prospect[2, :]]
+            space.squeezed_session_background[
+                prospect[0, :], prospect[1, :], prospect[2, :]
+            ]
         )
 
         if free:
@@ -201,7 +203,7 @@ def pack(
                 f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
             )
 
-        segment.rotation = R.random(random_state=RNG).as_matrix()
+        segment.set_rotation(R.random(random_state=RNG).as_matrix())
     end_volume = np.sum(space.global_background)
     density = (end_volume - start_volume) / max_volume
     print(

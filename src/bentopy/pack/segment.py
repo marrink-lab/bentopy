@@ -3,12 +3,24 @@ import MDAnalysis as MDA
 
 
 class Segment:
-    def __init__(self, name, target_number, path, resolution, compartment_ids):
+    def __init__(
+        self,
+        name,
+        target_number,
+        path,
+        resolution,
+        compartment_ids,
+        rotation_axes,
+    ):
         self.name = name
         self.target_number = target_number
         self.path = path
         self.rotation = np.eye(3)  # We start out with the identity matrix.
         self.resolution = resolution
+        if rotation_axes is None:
+            self.rotation_axes = parse_rotation_axes("xyz")
+        else:
+            self.rotation_axes = parse_rotation_axes(rotation_axes)
         self.compartment_ids = compartment_ids
         self._points = None
         # TODO: Perhaps this ought to be a dictionary, but then we would need a
@@ -38,6 +50,33 @@ class Segment:
         """
         return voxelize(self.rotation @ self.points().T, self.resolution, tighten=True)
 
+    def set_rotation(self, rotation):
+        """
+        Set the internal rotation by providing a rotation matrix.
+
+        The provided rotation matrix will be processed according to the
+        internal rotation axes constraints. For example, if the only rotational
+        axis that is set is z, only the z component of the rotation will be
+        stored.
+
+        If no rotation axes are set, the internal rotation field will remain
+        the same.
+        """
+        # If all axes are accepted for rotations, we can just use the new rotation directly.
+        if all(self.rotation_axes):
+            self.rotation = rotation
+            return
+
+        # Otherwise, deconstruct the rotation and build it up according to the set axes.
+        from scipy.spatial.transform import Rotation as R
+
+        r = R.from_matrix(rotation)
+        axis_rotations = r.as_euler("xyz")  # Decompose into axis angles.
+        # Finally, we zero out the ommitted rotation axes by multiplying these
+        # axis rotations with the rotation axes booleans.
+        axis_rotations_constrained = axis_rotations * self.rotation_axes
+        self.rotation = R.from_euler("xyz", axis_rotations_constrained).as_matrix()
+
     def add_rotation(self, placements):
         """
         Add a batch of placements with a particular rotation.
@@ -46,6 +85,10 @@ class Segment:
         represents the rotation in degrees around the _x_-axis, etc.
         """
         self.batches.append((self.rotation.tolist(), placements))
+
+
+def parse_rotation_axes(axes: str) -> np.ndarray:
+    return np.array(("x" in axes, "y" in axes, "z" in axes))
 
 
 def load_points(path):

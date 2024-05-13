@@ -163,6 +163,7 @@ class Space:
         query = np.flip(segment_voxels)
         collisions = fftconvolve(self.squeezed_session_background, query, mode="valid")
 
+        # Take care of the smaller space that is produced by the convolution.
         valid_offset = np.array(query.shape) // 2
         # The valid placement points will have a value of 0. Since the floating
         # point operations leave some small errors laying around, we use a quite
