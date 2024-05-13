@@ -16,7 +16,12 @@ class Configuration:
     ):
         config = json.loads(json_src)
         space = config["space"]
-        self.space = Space(space["size"], space["resolution"], space["compartments"])
+        self.space = Space(
+            space["size"],
+            space["resolution"],
+            space["compartments"],
+            space.get("constraint"),
+        )
         segments = config["segments"]
         self.segments = [
             Segment(

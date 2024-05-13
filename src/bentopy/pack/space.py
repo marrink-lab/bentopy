@@ -58,7 +58,7 @@ class Shape:
 
 
 class Compartment:
-    def __init__(self, id, shape=None, voxels=None):
+    def __init__(self, id, constraint, shape=None, voxels=None):
         # Take care of the two incorrect input scenarios.
         both_none = shape is None and voxels is None
         both_some = shape is not None and voxels is not None
@@ -69,13 +69,34 @@ class Compartment:
             self.definition = Shape(shape)
         if voxels is not None:
             self.definition = Voxels(voxels["path"])
+        self.constraint = Constraint(constraint)
 
     def mask(self, width, height, depth, padding):
         return self.definition.mask(width, height, depth, padding)
 
 
+class Constraint:
+    def __init__(self, s: str):
+        """
+        Parse a constraint spec.
+
+        `axis:z=0.0`       => Constraint::Axis([Axis::Z(0.0)])
+        `axis:x=5.0,y=6.0` => Constraint::Axis([Axis::X(5.0), Axis::Y(6.0)])
+        """
+        kind, spec = s.split(":")
+        specs = {}
+        if kind == "axis":
+            for b in spec.split(","):
+                axis, value = b.split("=")
+                specs[axis.strip()] = float(value.strip())
+        else:
+            raise ValueError(f"Unknown constraint kind `{kind}`.")
+
+        self.specs = specs
+
+
 class Space:
-    def __init__(self, size, resolution, compartments):
+    def __init__(self, size, resolution, compartments, constraint):
         assert len(size) == 3, "The size of a space must be 3-dimensional"
         # Size in nm (unaffected by whatever value resolution has).
         self.size = size
@@ -85,10 +106,11 @@ class Space:
         self.compartments = []
         for c in compartments:
             id = c["id"]
+            constraint = c.get("constraint")
             if "shape" in c:
-                compartment = Compartment(id, shape=c["shape"])
+                compartment = Compartment(id, constraint, shape=c["shape"])
             elif "voxels" in c:
-                compartment = Compartment(id, voxels=c["voxels"])
+                compartment = Compartment(id, constraint, voxels=c["voxels"])
             self.compartments.append(compartment)
 
         # The global background remains untouched by any masks and tracks all placements.
@@ -99,7 +121,7 @@ class Space:
     def enter_session(self, compartment_ids=[]):
         if self.session_background is not None:
             raise ValueError(
-                "Big whoop. Entering a session while the session background was already set."
+                "Entering a session while the session background was already set."
             )
 
         self.session_background = np.ones(self.effective_size, dtype=np.float32)
@@ -124,15 +146,19 @@ class Space:
     def exit_session(self):
         if self.session_background is None:
             raise ValueError(
-                "Big whoop. Exited the session while the session background was already unset."
+                "Exited the session while the session background was already unset."
             )
         self.session_background = None
 
     def collisions(self, segment_voxels):
         """
-        Identify collisions between the inner session background and the segment voxels using an fft convolution.
+        Identify collisions between the inner session background and the segment 
+        voxels using an fft convolution.
 
         Returns an array of the valid placement points.
+
+        The valid placement points will be filtered to only include points that
+        agree with the Space's constraints.
         """
         query = np.flip(segment_voxels)
         collisions = fftconvolve(self.squeezed_session_background, query, mode="valid")
@@ -142,7 +168,17 @@ class Space:
         # point operations leave some small errors laying around, we use a quite
         # generous cutoff.
         valid = np.array(np.where(collisions < 1e-6)) + valid_offset[:, None]
-        return valid
+
+        constraint_mask = np.ones(valid.shape[1], dtype=bool)
+        for compartment in self.compartments:
+            if compartment is None:
+                continue
+            for axis, pos in compartment.constraint.specs.items():
+                # Filter out points that do not match a constraint.
+                axis_idx = {"x": 0, "y": 1, "z": 2}[axis]
+                constraint_mask &= valid[axis_idx] == (pos / self.resolution)
+
+        return valid[:, constraint_mask]
 
     def stamp(self, voxels_indices):
         """
