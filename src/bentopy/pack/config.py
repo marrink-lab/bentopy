@@ -30,6 +30,7 @@ class Configuration:
                 s["path"],
                 self.space.resolution,
                 s["compartments"],
+                s.get("rotation_axes"),
             )
             for s in segments
         ]
