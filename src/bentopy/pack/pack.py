@@ -32,20 +32,21 @@ def placement_location(valid, selection, segment):
 
 def place(
     space,
-    segment_voxels,
+    segment,
     max_at_once,
     max_tries,
     threshold_coefficient,
-    resolution,
 ) -> list | None:
     """
     Place a number of segments into the background.
     """
 
+    segment_voxels = segment.voxels()
+
     start = time.time()
     # First, we convolve the background to reveal the points where we can
     # safely place a segment without overlapping them.
-    valid = space.collisions(segment_voxels)
+    valid = space.collisions(segment_voxels, segment.center)
     convolution_duration = time.time() - start
     log(f"        (convolution took {convolution_duration:.3f} s)")
 
@@ -88,9 +89,11 @@ def place(
             space.stamp(prospect)
 
             # If we are looking at a squeezed background, we need to correct the offset.
-            corrected_location = location + space.squeezed_location_offset
-
-            placements.append(tuple(int(a) for a in corrected_location * resolution))
+            # We also apply the segment's center translation.
+            corrected_location = (
+                location + space.squeezed_location_offset
+            ) * space.resolution - segment.center_translation()
+            placements.append(corrected_location.tolist())
             hits += 1
         else:
             tries += 1
@@ -161,11 +164,10 @@ def pack(
         query = segment.voxels()
         placements = place(
             space,
-            query,
+            segment,
             max_at_once_clamped,
             max_tries,
             threshold_coefficient,
-            segment.resolution,
         )
         duration = time.time() - start
         log(f"        ({duration:.3f} s)")

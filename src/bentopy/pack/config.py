@@ -31,6 +31,7 @@ class Configuration:
                 self.space.resolution,
                 s["compartments"],
                 s.get("rotation_axes"),
+                s.get("center"),
             )
             for s in segments
         ]

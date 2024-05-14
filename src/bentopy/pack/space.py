@@ -150,9 +150,9 @@ class Space:
             )
         self.session_background = None
 
-    def collisions(self, segment_voxels):
+    def collisions(self, segment_voxels, center=(None, None, None)):
         """
-        Identify collisions between the inner session background and the segment 
+        Identify collisions between the inner session background and the segment
         voxels using an fft convolution.
 
         Returns an array of the valid placement points.
@@ -171,13 +171,20 @@ class Space:
         valid = np.array(np.where(collisions < 1e-6)) + valid_offset[:, None]
 
         constraint_mask = np.ones(valid.shape[1], dtype=bool)
+
+        # Apply an offset to the spots that are considered valid based on the possible center adjustment for a segment.
+        # relevant = np.array([1.0 if v is None else 0.0 for v in center])
+        center_offset = np.array(
+            [0.0 if v is None else v / self.resolution for v in center], dtype=int
+        )
         for compartment in self.compartments:
             if compartment is None:
                 continue
             for axis, pos in compartment.constraint.specs.items():
                 # Filter out points that do not match a constraint.
                 axis_idx = {"x": 0, "y": 1, "z": 2}[axis]
-                constraint_mask &= valid[axis_idx] == (pos / self.resolution)
+                corrected_valids = valid[axis_idx] - center_offset[axis_idx]
+                constraint_mask &= corrected_valids == int(pos / self.resolution)
 
         return valid[:, constraint_mask]
 

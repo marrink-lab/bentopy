@@ -11,17 +11,22 @@ class Segment:
         resolution,
         compartment_ids,
         rotation_axes,
+        center,
     ):
         self.name = name
         self.target_number = target_number
         self.path = path
         self.rotation = np.eye(3)  # We start out with the identity matrix.
         self.resolution = resolution
+        self.compartment_ids = compartment_ids
         if rotation_axes is None:
             self.rotation_axes = parse_rotation_axes("xyz")
         else:
             self.rotation_axes = parse_rotation_axes(rotation_axes)
-        self.compartment_ids = compartment_ids
+        if center is None:
+            self.center = parse_center("auto, auto, auto")
+        else:
+            self.center = parse_center(center)
         self._points = None
         # TODO: Perhaps this ought to be a dictionary, but then we would need a
         # method of normalizing rotation matrices to a lower precision in order
@@ -39,7 +44,11 @@ class Segment:
         this Segment's path.
         """
         if self._points is None:
-            self._points = load_points(self.path)
+            points = load_points(self.path)
+            center = np.mean(points, axis=0)
+            # Apply the configured center correction.
+            points -= center + self.center_translation()
+            self._points = points
 
         return self._points
 
@@ -49,6 +58,9 @@ class Segment:
         Segment's rotation applied before voxelization.
         """
         return voxelize(self.rotation @ self.points().T, self.resolution, tighten=True)
+
+    def center_translation(self):
+        return np.array([0.0 if c is None else c for c in self.center])
 
     def set_rotation(self, rotation):
         """
@@ -85,6 +97,19 @@ class Segment:
         represents the rotation in degrees around the _x_-axis, etc.
         """
         self.batches.append((self.rotation.tolist(), placements))
+
+
+def parse_center(center: str):
+    """
+    Parse a center configuration string.
+
+    For example:
+    - `'auto, auto, auto' -> (None, None, None)`
+    - `'auto, auto, 5.1' -> (None, None, 5.1)`
+    - `'1.2, 3.4, 5.6' -> (1.2, 3.4, 5.6)`
+    """
+    axes = [a.strip() for a in center.split(",")]
+    return tuple(None if a == "auto" else float(a) for a in axes)
 
 
 def parse_rotation_axes(axes: str) -> np.ndarray:
