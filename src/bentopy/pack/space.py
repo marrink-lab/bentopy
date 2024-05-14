@@ -176,8 +176,7 @@ class Space:
         constraint_mask = np.ones(valid.shape[1], dtype=bool)
 
         # Apply an offset to the spots that are considered valid based on the possible center adjustment for a segment.
-        # relevant = np.array([1.0 if v is None else 0.0 for v in center])
-        center_offset = segment.center_translation(dtype=int)
+        center_offset = segment.center_translation(resolution=self.resolution, dtype=int)
         for compartment in self.compartments:
             if compartment.id not in segment.compartment_ids:
                 continue
