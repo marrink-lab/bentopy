@@ -41,12 +41,10 @@ def place(
     Place a number of segments into the background.
     """
 
-    segment_voxels = segment.voxels()
-
     start = time.time()
     # First, we convolve the background to reveal the points where we can
     # safely place a segment without overlapping them.
-    valid = space.collisions(segment_voxels, segment.center)
+    valid = space.collisions(segment)
     convolution_duration = time.time() - start
     log(f"        (convolution took {convolution_duration:.3f} s)")
 
@@ -74,8 +72,8 @@ def place(
 
         # Make sure that this placement does not overlap with another
         # previously selected location.
-        location = placement_location(valid, selection, segment_voxels)
-        prospect = np.where(segment_voxels) + location[:, None]
+        location = placement_location(valid, selection, segment.voxels())
+        prospect = np.where(segment.voxels()) + location[:, None]
         # Check for collisions at the prospective site.
         free = not np.any(
             space.squeezed_session_background[

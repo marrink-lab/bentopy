@@ -76,15 +76,18 @@ class Compartment:
 
 
 class Constraint:
-    def __init__(self, s: str):
+    def __init__(self, s: str | None):
         """
         Parse a constraint spec.
 
         `axis:z=0.0`       => Constraint::Axis([Axis::Z(0.0)])
         `axis:x=5.0,y=6.0` => Constraint::Axis([Axis::X(5.0), Axis::Y(6.0)])
         """
-        kind, spec = s.split(":")
         specs = {}
+        if s is None:
+            self.specs = specs
+            return
+        kind, spec = s.split(":")
         if kind == "axis":
             for b in spec.split(","):
                 axis, value = b.split("=")
@@ -150,7 +153,7 @@ class Space:
             )
         self.session_background = None
 
-    def collisions(self, segment_voxels, center=(None, None, None)):
+    def collisions(self, segment):
         """
         Identify collisions between the inner session background and the segment
         voxels using an fft convolution.
@@ -160,7 +163,7 @@ class Space:
         The valid placement points will be filtered to only include points that
         agree with the Space's constraints.
         """
-        query = np.flip(segment_voxels)
+        query = np.flip(segment.voxels())
         collisions = fftconvolve(self.squeezed_session_background, query, mode="valid")
 
         # Take care of the smaller space that is produced by the convolution.
@@ -174,11 +177,9 @@ class Space:
 
         # Apply an offset to the spots that are considered valid based on the possible center adjustment for a segment.
         # relevant = np.array([1.0 if v is None else 0.0 for v in center])
-        center_offset = np.array(
-            [0.0 if v is None else v / self.resolution for v in center], dtype=int
-        )
+        center_offset = segment.center_translation() # FIXME dtype -> int
         for compartment in self.compartments:
-            if compartment is None:
+            if compartment.id not in segment.compartment_ids:
                 continue
             for axis, pos in compartment.constraint.specs.items():
                 # Filter out points that do not match a constraint.
