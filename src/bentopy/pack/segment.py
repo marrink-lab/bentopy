@@ -59,8 +59,8 @@ class Segment:
         """
         return voxelize(self.rotation @ self.points().T, self.resolution, tighten=True)
 
-    def center_translation(self):
-        return np.array([0.0 if c is None else c for c in self.center])
+    def center_translation(self, dtype=float):
+        return np.array([0.0 if c is None else c for c in self.center], dtype=dtype)
 
     def set_rotation(self, rotation):
         """
