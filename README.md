@@ -189,21 +189,41 @@ analytical function.
 In case you want to use a custom mask like you may set up with _bentopy mask_,
 you could specify the space in the following manner.
 
-> ```diff
->       	"compartments": [
->       		{
->       			"id": "main",
-> -     			"shape": "spherical"
-> +      			"voxels": { "path": "mask.npz" }
->       		}
->       	]
-> ```
+```diff
+      	"compartments": [
+      		{
+      			"id": "main",
+-     			"shape": "spherical"
++      			"voxels": { "path": "mask.npz" }
+      		}
+      	]
+```
 
 Here, **voxels** and the associated **path** point to a precomputed voxel mask.
 This mask can be any data that can be loaded by [`np.load()`][np-load] to be
 interpreted as a three-dimensional boolean mask. The provided mask must have
 the same size as specified in the **space** section's **dimensions** divided by
 the **resolution**.
+
+<details>
+<summary>Constraining compartments.</summary>
+
+A compartment definition can also take a **constraint** parameter. Currently,
+only the **axis** predicate is available, which constrains all placements in
+that compartment such that only placements with the specified value for that
+axis are considered valid. The following example of a compartment definition
+accepts placements as valid if and only if the _z_-component of a placement is
+at 50 nm.
+
+```json
+		{
+			"id": "flat",
+			"constraint": "axis:z=50.0",
+			"shape": "cuboid"
+		}
+```
+
+</details>
 
 #### Output
 
@@ -226,6 +246,45 @@ the structure file for this segment can be found.
 > The **name** record must be selected carefully. If you want to write out a
 > valid topology file using _bentopy render_, the value of **name** must
 > correspond to the names in the `itp` files.
+
+<details>
+<summary>Constraining segment rotations and setting a center adjustment.</summary>
+
+For some structures, it can be helpful or necessary to constrain the rotation
+of certain segments. The **rotation_axes** parameter takes a string with the
+axes over which a structure may be randomly rotated. Any axes that are not
+mentioned will not be rotated. For instance, the axes definition `"xyz"`
+indicates full rotational freedom and is the tacit default (rotation is allowed
+over _x_, _y_, and _z_ axes), while `"z"` constrains the rotation such that it
+may only occur over the _z_-axis, leaving _x_ and _z_ rotation as provided in
+the structure file.
+
+The **center** parameter can be used to provide an offset in nm. When ommitted,
+its default value is `"auto, auto, auto"`, which defines the center as the
+geometric center of the structure. Any of the three values can be replaced by a
+floating point value, which sets an adjustment _from_ the `auto` center.
+
+See [#24](https://github.com/marrink-lab/bentopy/issues/24), which tracks the
+development of an additional `keep` parameter, which would respect the center
+for some axis as its zero-value in the structure file.
+
+```json
+		{
+			"name": "1a0s",
+			"number": 100,
+			"path": "structures/1a0s.pdb",
+			"rotation_axes": "z",
+			"center": "auto, auto, -1.2",
+			"compartments": ["flat"]
+		}
+```
+
+With the above segment definition, up to a 100 instances of some structure will
+be placed according to some compartment with the id "flat", with a -1.2 nm
+offset to its geometric center over the _z_-axis, while only allowing rotation
+over its _z_-axis.
+
+</details>
 
 ### _pack_
 
