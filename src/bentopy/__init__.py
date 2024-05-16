@@ -78,6 +78,15 @@ def main():
         For example, `none,none,none,none,90,110` produces a 20 nm slice.
         """,
     )
+    render_parser.add_argument(
+        "--resnum-mode",
+        type=str,
+        choices=["instance", "segment"],
+        default="instance",
+        help="""Write out a unique resnum for each segment instance, or use one
+        grouped resnum for each instance of a segment. (default: %(default)s)""",
+    )
+
     mode_or_topol = render_parser.add_mutually_exclusive_group()
     mode_or_topol.add_argument(
         "-t",
