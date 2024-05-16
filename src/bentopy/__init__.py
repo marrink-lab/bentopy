@@ -155,7 +155,7 @@ def main():
     check_parser.add_argument(
         "file",
         type=Path,
-        help="File to check (gro)."
+        help="File to check (a structure file)."
     )
     check_parser.add_argument(
         "--cutoff",
