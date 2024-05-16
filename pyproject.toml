@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
+    "freud-analysis",
     "MDAnalysis",
     "mdvcontainment @ git+https://github.com/BartBruininks/mdvcontainment.git",
 ]
