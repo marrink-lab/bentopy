@@ -90,7 +90,7 @@ def place(
             # We also apply the segment's center translation.
             corrected_location = (
                 location + space.squeezed_location_offset
-            ) * space.resolution - segment.center_translation()
+            ) * space.resolution
             placements.append(corrected_location.tolist())
             hits += 1
         else:
