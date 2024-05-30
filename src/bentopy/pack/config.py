@@ -4,6 +4,8 @@ import os
 from .segment import Segment
 from .space import Space
 
+DEFAULT_COMPARTMENT_ID = "main"
+
 
 class Configuration:
     def __init__(
@@ -16,20 +18,31 @@ class Configuration:
     ):
         config = json.loads(json_src)
         space = config["space"]
+        compartments = space.get("compartments")
         self.space = Space(
             space["size"],
             space["resolution"],
-            space["compartments"],
+            compartments or [{"id": DEFAULT_COMPARTMENT_ID, "shape": "cuboid"}],
             space.get("constraint"),
         )
         segments = config["segments"]
+        # Verify that if `output.compartments` is unset, the `compartments`
+        # field is unset for every segment, as well.
+        if compartments is None:
+            assert all(s.get("compartments") is None for s in segments), """
+            If no `compartments` are defined in the `space` section,
+            compartment selections in segment definitions are not allowed.
+            When no compartments are defined in the `space` section, a single
+            default compartment is implied. To set each segment's compartment
+            to the implied default compartment, remove the `compartments`
+            field from all segment definitions."""
         self.segments = [
             Segment(
                 s["name"],
                 s["number"],
                 s["path"],
                 self.space.resolution,
-                s["compartments"],
+                s.get("compartments") or [DEFAULT_COMPARTMENT_ID],
                 s.get("rotation_axes"),
                 s.get("center"),
             )
