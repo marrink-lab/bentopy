@@ -225,6 +225,30 @@ at 50 nm.
 
 </details>
 
+<details>
+<summary>Implied default compartment.</summary>
+
+If you omit the `"compartments"` field from the `"space"` section, and don't
+set the `"compartments"` field in any of the segments in the `"segments"`
+section, a single default compartment is implied.
+This compartment is set up like this.
+
+```json
+		{
+			"id": "main",
+			"shape": "cuboid"
+		}
+```
+
+Each segment, when the compartment is implied, is assigned to that `"main"`
+compartment.
+
+Note that when the `"compartments"` field on any segment is not set, its
+compartment id will be set to `"main"`, even when a compartment is defined in
+the `"space"` section.
+
+</details>
+
 #### Output
 
 In **output**, we set a **title** and **dir**ectory to write the placement list
