@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from render._render import py_render_placements as render_placements
+from extensions._extensions import py_render_placements as render_placements
 
 from .grocat import grocat
 from .mask import mask

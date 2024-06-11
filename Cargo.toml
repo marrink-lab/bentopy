@@ -1,14 +1,13 @@
 [package]
-name = "render"
+name = "extensions"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "_render"
-path = "src/bentopy/render/lib.rs"
+name = "_extensions"
+path = "src/extensions/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
 render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", version = "*" }
-# render-placements = { path = "../render-placements", version = "*" }
 pyo3 = { version = "0.20.3", features = ["extension-module"] }

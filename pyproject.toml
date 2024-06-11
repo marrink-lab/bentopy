@@ -33,6 +33,6 @@ Issues = "https://github.com/marrink-lab/bentopy/issues"
 bentopy = "bentopy:main"
 
 [[tool.setuptools-rust.ext-modules]]
-target = "render._render"
+target = "extensions._extensions"
 path = "Cargo.toml"
 binding = "PyO3"

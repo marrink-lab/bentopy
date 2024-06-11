@@ -36,7 +36,7 @@ fn py_render_placements(
 
 /// Read xtc files, fast.
 #[pymodule]
-fn _render(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _extensions(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_render_placements, m)?)?;
 
     Ok(())

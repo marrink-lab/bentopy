@@ -156,6 +156,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a47c1c47d2f5964e29c61246e81db715514cd532db6b5116a25ea3c03d6780a2"
 
 [[package]]
+name = "extensions"
+version = "0.1.0"
+dependencies = [
+ "pyo3",
+ "render-placements",
+]
+
+[[package]]
 name = "glam"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -359,14 +367,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469052894dcb553421e483e4209ee581a45100d31b4018de03e5a7ad86374a7e"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "render"
-version = "0.1.0"
-dependencies = [
- "pyo3",
- "render-placements",
 ]
 
 [[package]]
