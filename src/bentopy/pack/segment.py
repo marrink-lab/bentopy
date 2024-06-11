@@ -1,5 +1,6 @@
 import numpy as np
 import MDAnalysis as MDA
+from scipy.spatial.transform import Rotation as R
 
 
 class Segment:
@@ -28,6 +29,7 @@ class Segment:
         else:
             self.center = parse_center(center)
         self._points = None
+        self._voxels = None
         # TODO: Perhaps this ought to be a dictionary, but then we would need a
         # method of normalizing rotation matrices to a lower precision in order
         # to make the bit patterns of ~identical rotations exactly the same.
@@ -57,7 +59,11 @@ class Segment:
         Returns the voxels for this Segment's point cloud, with this
         Segment's rotation applied before voxelization.
         """
-        return voxelize(self.rotation @ self.points().T, self.resolution, tighten=True)
+        if self._voxels is None:
+            self._voxels = voxelize(
+                self.rotation @ self.points().T, self.resolution, tighten=True
+            )
+        return self._voxels
 
     def center_translation(self, resolution=1.0, dtype=float):
         return np.array(
@@ -76,20 +82,19 @@ class Segment:
         If no rotation axes are set, the internal rotation field will remain
         the same.
         """
-        # If all axes are accepted for rotations, we can just use the new rotation directly.
         if all(self.rotation_axes):
+            # If all axes are accepted for rotations, we can just use the new rotation directly.
             self.rotation = rotation
-            return
+        else:
+            # Otherwise, deconstruct the rotation and build it up according to the set axes.
+            r = R.from_matrix(rotation)
+            axis_rotations = r.as_euler("xyz")  # Decompose into axis angles.
+            # Finally, we zero out the ommitted rotation axes by multiplying these
+            # axis rotations with the rotation axes booleans.
+            axis_rotations_constrained = axis_rotations * self.rotation_axes
+            self.rotation = R.from_euler("xyz", axis_rotations_constrained).as_matrix()
 
-        # Otherwise, deconstruct the rotation and build it up according to the set axes.
-        from scipy.spatial.transform import Rotation as R
-
-        r = R.from_matrix(rotation)
-        axis_rotations = r.as_euler("xyz")  # Decompose into axis angles.
-        # Finally, we zero out the ommitted rotation axes by multiplying these
-        # axis rotations with the rotation axes booleans.
-        axis_rotations_constrained = axis_rotations * self.rotation_axes
-        self.rotation = R.from_euler("xyz", axis_rotations_constrained).as_matrix()
+        self._voxels = None  # Invalidate the voxels cache.
 
     def add_rotation(self, placements):
         """
@@ -174,6 +179,6 @@ def voxelize(points, resolution, tighten=False):
 
     assert (
         np.sum(voxels) > 0
-    ), f"There is at least one point in this structure, yet not a single voxel was filled in."
+    ), "There is at least one point in this structure, yet not a single voxel was filled in."
 
     return voxels
