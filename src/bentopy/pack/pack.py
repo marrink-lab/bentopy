@@ -122,38 +122,21 @@ def pack(
     max_iters=1000,
     max_at_once=10,
     max_tries=4,
-    target_density=None,
 ) -> int:
     """
     Pack the background with a segment.
     """
     max_num = segment.target_number
     start_volume = np.sum(space.global_background)
-    segment_volume = np.sum(segment)
     bgshape = space.global_background.shape
     background_volume = bgshape[0] * bgshape[1] * bgshape[2]  # TODO: np.product?
-    max_volume = background_volume - start_volume
 
-    log("--> initiating packing")
     segment_hits = 0
     rotations = 1  # The first round uses the identity rotation.
     for iteration in range(max_iters):
         if segment_hits >= max_num:
             break
-            log(f" -> iteration {iteration}")
-        if target_density:
-            # In case it could overshoot the target_density, limit the maximum
-            # number of elements that can be placed per convolution.
-            current_density = (
-                np.sum(space.global_background) - start_volume
-            ) / max_volume
-            remaining_density = target_density - current_density
-            remaining_segment_volume = (
-                remaining_density * max_volume
-            )  # For this kind of segment.
-            remaining_segments = math.ceil(remaining_segment_volume / segment_volume)
-        else:
-            remaining_segments = max_num - segment_hits
+        remaining_segments = max_num - segment_hits
         max_at_once_clamped = min(max_at_once, remaining_segments)
         assert max_at_once_clamped > 0
         log(
@@ -169,16 +152,12 @@ def pack(
             threshold_coefficient,
         )
         duration = time.time() - start
-        log(f"        ({duration:.3f} s)")
 
-        density = (np.sum(space.global_background) - start_volume) / max_volume
         if placements is None:
             log(
                 f"    iteration {iteration} ended because the convolution produced no viable spots"
             )
-            log(
-                f"  * finished packing with {segment_hits} hits at a density of {density:.3f}"
-            )
+            log(f"  * finished packing with {segment_hits} hits")
             break
 
         n_placements = len(placements)
@@ -186,35 +165,19 @@ def pack(
         segment.add_rotation(placements)
 
         if n_placements != 0:
-            log(f"        ({duration / n_placements:.6f} s per segment)")
+            log(f"        ({duration:.3f} s, {duration / n_placements:.6f} s per segment)")
+        else:
+            log(f"        ({duration:.3f} s, no segments placed)")
 
         if rotations >= max_rotations:
             log(f"        reached the maximum number of rotations ({max_rotations})")
             break
 
-        if target_density:
-            # Do a density check.
-            if density >= target_density:
-                log(
-                    f"    target density of {target_density:.2} was reached with {density:.2}"
-                )
-                break
-
-        if target_density:
-            log(
-                f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}/{target_density:.4f}"
-            )
-        else:
-            log(
-                f"    placed a total of {segment_hits}/{max_num} hits with a packing density of {density:.4f}"
-            )
-
         segment.set_rotation(R.random(random_state=RNG).as_matrix())
         rotations += 1
     end_volume = np.sum(space.global_background)
-    density = (end_volume - start_volume) / max_volume
     print(
-        f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%}; ρ->{density:.3f})"
+        f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%})"
     )
     return segment_hits
 
