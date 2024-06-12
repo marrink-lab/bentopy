@@ -2,6 +2,8 @@ import numpy as np
 import MDAnalysis as MDA
 from scipy.spatial.transform import Rotation as R
 
+from extensions._extensions import py_voxelize as voxelize
+
 
 class Segment:
     def __init__(
@@ -60,9 +62,12 @@ class Segment:
         Segment's rotation applied before voxelization.
         """
         if self._voxels is None:
+            # TODO: Make this configurable?
+            radius = 0.20 # Bead radius in nm.
             self._voxels = voxelize(
-                self.rotation @ self.points().T, self.resolution, tighten=True
+                self.rotation @ self.points().T, self.resolution, radius
             )
+
         return self._voxels
 
     def center_translation(self, resolution=1.0, dtype=float):
@@ -136,49 +141,3 @@ def load_points(path):
     u = MDA.Universe(path)
     # Convert from Å to nm.
     return u.atoms.positions / 10.0
-
-
-def voxelize(points, resolution, tighten=False):
-    """
-    Return the voxels corresponding to a point cloud.
-
-    The number of points must be at least 1. Since there are no sensible return
-    values for that case, we throw a ValueError.
-
-    Any voxels returned by this function are quaranteed to have at least one
-    filled-in voxel.
-
-    The value of the provided resolution will be the final voxel size.
-    """
-    _, npoints = points.shape
-    if npoints == 0:
-        raise ValueError("Cannot meaningfully voxelize a structure without any points.")
-    # From here on out, we know that there is at least one point. We will use that knowledge to check our work.
-
-    points = points / resolution
-    mins = points.min(axis=1)
-    points -= mins[:, None]
-
-    maxs = np.ceil(points.max(axis=1)).astype(int)
-    voxels = np.zeros(tuple(max(1, m) for m in maxs))  # FIXME: Better way?
-    assert all(
-        v >= 1 for v in voxels.shape
-    ), f"The voxels array should have a shape of at least (1, 1, 1). It was {voxels.shape}"
-
-    # TODO: This seems silly. Must be a better way.
-    for x, y, z in points.T:
-        voxels[int(x), int(y), int(z)] = 1
-
-    if tighten:
-        # And now, "tighten up those lines!"
-        # TODO: We can do this in a more pretty manner, I'm sure.
-        mins = np.min(np.where(voxels), axis=1)
-        voxels = voxels[mins[0] :, mins[1] :, mins[2] :]
-        maxs = np.max(np.where(voxels), axis=1) + 1
-        voxels = voxels[: maxs[0], : maxs[1], : maxs[2]]
-
-    assert (
-        np.sum(voxels) > 0
-    ), "There is at least one point in this structure, yet not a single voxel was filled in."
-
-    return voxels

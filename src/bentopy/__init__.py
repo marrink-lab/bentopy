@@ -2,13 +2,14 @@ import argparse
 from pathlib import Path
 
 from extensions._extensions import py_render_placements as render_placements
+from extensions._extensions import py_voxelize as voxelize
 
 from .grocat import grocat
 from .mask import mask
 from .check import check
 from .pack import pack
 
-__all__ = ["render_placements"]
+__all__ = ["render_placements", "voxelize"]
 
 
 def main():
