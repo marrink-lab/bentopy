@@ -97,7 +97,7 @@ fn voxelize<'py>(
         .map(|d| d.into_iter().copied().min_by(|a, b| a.total_cmp(b)))
         .collect::<Option<Vec<_>>>()
         .expect("there is at least one point");
-    let min = Array2::from_shape_vec((3, 1), min).expect("a point has three values");
+    let min = Array2::from_shape_vec((3, 1), min).expect("a point has three values") - radius;
     // Translate the points such that they are all above (0, 0, 0).
     let points = points.to_owned() - min;
     let scaled_points = points / resolution; // Transform points according to the resolution.
