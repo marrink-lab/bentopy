@@ -161,7 +161,6 @@ def pack(
         )
         start = time.time()
 
-        query = segment.voxels()
         placements = place(
             space,
             segment,
