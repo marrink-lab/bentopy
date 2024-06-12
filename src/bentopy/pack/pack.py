@@ -296,7 +296,7 @@ def main(state=None):
     space = state.space
 
     start = time.time()
-    for segment in state.segments:
+    for i, segment in enumerate(state.segments):
         space.enter_session(segment.compartment_ids)
         segment_start = time.time()
         hits = pack(
@@ -311,7 +311,7 @@ def main(state=None):
         segment_duration = segment_end - segment_start
         space.exit_session()
         print(
-            f"Packing '{segment.name}' with a total of {hits} segments took {segment_duration:.3f} s."
+            f"({i + 1}/{len(state.segments)}) Packed '{segment.name}' with a total of {hits} segments in {segment_duration:.3f} s."
         )
     end = time.time()
     duration = end - start
