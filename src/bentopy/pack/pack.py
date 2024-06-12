@@ -117,6 +117,7 @@ def place(
 def pack(
     space,
     segment,
+    max_rotations,
     threshold_coefficient=1,
     max_iters=1000,
     max_at_once=10,
@@ -135,6 +136,7 @@ def pack(
 
     log("--> initiating packing")
     segment_hits = 0
+    rotations = 1  # The first round uses the identity rotation.
     for iteration in range(max_iters):
         if segment_hits >= max_num:
             break
@@ -183,8 +185,13 @@ def pack(
         n_placements = len(placements)
         segment_hits += n_placements
         segment.add_rotation(placements)
+
         if n_placements != 0:
             log(f"        ({duration / n_placements:.6f} s per segment)")
+
+        if rotations >= max_rotations:
+            log(f"        reached the maximum number of rotations ({max_rotations})")
+            break
 
         if target_density:
             # Do a density check.
@@ -204,6 +211,7 @@ def pack(
             )
 
         segment.set_rotation(R.random(random_state=RNG).as_matrix())
+        rotations += 1
     end_volume = np.sum(space.global_background)
     density = (end_volume - start_volume) / max_volume
     print(
@@ -294,6 +302,7 @@ def main(state=None):
         hits = pack(
             space,
             segment,
+            state.rotations,
             # HACK: For now, this may be necessary.
             max_at_once=math.ceil(segment.target_number / state.rotations),
             max_tries=100,  # Maximum number of times to fail to place a segment.
