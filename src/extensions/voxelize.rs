@@ -100,9 +100,13 @@ fn voxelize<'py>(
     let min = Array2::from_shape_vec((3, 1), min).expect("a point has three values") - radius;
     // Translate the points such that they are all above (0, 0, 0).
     let points = points.to_owned() - min;
-    let scaled_points = points / resolution; // Transform points according to the resolution.
 
-    let ns = neigbors(radius as f32);
+    // Transform points according to the resolution.
+    let scaled_points = points / resolution;
+    // Scale the radius for the resolution along with the points.
+    let scaled_radius = radius / resolution;
+
+    let ns = neigbors(scaled_radius as f32);
     let mut filled_indices = Vec::with_capacity(npoints * (1 + ns.len()));
     for point in scaled_points.columns() {
         let p = Vec3::from_array(std::array::from_fn(|idx| point[idx] as f32));
