@@ -276,7 +276,8 @@ def main(state=None):
         segment_duration = segment_end - segment_start
         space.exit_session()
         print(
-            f"({i + 1}/{len(state.segments)}) Packed '{segment.name}' with a total of {hits} segments in {segment_duration:.3f} s."
+            f"({i + 1}/{len(state.segments)}) Packed '{segment.name}' with a total of {hits} segments in {segment_duration:.3f} s.",
+            flush=True,
         )
         summary.append((segment.name, segment.target_number, hits, segment_duration))
     end = time.time()
