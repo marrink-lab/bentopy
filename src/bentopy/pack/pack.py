@@ -8,6 +8,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 from .config import Configuration
+from extensions._extensions import py_place as place
 
 VERBOSE = False
 RNG = np.random.default_rng()
@@ -30,7 +31,83 @@ def placement_location(valid, selection, segment):
     return valid_pos - segment_center
 
 
-def place(
+# def place_naive(
+#     space,
+#     segment,
+#     max_at_once,
+#     max_tries,
+# ) -> list | None:
+#     """
+#     Place a number of segments into the background.
+#     """
+#
+#     # TODO: ROTATE IN THIS FUNCTION.
+#
+#     t0 = time.time()
+#     # Get indices of the open voxels.
+#     lx, ly, lz = [min(q, b) for q, b in zip(segment.voxels().shape, space.squeezed_session_background.shape)]
+#     valid = np.array(np.where(space.squeezed_session_background[:-lx, :-ly, :-lz] == 0))
+#     if valid.size == 0:
+#         return None
+#     t1 = time.time(); print(f"||||||||| t0->t1  {(t1 - t0)*1000:.3} ms")
+#
+#     placements = []
+#     hits = 0
+#     tries = 0  # Number of times segment placement was unsuccesful.
+#     previously_selected = set()
+#     while hits < max_at_once:
+#         t2 = time.time()
+#         if tries >= max_tries:
+#             # Give up.
+#             log("% ! tries is exceeding max_tries")
+#             break
+#         if len(previously_selected) == len(valid[0]):
+#             log("% ! all open positions have been tried")
+#             break
+#         while True:
+#             selection = RNG.integers(0, len(valid[0]))
+#             if selection not in previously_selected:
+#                 previously_selected.add(selection)
+#                 break
+#         t3p = time.time(); print(f"||||||||| t2->t3p  {(t3p - t2)*1000:.3} ms")
+#
+#         # Make sure that this placement does not overlap with another
+#         # previously selected location.
+#         location = valid[:, selection]
+#         prospect = np.where(segment.voxels()) + location[:, None]
+#         # Check for collisions at the prospective site.
+#         free = not np.any(
+#             space.squeezed_session_background[
+#                 prospect[0, :], prospect[1, :], prospect[2, :]
+#             ]
+#         )
+#         t3 = time.time(); print(f"||||||||| t3p->t3  {(t3 - t3p)*1000:.3} ms")
+#
+#         if free:
+#             space.stamp(prospect)
+#
+#             # If we are looking at a squeezed background, we need to correct the offset.
+#             # We also apply the segment's center translation.
+#             corrected_location = (
+#                 location + space.squeezed_location_offset
+#             ) * space.resolution
+#             placements.append(corrected_location.tolist())
+#             hits += 1
+#         else:
+#             tries += 1
+#             log(
+#                 f"%       {tries = }/{max_tries},\thits = {hits}/{max_at_once}",
+#                 end="\r",
+#             )
+#         t3a = time.time(); print(f"||||||||| t3->t3a  {(t3a - t3)*1000:.3} ms")
+#     t4 = time.time(); print(f"||||||||| t1->t4  {(t4 - t1)*1000:.3} ms")
+#     log("\x1b[K", end="")  # Clear the line since we used \r before.
+#     log(f"% . placed {hits} segments with {tries}/{max_tries} misses")
+#
+#     return placements
+
+
+def place_batched(
     space,
     segment,
     max_at_once,
@@ -119,7 +196,6 @@ def pack(
     segment,
     max_rotations,
     threshold_coefficient=1,
-    max_iters=1000,
     max_at_once=10,
     max_tries=4,
 ) -> int:
@@ -133,18 +209,58 @@ def pack(
 
     segment_hits = 0
     rotations = 1  # The first round uses the identity rotation.
-    for iteration in range(max_iters):
-        if segment_hits >= max_num:
+
+    # First, we try to just place the structure somewhere without the expensive convolution batch.
+    while segment_hits < segment.target_number:
+        remaining_segments = segment.target_number - segment_hits
+        if remaining_segments > 100:
+            target = remaining_segments // max_rotations
+        else:
+            target = remaining_segments
+
+        start = time.time()
+        placements = place(
+            space.squeezed_global_background,
+            space.squeezed_session_background,
+            segment.voxels(),
+            space.squeezed_location_offset,
+            space.resolution,
+            target,
+            10000,  # Max tries for the naive placement.
+            int(RNG.random() * 1000000),
+        )
+        duration = time.time() - start
+
+        # FIXME: Make this a non-magic value.
+        if len(placements) == 0 or len(placements) < target * 0.2:
             break
+
+        n_placements = len(placements)
+        segment_hits += n_placements
+        segment.add_rotation(placements)
+        segment.set_rotation(R.random(random_state=RNG).as_matrix())
+
+        if n_placements != 0:
+            log(
+                f"%%%%%%% ({duration:.3f} s, {duration / n_placements:.6f} s per segment)"
+            )
+        else:
+            log(f"%%%%%%% ({duration:.3f} s, no segments placed)")
+
+    iteration = 0
+    while segment_hits < segment.target_number:
         remaining_segments = max_num - segment_hits
         max_at_once_clamped = min(max_at_once, remaining_segments)
         assert max_at_once_clamped > 0
         log(
             f"  ^ trying to place {max_at_once_clamped} segments for this convolution",
         )
-        start = time.time()
+        print(
+            f"    trying to place {max_at_once_clamped} segments for this convolution",
+        )
 
-        placements = place(
+        start = time.time()
+        placements = place_batched(
             space,
             segment,
             max_at_once_clamped,
@@ -163,6 +279,7 @@ def pack(
         n_placements = len(placements)
         segment_hits += n_placements
         segment.add_rotation(placements)
+        segment.set_rotation(R.random(random_state=RNG).as_matrix())
 
         if n_placements != 0:
             log(
@@ -175,8 +292,9 @@ def pack(
             log(f"        reached the maximum number of rotations ({max_rotations})")
             break
 
-        segment.set_rotation(R.random(random_state=RNG).as_matrix())
         rotations += 1
+        iteration += 1
+
     end_volume = np.sum(space.global_background)
     print(
         f"  * finished packing with {segment_hits}/{max_num} hits ({start_volume / background_volume:.1%}->{end_volume / background_volume:.1%})"

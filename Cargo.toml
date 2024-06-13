@@ -13,3 +13,4 @@ render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", versio
 pyo3 = { version = "0.20.3", features = ["extension-module"] }
 numpy = "0.20"
 glam = "0.28.0"
+rand = "0.8.5"
