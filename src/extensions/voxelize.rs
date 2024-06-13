@@ -1,4 +1,4 @@
-use glam::{IVec3, U64Vec3, Vec3};
+use glam::{U64Vec3, Vec3};
 use numpy::{
     ndarray::{Array2, Array3},
     Ix2, Ix3, PyArray, ToPyArray,
@@ -124,90 +124,4 @@ fn voxelize<'py>(
     }
 
     Ok(voxels.to_pyarray(py))
-}
-
-const CELLS: [IVec3; 27] = [
-    // The middle cell.
-    IVec3::ZERO,
-    // The six sides.
-    IVec3::X,
-    IVec3::Y,
-    IVec3::Z,
-    IVec3::NEG_X,
-    IVec3::NEG_Y,
-    IVec3::NEG_Z,
-    // The eight diagonal corners.
-    IVec3::new(-1, -1, -1),
-    IVec3::new(1, -1, -1),
-    IVec3::new(-1, 1, -1),
-    IVec3::new(1, 1, -1),
-    IVec3::new(-1, -1, 1),
-    IVec3::new(1, -1, 1),
-    IVec3::new(-1, 1, 1),
-    IVec3::new(1, 1, 1),
-    // The twelve edge neigbors.
-    // xy plane.
-    IVec3::new(1, 1, 0),
-    IVec3::new(-1, 1, 0),
-    IVec3::new(1, -1, 0),
-    IVec3::new(-1, -1, 0),
-    // xz plane.
-    IVec3::new(1, 0, 1),
-    IVec3::new(-1, 0, 1),
-    IVec3::new(1, 0, -1),
-    IVec3::new(-1, 0, -1),
-    // yz plane.
-    IVec3::new(0, 1, 1),
-    IVec3::new(0, -1, 1),
-    IVec3::new(0, 1, -1),
-    IVec3::new(0, -1, -1),
-];
-
-struct Territory<T> {
-    size: [usize; 3],
-    data: Box<[Vec<T>]>,
-}
-
-impl<T> Territory<T> {
-    /// Create a new [`Territory<T>`] with size `x`, `y`, `z`.
-    fn new(x: usize, y: usize, z: usize) -> Self {
-        let n = x * y * z;
-        let mut data = Vec::with_capacity(n);
-        data.resize_with(n, Vec::new);
-        Self {
-            size: [x, y, z],
-            data: data.into_boxed_slice(),
-        }
-    }
-
-    fn get(&self, idx: [usize; 3]) -> Option<&Vec<T>> {
-        if !self.contains(idx) {
-            return None;
-        }
-
-        self.data.get(self.index(idx))
-    }
-
-    fn get_mut(&mut self, idx: [usize; 3]) -> Option<&mut Vec<T>> {
-        if !self.contains(idx) {
-            return None;
-        }
-
-        self.data.get_mut(self.index(idx))
-    }
-
-    /// Returns whether the provided `idx` points to a valid location in this [`Territory<T>`].
-    fn contains(&self, idx: [usize; 3]) -> bool {
-        self.size.into_iter().zip(idx).all(|(s, i)| s > i)
-    }
-
-    /// Return the index into the data for a given `[x, y, z]` index.
-    ///
-    /// The returned index is valid iff the provided `idx` is valid. This can be checked using
-    /// [`Territory<T>::contains`].
-    fn index(&self, idx: [usize; 3]) -> usize {
-        let [x, y, z] = idx;
-        let [width, height, _depth] = self.size;
-        x + y * width + z * height * width
-    }
 }
