@@ -165,7 +165,9 @@ def pack(
         segment.add_rotation(placements)
 
         if n_placements != 0:
-            log(f"        ({duration:.3f} s, {duration / n_placements:.6f} s per segment)")
+            log(
+                f"        ({duration:.3f} s, {duration / n_placements:.6f} s per segment)"
+            )
         else:
             log(f"        ({duration:.3f} s, no segments placed)")
 
@@ -258,6 +260,7 @@ def main(state=None):
     space = state.space
 
     start = time.time()
+    summary = []
     for i, segment in enumerate(state.segments):
         space.enter_session(segment.compartment_ids)
         segment_start = time.time()
@@ -275,15 +278,24 @@ def main(state=None):
         print(
             f"({i + 1}/{len(state.segments)}) Packed '{segment.name}' with a total of {hits} segments in {segment_duration:.3f} s."
         )
+        summary.append((segment.name, segment.target_number, hits, segment_duration))
     end = time.time()
-    duration = end - start
-    print(f"Packing process took {duration:.3f} s.")
+    packing_duration = end - start
+    print(f"Packing process took {packing_duration:.3f} s.")
 
     placement_list_path = f"{state.output_dir}/{state.title}_placements.json"
     with open(placement_list_path, "w") as file:
         placement_list = format_placement_list(state)
         file.write(placement_list)
         print(f"Wrote placement list to '{placement_list_path}'.")
+
+    print("Summary:")
+    print("  idx \tname      \ttarget\tplaced\ttime (s)\tremark")
+    print("  ----\t----------\t------\t------\t--------\t------")
+    for i, (name, target, hits, duration) in enumerate(summary):
+        ok = " " if hits == target else "<"
+        print(f"{i:>4}\t{name:>10}\t{target:>6}\t{hits:>6}\t{duration:8.2f}\t{ok}")
+    print(f"    \t          \t      \t      \t{packing_duration:8.2f}")
 
 
 if __name__ == "__main__":
