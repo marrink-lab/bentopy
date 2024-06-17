@@ -119,20 +119,32 @@ class Space:
         # The global background remains untouched by any masks and tracks all placements.
         self.global_background = np.zeros(self.effective_size, dtype=np.float32)
         # The session background adopts the relevant masks as well as the placements for some segment.
-        self.session_background = None
+        self.session_background = np.ones(self.effective_size, dtype=np.float32)
+        self.entered_session = False
+        self.previous_session_compartment_ids = None
 
     def enter_session(self, compartment_ids=[]):
-        if self.session_background is not None:
+        if self.entered_session:
             raise ValueError(
                 "Entering a session while the session background was already set."
             )
+        self.entered_session = True
 
-        self.session_background = np.ones(self.effective_size, dtype=np.float32)
+        # In case we used the same compartment ids in the previous session, we can just reuse the 
+        # previous background.
+        # The reasoning for this is that setting up the session background from scratch for 
+        # consecutive sessions with the same set of domains will yield the a session background 
+        # that is identical to the final state of the background from the previous session.
+        if set(compartment_ids) == self.previous_session_compartment_ids:
+            # We can just re-use the previous session background :)
+            return
+
+        self.session_background[:] = 1  # Clear the session background.
         width, height, depth = self.effective_size
         for compartment in filter(lambda c: c.id in compartment_ids, self.compartments):
             mask = compartment.mask(width, height, depth, padding=0)
             self.session_background[mask] = 0  # Apply the mask.
-        self.session_background[self.global_background == 1.0] = 1.0
+        self.session_background[self.global_background == 1.0] = 1
 
         indices = np.where(self.session_background == 0.0)
         mins = np.min(indices, axis=1)
@@ -144,6 +156,7 @@ class Space:
             mins[0] : maxs[0], mins[1] : maxs[1], mins[2] : maxs[2]
         ]
         self.squeezed_location_offset = mins
+        self.previous_session_compartment_ids = set(compartment_ids)
 
     # TODO: Make something with __entry__ here, so it can be used in a with block?
     def exit_session(self):
@@ -151,7 +164,7 @@ class Space:
             raise ValueError(
                 "Exited the session while the session background was already unset."
             )
-        self.session_background = None
+        self.entered_session = False
 
     def collisions(self, segment):
         """
@@ -176,7 +189,9 @@ class Space:
         constraint_mask = np.ones(valid.shape[1], dtype=bool)
 
         # Apply an offset to the spots that are considered valid based on the possible center adjustment for a segment.
-        center_offset = segment.center_translation(resolution=self.resolution, dtype=int)
+        center_offset = segment.center_translation(
+            resolution=self.resolution, dtype=int
+        )
         for compartment in self.compartments:
             if compartment.id not in segment.compartment_ids:
                 continue
