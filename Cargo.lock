@@ -450,8 +450,8 @@ dependencies = [
 
 [[package]]
 name = "render-placements"
-version = "0.2.1"
-source = "git+https://git.sr.ht/~ma3ke/render-placements#231677facfd9eae5979d35b2d5be0b5884ff03f2"
+version = "0.2.2"
+source = "git+https://git.sr.ht/~ma3ke/render-placements#f3dbea799c5e7f344cc49092968c47c9d89c4365"
 dependencies = [
  "arraystring",
  "clap",

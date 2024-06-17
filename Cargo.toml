@@ -9,7 +9,7 @@ path = "src/extensions/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", version = "*" }
+render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", version = "0.2.2" }
 pyo3 = { version = "0.20.3", features = ["extension-module"] }
 numpy = "0.20"
 glam = "0.28.0"
