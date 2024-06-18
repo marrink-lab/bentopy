@@ -3,7 +3,8 @@ use std::io;
 use args::Args;
 use clap::Parser;
 use config::Configuration;
-use placement::PlacementList;
+use glam::U64Vec3;
+use placement::{Batch, Placement, PlacementList};
 use state::State;
 
 mod args;
@@ -57,6 +58,62 @@ fn main() -> io::Result<()> {
     let mut placements = Vec::new();
     let mut summary = Summary::new();
     let packing_start = std::time::Instant::now();
+
+    for segment in &mut state.segments {
+        // Prepare the session.
+        let start = std::time::Instant::now();
+        let mut placement = Placement::new(segment.name, segment.path);
+        state.space.enter_session(&segment.compartments);
+
+        // Get the free locations.
+        let locations = state.space.get_free_locations();
+
+        let mut hits = 0;
+        let mut batch_positions = Vec::new();
+        while hits < segment.number {
+            // TODO: This can become more efficient for successive placement failures.
+            let voxels = segment.get_voxels(state.space.resolution, state.bead_radius);
+            let u = voxels.indices_where::<true>().map(U64Vec3::from_array);
+
+            // Pick a random location.
+            let location = todo!();
+
+            // Try it.
+            let l = U64Vec3::from_array(location);
+            let v = u.map(|p| p + l);
+            for p in v.map(|p| p.to_array()) {}
+            if state.space.check_collisions(voxels, location) {
+                // We found a good spot. Stomp on those stamps!
+                state.space.stamp(voxels, location);
+                batch_positions.push(location);
+
+                // Let's write out the batch and rotate the segment again.
+                // TODO: Perhaps we'll need a little transpose here.
+                let batch = Batch::new(
+                    segment.rotation().to_cols_array_2d(),
+                    batch_positions.clone(),
+                );
+                placement.push(batch);
+                batch_positions.clear();
+
+                let rotation = todo!("get a random location"); // TODO: This will be a bloody mess again, won't it?
+                segment.set_rotation(rotation);
+
+                hits += 1;
+            }
+        }
+        let duration = std::time::Instant::now().duration_since(start);
+
+        // Save the batches.
+        placements.push(placement);
+        summary.push(
+            segment.name,
+            placement.n_batches(),
+            segment.number,
+            hits,
+            duration.as_secs_f64(),
+        )
+    }
 
     let packing_duration = std::time::Instant::now()
         .duration_since(packing_start)

@@ -1,7 +1,8 @@
 use std::io;
+use std::path::PathBuf;
 
 use eightyseven::{reader::ReadGro, structure::Structure};
-use glam::{Mat3, Vec3};
+use glam::{Mat3, U64Vec3, Vec3};
 use rand::SeedableRng;
 
 use crate::args::Args;
@@ -10,11 +11,13 @@ use crate::config::{Configuration, Mask as ConfigMask, Output, Shape as ConfigSh
 pub type CompartmentID = String;
 pub type Size = [f32; 3];
 pub type Dimensions = [u64; 3]; // TODO: Make into usize? Rather awkward in places right now.
+pub type Position = Dimensions;
 pub type Rotation = Mat3;
 pub type Voxels = Mask; // TODO: This should become a bitmap.
 type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
 
 // TODO: Bitmap optimization.
+#[derive(Clone)]
 pub struct Mask {
     dimensions: Dimensions,
     cells: Box<[bool]>,
@@ -27,10 +30,41 @@ impl Mask {
         Self { dimensions, cells }
     }
 
-    fn get_mut(&mut self, idx: Dimensions) -> Option<&mut bool> {
+    fn get_mut(&mut self, idx: Position) -> Option<&mut bool> {
         let [w, h, _d] = self.dimensions.map(|v| v as usize);
         let [x, y, z] = idx.map(|v| v as usize);
         self.cells.get_mut(x + y * w + z * w * h)
+    }
+
+    /// Return a three-dimensional index into this [`Mask`] from a linear index.
+    ///
+    /// This function makes no guarantees about whether the returned index is actually within the
+    /// `Mask`.
+    fn idx(&self, mut i: usize) -> Position {
+        let [w, h, _d] = self.dimensions.map(|v| v as usize);
+
+        let x = i % w;
+        i /= w;
+        let y = i % h;
+        let z = i / h;
+
+        [x, y, z].map(|v| v as u64)
+    }
+
+    /// Return an [`Iterator`] over all indices where the the cell is equal to `VALUE`.
+    pub fn indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = Position> + '_ {
+        self.cells
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &v)| if v == VALUE { Some(self.idx(i)) } else { None })
+    }
+
+    fn apply_mask(&mut self, mask: &Mask) {
+        assert_eq!(self.dimensions, mask.dimensions);
+        self.cells
+            .iter_mut()
+            .zip(mask.cells.iter())
+            .for_each(|(s, &m)| *s = m);
     }
 }
 
@@ -65,7 +99,7 @@ impl Mask {
         Self { dimensions, cells }
     }
 
-    fn load_from_path(path: std::path::PathBuf) -> io::Result<Self> {
+    fn load_from_path(path: PathBuf) -> io::Result<Self> {
         let mut npz = npyz::npz::NpzArchive::open(path)?;
         // FIXME: This error could be handled more gracefully.
         let first_name = npz
@@ -98,12 +132,71 @@ pub struct Space {
     pub dimensions: Dimensions,
     pub resolution: f32,
     pub compartments: Vec<Compartment>,
+
+    global_background: Mask,
+    session_background: Option<Mask>,
+}
+
+impl Space {
+    pub fn stamp(&mut self, voxels: &Mask, location: Position) {
+        let location = U64Vec3::from_array(location);
+        for idx in voxels
+            .indices_where::<true>()
+            .map(|idx| U64Vec3::from_array(idx) + location)
+        {
+            *self
+                .global_background
+                .get_mut(idx.to_array())
+                .expect("cannot stamp outside of bounds") = true;
+            *self
+                .session_background
+                .as_mut()
+                .expect("when stamping, a session background must exist")
+                .get_mut(idx.to_array())
+                .expect("cannot stamp outside of bounds") = true;
+        }
+    }
+
+    pub fn enter_session(&mut self, compartment_ids: &[CompartmentID]) {
+        assert!(
+            self.session_background.is_none(),
+            "hey, let's not enter a session when one is still ongoing"
+        );
+
+        // Clone the global background, which has all structures stamped onto it.
+        let session_background = self.session_background.as_mut().unwrap();
+        *session_background = self.global_background.clone();
+
+        for compartment in self
+            .compartments
+            .iter()
+            .filter(|comp| compartment_ids.contains(&comp.id))
+        {
+            session_background.apply_mask(&compartment.mask)
+        }
+    }
+
+    pub fn get_free_locations(&self) -> impl Iterator<Item = Position> + '_ {
+        self.session_background
+            .as_ref()
+            .expect("the session background must exist")
+            .indices_where::<false>()
+    }
+
+    /// Returns `true` if no collisions are encountered between the [`Space`] and the provided
+    /// [`Voxels`] at some `location`.
+    ///
+    /// If a collision is found, the function exits early with a `false` value.
+    pub fn check_collisions(&self, voxels: &Voxels, location: Position) -> bool {
+        todo!()
+    }
 }
 
 pub struct Segment {
     pub name: String,
     pub number: usize,
     pub compartments: Vec<CompartmentID>,
+    pub path: PathBuf,
     structure: Structure,
     rotation: Rotation,
     voxels: Option<Voxels>,
@@ -117,6 +210,10 @@ impl Segment {
         // FIXME: Assert it's a well-formed rotation?
         self.rotation = rotation;
         self.voxels = None;
+    }
+
+    pub fn rotation(&self) -> Rotation {
+        self.rotation
     }
 
     /// Voxelize this [`Segment`] according to its current rotation.
@@ -135,6 +232,23 @@ impl Segment {
     pub fn take_voxels(&mut self) -> Option<Voxels> {
         self.voxels.take()
     }
+
+    /// Return a reference to the voxels that represent this [`Segment`].
+    ///
+    /// If a voxelization already exists, it is returned. Otherwise, a new voxelization is
+    /// determined and returned.
+    ///
+    /// Note that this function operates under the assumption that a potential previous
+    /// voxelization was produced with the same resolution and radius. The responsibility for
+    /// upholding this assumption is with the caller.
+    pub fn get_voxels(&mut self, resolution: f32, radius: f32) -> &Voxels {
+        if self.voxels().is_none() {
+            self.voxelize(resolution, radius);
+        }
+
+        self.voxels().unwrap()
+    }
+
 }
 
 pub struct State {
@@ -172,6 +286,9 @@ impl State {
                     })
                 })
                 .collect::<io::Result<_>>()?,
+
+            global_background: Mask::new(dimensions),
+            session_background: None,
         };
 
         let bead_radius = args.bead_radius;
@@ -180,12 +297,13 @@ impl State {
                 .segments
                 .into_iter()
                 .map(|seg| -> io::Result<_> {
-                    let file = std::fs::File::open(seg.path)?;
+                    let file = std::fs::File::open(&seg.path)?;
                     let structure = Structure::read_from_file(file)?;
                     Ok(Segment {
                         name: seg.name,
                         number: seg.number,
                         compartments: seg.compartments,
+                        path: seg.path,
                         structure,
                         rotation: Rotation::IDENTITY,
                         voxels: None,
