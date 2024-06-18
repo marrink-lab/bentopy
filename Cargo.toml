@@ -8,9 +8,18 @@ name = "_extensions"
 path = "src/extensions/lib.rs"
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "pack"
+path = "src/pack/main.rs"
+
 [dependencies]
 render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", version = "0.2.2" }
 pyo3 = { version = "0.20.3", features = ["extension-module"] }
 numpy = "0.20"
 glam = "0.28.0"
 rand = "0.8.5"
+clap = { version = "4.5.7", features = ["derive"] }
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+eightyseven = "0.1.2"
+npyz = { version = "0.8.3", features = ["npz"] }
