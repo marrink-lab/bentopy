@@ -229,6 +229,12 @@ def setup_parser(parser=None):
         help="Set the number of random rotations per segment kind. (default: %(default)s)",
     )
     parser.add_argument(
+        "--bead-radius",
+        default=0.2,
+        type=float,
+        help="Set the bead radius that is considered during voxelization in nm. (default: %(default)s nm)",
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output."
     )
     return parser
@@ -243,7 +249,12 @@ def configure(args=None):
         config_src = config_file.read()
 
     config = Configuration(
-        config_src, args.verbose, args.rearrange, args.seed, args.rotations
+        config_src,
+        args.verbose,
+        args.rearrange,
+        args.seed,
+        args.rotations,
+        args.bead_radius,
     )
 
     global VERBOSE

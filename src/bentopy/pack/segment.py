@@ -15,12 +15,14 @@ class Segment:
         compartment_ids,
         rotation_axes,
         center,
+        bead_radius,
     ):
         self.name = name
         self.target_number = target_number
         self.path = path
         self.rotation = np.eye(3)  # We start out with the identity matrix.
         self.resolution = resolution
+        self.bead_radius = bead_radius # In nm.
         self.compartment_ids = compartment_ids
         if rotation_axes is None:
             self.rotation_axes = parse_rotation_axes("xyz")
@@ -62,10 +64,8 @@ class Segment:
         Segment's rotation applied before voxelization.
         """
         if self._voxels is None:
-            # TODO: Make this configurable?
-            radius = 0.20 # Bead radius in nm.
             self._voxels = voxelize(
-                self.rotation @ self.points().T, self.resolution, radius
+                self.rotation @ self.points().T, self.resolution, self.bead_radius
             )
 
         return self._voxels

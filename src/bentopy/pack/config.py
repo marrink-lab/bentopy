@@ -13,6 +13,7 @@ class Configuration:
         rearrange: bool,
         seed: int,
         rotations: int,
+        bead_radius: float,
     ):
         config = json.loads(json_src)
         space = config["space"]
@@ -32,6 +33,7 @@ class Configuration:
                 s["compartments"],
                 s.get("rotation_axes"),
                 s.get("center"),
+                bead_radius,
             )
             for s in segments
         ]
