@@ -279,7 +279,10 @@ def main(state=None):
             f"({i + 1}/{len(state.segments)}) Packed '{segment.name}' with a total of {hits} segments in {segment_duration:.3f} s.",
             flush=True,
         )
-        summary.append((segment.name, segment.target_number, hits, segment_duration))
+        nrots = len(segment.batches)
+        summary.append(
+            (segment.name, segment.target_number, hits, nrots, segment_duration)
+        )
     end = time.time()
     packing_duration = end - start
     print(f"Packing process took {packing_duration:.3f} s.")
@@ -291,12 +294,22 @@ def main(state=None):
         print(f"Wrote placement list to '{placement_list_path}'.")
 
     print("Summary:")
-    print("  idx \tname      \ttarget\tplaced\ttime (s)\tremark")
-    print("  ----\t----------\t------\t------\t--------\t------")
-    for i, (name, target, hits, duration) in enumerate(summary):
+    print("  idx \tname      \tnrots\ttarget\tplaced\ttime (s)\tremark")
+    print("  ----\t----------\t-----\t------\t------\t--------\t------")
+    nrots_tot = 0
+    target_tot = 0
+    hits_tot = 0
+    for i, (name, target, hits, nrots, duration) in enumerate(summary):
         ok = " " if hits == target else "<"
-        print(f"{i:>4}\t{name:>10}\t{target:>6}\t{hits:>6}\t{duration:8.2f}\t{ok}")
-    print(f"    \t          \t      \t      \t{packing_duration:8.2f}")
+        print(
+            f"{i:>4}\t{name:>10}\t{nrots:>5}\t{target:>6}\t{hits:>6}\t{duration:8.2f}\t{ok}"
+        )
+        nrots_tot += nrots
+        target_tot += target
+        hits_tot += hits
+    print(
+        f"    \t          \t{nrots_tot:>5}\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2f}"
+    )
 
 
 if __name__ == "__main__":
