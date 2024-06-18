@@ -226,7 +226,7 @@ def setup_parser(parser=None):
         "--rotations",
         default=10,
         type=int,
-        help="Set the number of random rotations per segment kind.",
+        help="Set the number of random rotations per segment kind. (default: %(default)s)",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Use verbose output."
