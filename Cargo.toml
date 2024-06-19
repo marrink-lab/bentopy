@@ -16,7 +16,7 @@ path = "src/pack/main.rs"
 render-placements = { git = "https://git.sr.ht/~ma3ke/render-placements", version = "0.2.2" }
 pyo3 = { version = "0.20.3", features = ["extension-module"] }
 numpy = "0.20"
-glam = "0.28.0"
+glam = { version = "0.28.0", features = ["rand"] }
 rand = "0.8.5"
 clap = { version = "4.5.7", features = ["derive"] }
 serde = { version = "1.0.203", features = ["derive"] }

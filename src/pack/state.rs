@@ -30,6 +30,17 @@ impl Mask {
         Self { dimensions, cells }
     }
 
+    pub fn dimensions(&self) -> Dimensions {
+        self.dimensions
+    }
+
+    // TODO: Impl get and get_mut as Deref<Slice>? Would that be nicer?
+    fn get(&self, idx: Position) -> Option<&bool> {
+        let [w, h, _d] = self.dimensions.map(|v| v as usize);
+        let [x, y, z] = idx.map(|v| v as usize);
+        self.cells.get(x + y * w + z * w * h)
+    }
+
     fn get_mut(&mut self, idx: Position) -> Option<&mut bool> {
         let [w, h, _d] = self.dimensions.map(|v| v as usize);
         let [x, y, z] = idx.map(|v| v as usize);
@@ -59,12 +70,16 @@ impl Mask {
             .filter_map(|(i, &v)| if v == VALUE { Some(self.idx(i)) } else { None })
     }
 
+    /// Apply some `mask` onto this [`Mask`].
+    ///
+    /// This is essentially an `or-assign` operation between the `self` and the provided `mask`.
     fn apply_mask(&mut self, mask: &Mask) {
         assert_eq!(self.dimensions, mask.dimensions);
+        assert_eq!(self.cells.len(), mask.cells.len()); // For good measure, so the compiler gets it.
         self.cells
             .iter_mut()
             .zip(mask.cells.iter())
-            .for_each(|(s, &m)| *s = m);
+            .for_each(|(s, &m)| *s |= m);
     }
 }
 
@@ -86,7 +101,7 @@ impl Mask {
                             ((x - c).pow(2) as usize)
                                 + ((y - c).pow(2) as usize)
                                 + ((z - c).pow(2) as usize)
-                                < r2
+                                >= r2
                         }
                         ConfigShape::Cuboid | ConfigShape::None => false,
                     };
@@ -157,6 +172,7 @@ impl Space {
         }
     }
 
+    // TODO: enter_session and exit_session are rather good candidates for a typestate pattern.
     pub fn enter_session(&mut self, compartment_ids: &[CompartmentID]) {
         assert!(
             self.session_background.is_none(),
@@ -164,8 +180,9 @@ impl Space {
         );
 
         // Clone the global background, which has all structures stamped onto it.
+        self.session_background
+            .replace(self.global_background.clone());
         let session_background = self.session_background.as_mut().unwrap();
-        *session_background = self.global_background.clone();
 
         for compartment in self
             .compartments
@@ -174,6 +191,16 @@ impl Space {
         {
             session_background.apply_mask(&compartment.mask)
         }
+    }
+
+    pub fn exit_session(&mut self) {
+        assert!(
+            self.session_background.is_some(),
+            "hey, let's not exit a session when there is not one going on"
+        );
+
+        // Forget the session background.
+        self.session_background = None;
     }
 
     pub fn get_free_locations(&self) -> impl Iterator<Item = Position> + '_ {
@@ -188,7 +215,27 @@ impl Space {
     ///
     /// If a collision is found, the function exits early with a `false` value.
     pub fn check_collisions(&self, voxels: &Voxels, location: Position) -> bool {
-        todo!()
+        let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
+        let location = U64Vec3::from_array(location);
+        let occupied_indices = occupied_indices.map(|p| p + location);
+        let session_background = self
+            .session_background
+            .as_ref()
+            .expect("the session background must exist");
+        for idx in occupied_indices.map(|p| p.to_array()) {
+            match session_background.get(idx) {
+                Some(false) => continue,    // Free. Moving on to the next one.
+                Some(true) => return false, // Already occupied!
+                None => {
+                    // Out of bounds!?
+                    #[cfg(debug_assertions)]
+                    eprintln!("out of bounds this is weird");
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
 
@@ -198,7 +245,7 @@ pub struct Segment {
     pub compartments: Vec<CompartmentID>,
     pub path: PathBuf,
     structure: Structure,
-    rotation: Rotation,
+    pub(crate) rotation: Rotation,
     voxels: Option<Voxels>,
 }
 
@@ -210,10 +257,6 @@ impl Segment {
         // FIXME: Assert it's a well-formed rotation?
         self.rotation = rotation;
         self.voxels = None;
-    }
-
-    pub fn rotation(&self) -> Rotation {
-        self.rotation
     }
 
     /// Voxelize this [`Segment`] according to its current rotation.
@@ -233,6 +276,7 @@ impl Segment {
         self.voxels.take()
     }
 
+    // TODO: This is obsolete unless we move on to an internal mutability system.
     /// Return a reference to the voxels that represent this [`Segment`].
     ///
     /// If a voxelization already exists, it is returned. Otherwise, a new voxelization is
@@ -248,7 +292,6 @@ impl Segment {
 
         self.voxels().unwrap()
     }
-
 }
 
 pub struct State {

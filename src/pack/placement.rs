@@ -1,22 +1,33 @@
 use std::path::PathBuf;
 
+use glam::Mat3;
 use serde::Serialize;
 
 use crate::config::TopolIncludes;
-use crate::state::{Position, Size, State};
+use crate::state::{Size, State};
 
-type Rotation = [[f32; 3]; 3];
+type Rotation = Mat3;
+type Position = [f32; 3];
+type RowMajorRotation = [[f32; 3]; 3];
 
 #[derive(Serialize)]
 pub struct Batch {
-    rotation: Rotation,
+    /// Rotations are stored in row-major order, since they are stored like that in the placement
+    /// list.
+    rotation: RowMajorRotation,
+    /// Positions in nm.
     positions: Vec<Position>,
 }
 
 impl Batch {
+    /// Create a new [`Batch`] from a rotation and a set of positions.
+    ///
+    /// - The locations of the `positions` must be provided in nm. Any resolution adjustments must
+    ///   be applied by the caller.
+    /// - The provided `rotation` is internally converted and stored in row-major order.
     pub fn new(rotation: Rotation, positions: Vec<Position>) -> Self {
         Self {
-            rotation,
+            rotation: rotation.transpose().to_cols_array_2d(),
             positions,
         }
     }
