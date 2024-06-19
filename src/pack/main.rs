@@ -61,7 +61,14 @@ fn main() -> io::Result<()> {
     let mut summary = Summary::new();
     let packing_start = std::time::Instant::now();
 
-    for segment in &mut state.segments {
+    let n_segments = state.segments.len();
+    for (i, segment) in state.segments.iter_mut().enumerate() {
+        eprintln!(
+            "({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.",
+            target = segment.number,
+            name = segment.name
+        );
+
         // Prepare the session.
         let start = std::time::Instant::now();
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
@@ -142,7 +149,13 @@ fn main() -> io::Result<()> {
             }
         }
         state.space.exit_session();
-        let duration = std::time::Instant::now().duration_since(start);
+        let end = std::time::Instant::now();
+        let duration = end.duration_since(start).as_secs_f64();
+
+        eprintln!(
+            "                      Packed {hits:>5} instances in {duration:6.3} s. [{} s]",
+            end.duration_since(packing_start).as_secs()
+        );
 
         // Save the batches.
         summary.push(
@@ -150,7 +163,7 @@ fn main() -> io::Result<()> {
             placement.n_batches(),
             segment.number,
             hits,
-            duration.as_secs_f64(),
+            duration,
         );
         placements.push(placement);
     }
