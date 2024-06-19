@@ -132,10 +132,16 @@ impl Mask {
 
     /// Return an [`Iterator`] over all indices where the the cell is equal to `VALUE`.
     pub fn indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = Position> + '_ {
+        self.linear_indices_where::<VALUE>().map(|i| self.idx(i))
+    }
+
+    /// Return an [`Iterator`] over all linear indices into the internal `cells` where the the cell
+    /// is equal to `VALUE`.
+    pub fn linear_indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = usize> + '_ {
         self.cells
             .iter()
             .enumerate()
-            .filter_map(|(i, &v)| if v == VALUE { Some(self.idx(i)) } else { None })
+            .filter_map(|(i, &v)| if v == VALUE { Some(i) } else { None })
     }
 
     /// Apply some `mask` onto this [`Mask`].
