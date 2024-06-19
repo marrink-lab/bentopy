@@ -90,19 +90,26 @@ impl Mask {
         Self { dimensions, cells }
     }
 
-    pub fn dimensions(&self) -> Dimensions {
+    pub const fn dimensions(&self) -> Dimensions {
         self.dimensions
     }
 
+    pub const fn dimensions_usize(&self) -> [usize; 3] {
+        let [x, y, z] = self.dimensions;
+        [x as usize, y as usize, z as usize]
+    }
+
     // TODO: Impl get and get_mut as Deref<Slice>? Would that be nicer?
+    #[inline(always)]
     fn get(&self, idx: Position) -> Option<&bool> {
-        let [w, h, _d] = self.dimensions.map(|v| v as usize);
+        let [w, h, _d] = self.dimensions_usize();
         let [x, y, z] = idx.map(|v| v as usize);
         self.cells.get(x + y * w + z * w * h)
     }
 
+    #[inline(always)]
     fn get_mut(&mut self, idx: Position) -> Option<&mut bool> {
-        let [w, h, _d] = self.dimensions.map(|v| v as usize);
+        let [w, h, _d] = self.dimensions_usize();
         let [x, y, z] = idx.map(|v| v as usize);
         self.cells.get_mut(x + y * w + z * w * h)
     }
@@ -111,15 +118,16 @@ impl Mask {
     ///
     /// This function makes no guarantees about whether the returned index is actually within the
     /// `Mask`.
+    #[inline(always)]
     fn idx(&self, mut i: usize) -> Position {
-        let [w, h, _d] = self.dimensions.map(|v| v as usize);
+        let [w, h, _d] = self.dimensions_usize();
 
         let x = i % w;
         i /= w;
         let y = i % h;
         let z = i / h;
 
-        [x, y, z].map(|v| v as u64)
+        [x as u64, y as u64, z as u64]
     }
 
     /// Return an [`Iterator`] over all indices where the the cell is equal to `VALUE`.
