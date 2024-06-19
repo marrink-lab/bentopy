@@ -1,7 +1,9 @@
-use std::io;
+use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
 
-use eightyseven::{reader::ReadGro, structure::Structure};
+use arraystring::typenum::U5;
+use arraystring::ArrayString;
+use eightyseven::reader::{ParseList, ReadGro};
 use glam::{Mat3, U64Vec3, Vec3};
 use rand::SeedableRng;
 
@@ -15,6 +17,64 @@ pub type Position = Dimensions;
 pub type Rotation = Mat3;
 pub type Voxels = Mask; // TODO: This should become a bitmap.
 type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
+type Atom = Vec3;
+
+pub struct Structure {
+    atoms: Vec<Atom>,
+}
+
+impl ReadGro<Atom> for Structure {
+    const PARSE_LIST: ParseList = ParseList {
+        resnum: false,
+        resname: false,
+        atomname: false,
+        atomnum: false,
+        position: true,
+        velocity: false,
+    };
+
+    // TODO: Fix this ArrayString bs in eightyseven.
+    fn build_atom(
+        _resnum: Option<u32>,
+        _resname: Option<ArrayString<U5>>,
+        _atomname: Option<ArrayString<U5>>,
+        _atomnum: Option<u32>,
+        position: Option<[f32; 3]>,
+        _velocity: Option<[f32; 3]>,
+    ) -> Atom {
+        Atom::from_array(position.unwrap())
+    }
+
+    fn build_structure(
+        _title: String,
+        atoms: Vec<Atom>,
+        _boxvecs: eightyseven::structure::BoxVecs,
+    ) -> Self {
+        Self { atoms }
+    }
+}
+
+impl Structure {
+    fn read_from_pdb_file(
+        file: std::fs::File,
+    ) -> Result<Structure, eightyseven::reader::ParseGroError> {
+        let reader = BufReader::new(file);
+
+        let mut atoms = Vec::new();
+        for line in reader.lines() {
+            let line = line?;
+            if line.starts_with("ATOM") || line.starts_with("HETATM") {
+                let x = line[30..38].trim().parse().unwrap();
+                let y = line[38..46].trim().parse().unwrap();
+                let z = line[46..54].trim().parse().unwrap();
+                let atom = Atom::new(x, y, z) / 10.0; // Convert from Å to nm.
+                atoms.push(atom);
+            }
+        }
+
+        Ok(Self { atoms })
+    }
+}
 
 // TODO: Bitmap optimization.
 #[derive(Clone)]
@@ -340,8 +400,7 @@ impl State {
                 .segments
                 .into_iter()
                 .map(|seg| -> io::Result<_> {
-                    let file = std::fs::File::open(&seg.path)?;
-                    let structure = Structure::read_from_file(file)?;
+                    let structure = load_molecule(&seg.path)?;
                     Ok(Segment {
                         name: seg.name,
                         number: seg.number,
@@ -354,6 +413,7 @@ impl State {
                 })
                 .collect::<io::Result<_>>()?;
             if args.rearrange {
+                eprint!("Rearranging segments... ");
                 segments
                     .iter_mut()
                     .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
@@ -367,6 +427,7 @@ impl State {
                 });
                 // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                 segments.reverse();
+                eprintln!("Done.");
             }
             segments
         };
@@ -395,6 +456,23 @@ impl State {
             verbose: args.verbose, // TODO: Add verbose flag functionality.
         })
     }
+}
+
+/// Load a [`Structure`] from a structure file.
+fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(path: P) -> io::Result<Structure> {
+    eprintln!("\tLoading {path:?}...");
+    let file = std::fs::File::open(&path)?;
+
+    let structure = match path.as_ref().extension().and_then(|s| s.to_str()) {
+        Some("gro") => Structure::read_from_file(file)?,
+        Some("pdb") => Structure::read_from_pdb_file(file)?,
+        None | Some(_) => {
+            eprintln!("WARNING: Assuming {path:?} is a pdb file.");
+            Structure::read_from_pdb_file(file)?
+        }
+    };
+
+    Ok(structure)
 }
 
 /// Calculate the translations to check whether a bead would partially occupy a neigboring voxel
@@ -448,7 +526,7 @@ fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: 
     let mut points: Box<[_]> = structure
         .atoms
         .iter()
-        .map(|atom| rotation.mul_vec3(Vec3::from_array(atom.position.to_array())))
+        .map(|&position| rotation.mul_vec3(position))
         .collect();
     let npoints = points.len();
     // FIXME: Think about the implications of total_cmp for our case here.
