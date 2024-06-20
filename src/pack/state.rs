@@ -159,12 +159,14 @@ impl Mask {
 
     fn indices_where_into_vec<const VALUE: bool>(&self, locations: &mut Vec<Position>) {
         let [w, h, d] = self.dimensions();
+        assert_eq!((w * h * d) as usize, self.cells.len());
         for z in 0..d {
             for y in 0..h {
                 for x in 0..w {
-                    // TODO: Profile to see if this unchecked get can benefit us here.
                     let lin_idx = x + y * w + z * w * h;
-                    if self.cells[lin_idx as usize] == VALUE {
+                    // Safety: We know that our access is in bounds since `w*h*d` is equal to
+                    // `self.cells.len()`.
+                    if unsafe { *self.cells.get_unchecked(lin_idx as usize) } == VALUE {
                         locations.push([x, y, z]);
                     }
                 }
