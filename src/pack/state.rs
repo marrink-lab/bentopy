@@ -10,11 +10,10 @@ use rand::SeedableRng;
 
 use crate::args::Args;
 use crate::config::{Configuration, Mask as ConfigMask, Output, Shape as ConfigShape};
+use crate::mask::{Dimensions, Mask, Position};
 
 pub type CompartmentID = String;
 pub type Size = [f32; 3];
-pub type Dimensions = [u64; 3]; // TODO: Make into usize? Rather awkward in places right now.
-pub type Position = Dimensions;
 pub type Rotation = Mat3;
 pub type Voxels = Mask; // TODO: This should become a bitmap.
 type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
@@ -77,104 +76,6 @@ impl Structure {
     }
 }
 
-// TODO: Bitmap optimization.
-#[derive(Clone)]
-pub struct Mask {
-    dimensions: Dimensions,
-    cells: Box<[bool]>,
-}
-
-impl Mask {
-    fn new(dimensions: Dimensions) -> Self {
-        let [w, h, d] = dimensions.map(|v| v as usize);
-        let cells = vec![false; w * h * d].into_boxed_slice();
-        Self { dimensions, cells }
-    }
-
-    pub const fn dimensions(&self) -> Dimensions {
-        self.dimensions
-    }
-
-    pub const fn dimensions_usize(&self) -> [usize; 3] {
-        let [x, y, z] = self.dimensions;
-        [x as usize, y as usize, z as usize]
-    }
-
-    // TODO: Impl get and get_mut as Deref<Slice>? Would that be nicer?
-    #[inline(always)]
-    fn get(&self, idx: Position) -> Option<&bool> {
-        let [w, h, _d] = self.dimensions_usize();
-        let [x, y, z] = idx.map(|v| v as usize);
-        self.cells.get(x + y * w + z * w * h)
-    }
-
-    #[inline(always)]
-    fn get_mut(&mut self, idx: Position) -> Option<&mut bool> {
-        let [w, h, _d] = self.dimensions_usize();
-        let [x, y, z] = idx.map(|v| v as usize);
-        self.cells.get_mut(x + y * w + z * w * h)
-    }
-
-    /// Return a three-dimensional index into this [`Mask`] from a linear index.
-    ///
-    /// This function makes no guarantees about whether the returned index is actually within the
-    /// `Mask`.
-    #[inline(always)]
-    fn idx(&self, mut i: usize) -> Position {
-        let [w, h, _d] = self.dimensions_usize();
-
-        let x = i % w;
-        i /= w;
-        let y = i % h;
-        let z = i / h;
-
-        [x as u64, y as u64, z as u64]
-    }
-
-    /// Return an [`Iterator`] over all indices where the the cell is equal to `VALUE`.
-    pub fn indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = Position> + '_ {
-        self.linear_indices_where::<VALUE>().map(|i| self.idx(i))
-    }
-
-    /// Return an [`Iterator`] over all linear indices into the internal `cells` where the the cell
-    /// is equal to `VALUE`.
-    pub fn linear_indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = usize> + '_ {
-        self.cells
-            .iter()
-            .enumerate()
-            .filter_map(|(i, &v)| if v == VALUE { Some(i) } else { None })
-    }
-
-    /// Apply some `mask` onto this [`Mask`].
-    ///
-    /// This is essentially an `or-assign` operation between the `self` and the provided `mask`.
-    fn apply_mask(&mut self, mask: &Mask) {
-        assert_eq!(self.dimensions, mask.dimensions);
-        assert_eq!(self.cells.len(), mask.cells.len()); // For good measure, so the compiler gets it.
-        self.cells
-            .iter_mut()
-            .zip(mask.cells.iter())
-            .for_each(|(s, &m)| *s |= m);
-    }
-
-    fn indices_where_into_vec<const VALUE: bool>(&self, locations: &mut Vec<Position>) {
-        let [w, h, d] = self.dimensions();
-        assert_eq!((w * h * d) as usize, self.cells.len());
-        for z in 0..d {
-            for y in 0..h {
-                for x in 0..w {
-                    let lin_idx = x + y * w + z * w * h;
-                    // Safety: We know that our access is in bounds since `w*h*d` is equal to
-                    // `self.cells.len()`.
-                    if unsafe { *self.cells.get_unchecked(lin_idx as usize) } == VALUE {
-                        locations.push([x, y, z]);
-                    }
-                }
-            }
-        }
-    }
-}
-
 impl Mask {
     fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
@@ -203,7 +104,7 @@ impl Mask {
         }
         let cells = cells.into_boxed_slice();
 
-        Self { dimensions, cells }
+        Self::from_cells(dimensions, cells)
     }
 
     fn load_from_path(path: PathBuf) -> io::Result<Self> {
@@ -222,10 +123,7 @@ impl Mask {
         );
         let size = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
         let cells = array.into_vec()?.into_boxed_slice();
-        Ok(Self {
-            dimensions: size,
-            cells,
-        })
+        Ok(Self::from_cells(size, cells))
     }
 }
 
@@ -470,14 +368,8 @@ impl State {
                 segments
                     .iter_mut()
                     .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
-                segments.sort_by_cached_key(|seg| -> usize {
-                    seg.voxels()
-                        .unwrap()
-                        .cells
-                        .iter()
-                        .map(|&v| v as usize)
-                        .sum()
-                });
+                segments
+                    .sort_by_cached_key(|seg| -> usize { seg.voxels().unwrap().count::<true>() });
                 // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                 segments.reverse();
                 eprintln!("Done.");
