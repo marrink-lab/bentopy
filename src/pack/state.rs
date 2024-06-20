@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::{self, BufRead, BufReader};
 use std::path::PathBuf;
 
@@ -223,73 +224,65 @@ pub struct Space {
     pub compartments: Vec<Compartment>,
 
     global_background: Mask,
-    session_background: Option<Mask>,
+    session_background: Mask,
+    previous_compartments: Option<HashSet<CompartmentID>>,
 }
 
 impl Space {
-    pub fn stamp(&mut self, voxels: &Mask, location: Position) {
-        let location = U64Vec3::from_array(location);
-        for idx in voxels
-            .indices_where::<true>()
-            .map(|idx| U64Vec3::from_array(idx) + location)
-        {
-            *self
-                .global_background
-                .get_mut(idx.to_array())
-                .expect("cannot stamp outside of bounds") = true;
-            *self
-                .session_background
-                .as_mut()
-                .expect("when stamping, a session background must exist")
-                .get_mut(idx.to_array())
-                .expect("cannot stamp outside of bounds") = true;
-        }
-    }
-
     // TODO: enter_session and exit_session are rather good candidates for a typestate pattern.
-    pub fn enter_session(&mut self, compartment_ids: &[CompartmentID]) {
-        assert!(
-            self.session_background.is_none(),
-            "hey, let's not enter a session when one is still ongoing"
-        );
+    pub fn enter_session(
+        &mut self,
+        compartment_ids: impl IntoIterator<Item = CompartmentID>,
+    ) -> Session {
+        let compartment_ids = HashSet::from_iter(compartment_ids);
+        if self
+            .previous_compartments
+            .as_ref()
+            .is_some_and(|prev| prev == &compartment_ids)
+        {
+            // Leave the session background alone. It will stay exactly the same, since it was
+            // already set up for this set of compartments.
+            eprintln!("Reusing the previous session background.");
+            return Session { inner: self };
+        }
 
         // Clone the global background, which has all structures stamped onto it.
-        self.session_background
-            .replace(self.global_background.clone());
-        let session_background = self.session_background.as_mut().unwrap();
+        self.session_background = self.global_background.clone();
 
         for compartment in self
             .compartments
             .iter()
             .filter(|comp| compartment_ids.contains(&comp.id))
         {
-            session_background.apply_mask(&compartment.mask)
+            self.session_background.apply_mask(&compartment.mask)
         }
+        self.previous_compartments = Some(compartment_ids);
+
+        Session { inner: self }
+    }
+}
+
+pub struct Session<'s> {
+    inner: &'s mut Space,
+}
+
+impl Session<'_> {
+    pub fn resolution(&self) -> f32 {
+        self.inner.resolution
     }
 
-    pub fn exit_session(&mut self) {
-        assert!(
-            self.session_background.is_some(),
-            "hey, let's not exit a session when there is not one going on"
-        );
-
-        // Forget the session background.
-        self.session_background = None;
+    pub fn dimensions(&self) -> Dimensions {
+        self.inner.dimensions
     }
 
     pub fn get_free_locations(&self, locations: &mut Vec<Position>) {
-        let b = self
-            .session_background
-            .as_ref()
-            .expect("the session background must exist");
-
         let mut lin_idx = 0;
-        let [w, h, d] = b.dimensions();
+        let [w, h, d] = self.inner.session_background.dimensions();
         for z in 0..d {
             for y in 0..h {
                 for x in 0..w {
                     // TODO: Profile to see if this unchecked get can benefit us here.
-                    if !b.cells[lin_idx] {
+                    if !self.inner.session_background.cells[lin_idx] {
                         locations.push([x, y, z]);
                     }
                     lin_idx += 1;
@@ -306,12 +299,8 @@ impl Space {
         let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
         let location = U64Vec3::from_array(location);
         let occupied_indices = occupied_indices.map(|p| p + location);
-        let session_background = self
-            .session_background
-            .as_ref()
-            .expect("the session background must exist");
         for idx in occupied_indices.map(|p| p.to_array()) {
-            match session_background.get(idx) {
+            match self.inner.session_background.get(idx) {
                 Some(false) => continue,    // Free. Moving on to the next one.
                 Some(true) => return false, // Already occupied!
                 None => {
@@ -324,6 +313,35 @@ impl Space {
         }
 
         return true;
+    }
+
+    pub fn stamp(&mut self, voxels: &Mask, location: Position) {
+        let location = U64Vec3::from_array(location);
+        for idx in voxels
+            .indices_where::<true>()
+            .map(|idx| U64Vec3::from_array(idx) + location)
+        {
+            *self
+                .inner
+                .global_background
+                .get_mut(idx.to_array())
+                .expect("cannot stamp outside of bounds") = true;
+            *self
+                .inner
+                .session_background
+                .get_mut(idx.to_array())
+                .expect("cannot stamp outside of bounds") = true;
+        }
+    }
+
+    pub fn exit_session(&mut self) {
+        // Not really doing anything here anymore.
+    }
+}
+
+impl<'s> Drop for Session<'s> {
+    fn drop(&mut self) {
+        self.exit_session();
     }
 }
 
@@ -419,7 +437,8 @@ impl State {
                 .collect::<io::Result<_>>()?,
 
             global_background: Mask::new(dimensions),
-            session_background: None,
+            session_background: Mask::new(dimensions),
+            previous_compartments: None,
         };
 
         let bead_radius = args.bead_radius;
