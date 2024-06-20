@@ -44,7 +44,8 @@ impl Summary {
             target_tot += target;
             hits_tot += hits;
         }
-        println!( "    \t          \t{nrots_tot:>5}\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}")
+        let ok = if hits_tot == target_tot { " " } else { "<" };
+        println!( "    \t          \t{nrots_tot:>5}\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}")
     }
 }
 
