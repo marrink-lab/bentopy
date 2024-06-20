@@ -258,7 +258,6 @@ impl Space {
         {
             // Leave the session background alone. It will stay exactly the same, since it was
             // already set up for this set of compartments.
-            eprintln!("Reusing the previous session background.");
             return Session { inner: self };
         }
 
