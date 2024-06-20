@@ -38,7 +38,7 @@ impl Summary {
         for (i, (name, nrots, target, hits, duration)) in self.entries.iter().enumerate() {
             let ok = if hits == target { " " } else { "<" };
             println!(
-                "{i:>4}\t{name:>10}\t{nrots:>5}\t{target:>6}\t{hits:>6}\t{duration:8.2}\t{ok}"
+                "{i:>4}\t{name:<10}\t{nrots:>5}\t{target:>6}\t{hits:>6}\t{duration:8.2}\t{ok}"
             );
             nrots_tot += nrots;
             target_tot += target;
