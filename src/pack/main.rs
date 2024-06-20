@@ -78,7 +78,7 @@ fn main() -> io::Result<()> {
         // TODO: Putting it all into a Vec seems dumb and a waste. Maybe we can select a random
         // subset if the number of locations is very large?
         let shuffle_guess = segment.number;
-        let mut locations = state.space.get_free_locations().collect::<Vec<_>>();
+        let mut locations = state.space.get_free_locations();
         let (mut shuffled, mut locations) =
             locations.partial_shuffle(&mut state.rng, shuffle_guess);
         let mut cursor = 0;
