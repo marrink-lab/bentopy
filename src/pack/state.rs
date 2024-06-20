@@ -277,11 +277,28 @@ impl Space {
         self.session_background = None;
     }
 
-    pub fn get_free_locations(&self) -> impl Iterator<Item = Position> + '_ {
-        self.session_background
+    pub fn get_free_locations(&self) -> Vec<Position> {
+        let b = self
+            .session_background
             .as_ref()
-            .expect("the session background must exist")
-            .indices_where::<false>()
+            .expect("the session background must exist");
+
+        let mut lin_idx = 0;
+        let mut locations = Vec::new();
+        let [w, h, d] = b.dimensions();
+        for z in 0..d {
+            for y in 0..h {
+                for x in 0..w {
+                    // TODO: Profile to see if this unchecked get can benefit us here.
+                    if !b.cells[lin_idx] {
+                        locations.push([x, y, z]);
+                    }
+                    lin_idx += 1;
+                }
+            }
+        }
+
+        locations
     }
 
     /// Returns `true` if no collisions are encountered between the [`Space`] and the provided
