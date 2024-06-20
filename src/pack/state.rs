@@ -277,14 +277,13 @@ impl Space {
         self.session_background = None;
     }
 
-    pub fn get_free_locations(&self) -> Vec<Position> {
+    pub fn get_free_locations(&self, locations: &mut Vec<Position>) {
         let b = self
             .session_background
             .as_ref()
             .expect("the session background must exist");
 
         let mut lin_idx = 0;
-        let mut locations = Vec::new();
         let [w, h, d] = b.dimensions();
         for z in 0..d {
             for y in 0..h {
@@ -297,8 +296,6 @@ impl Space {
                 }
             }
         }
-
-        locations
     }
 
     /// Returns `true` if no collisions are encountered between the [`Space`] and the provided

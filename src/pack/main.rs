@@ -14,6 +14,9 @@ mod config;
 mod placement;
 mod state;
 
+/// Threshold of spare capacity at which the `locations` [`Vec`] ought to be shrunk.
+const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<state::Position>();
+
 struct Summary {
     entries: Vec<(String, usize, usize, usize, f64)>,
 }
@@ -56,6 +59,7 @@ fn main() -> io::Result<()> {
     let args = Args::parse();
     let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
     let mut state = State::new(args, config)?;
+    let mut locations = Vec::new();
 
     // Packing.
     let mut placements = Vec::new();
@@ -76,10 +80,13 @@ fn main() -> io::Result<()> {
         state.space.enter_session(&segment.compartments);
 
         // Get the free locations.
-        // TODO: Putting it all into a Vec seems dumb and a waste. Maybe we can select a random
-        // subset if the number of locations is very large?
+        locations.clear();
+        state.space.get_free_locations(&mut locations);
+        if locations.spare_capacity_mut().len() > SHRINK_THRESHOLD {
+            // Shrink the `locations` if the spare capacity is getting out of hand.
+            locations.shrink_to_fit();
+        }
         let shuffle_guess = segment.target;
-        let mut locations = state.space.get_free_locations();
         let (mut shuffled, mut locations) =
             locations.partial_shuffle(&mut state.rng, shuffle_guess);
         let mut cursor = 0;
