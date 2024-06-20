@@ -70,6 +70,7 @@ fn main() -> io::Result<()> {
     for (i, segment) in state.segments.iter_mut().enumerate() {
         eprintln!(
             "({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.",
+            i = i + 1,
             target = segment.target,
             name = segment.name
         );
