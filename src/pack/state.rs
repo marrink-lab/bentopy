@@ -156,6 +156,22 @@ impl Mask {
             .zip(mask.cells.iter())
             .for_each(|(s, &m)| *s |= m);
     }
+
+    fn indices_where_into_vec<const VALUE: bool>(&self, locations: &mut Vec<Position>) {
+        let mut lin_idx = 0;
+        let [w, h, d] = self.dimensions();
+        for z in 0..d {
+            for y in 0..h {
+                for x in 0..w {
+                    // TODO: Profile to see if this unchecked get can benefit us here.
+                    if self.cells[lin_idx] == VALUE {
+                        locations.push([x, y, z]);
+                    }
+                    lin_idx += 1;
+                }
+            }
+        }
+    }
 }
 
 impl Mask {
@@ -276,19 +292,9 @@ impl Session<'_> {
     }
 
     pub fn get_free_locations(&self, locations: &mut Vec<Position>) {
-        let mut lin_idx = 0;
-        let [w, h, d] = self.inner.session_background.dimensions();
-        for z in 0..d {
-            for y in 0..h {
-                for x in 0..w {
-                    // TODO: Profile to see if this unchecked get can benefit us here.
-                    if !self.inner.session_background.cells[lin_idx] {
-                        locations.push([x, y, z]);
-                    }
-                    lin_idx += 1;
-                }
-            }
-        }
+        self.inner
+            .session_background
+            .indices_where_into_vec::<false>(locations)
     }
 
     /// Returns `true` if no collisions are encountered between the [`Space`] and the provided
