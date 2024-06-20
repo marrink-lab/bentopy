@@ -158,16 +158,15 @@ impl Mask {
     }
 
     fn indices_where_into_vec<const VALUE: bool>(&self, locations: &mut Vec<Position>) {
-        let mut lin_idx = 0;
         let [w, h, d] = self.dimensions();
         for z in 0..d {
             for y in 0..h {
                 for x in 0..w {
                     // TODO: Profile to see if this unchecked get can benefit us here.
-                    if self.cells[lin_idx] == VALUE {
+                    let lin_idx = x + y * w + z * w * h;
+                    if self.cells[lin_idx as usize] == VALUE {
                         locations.push([x, y, z]);
                     }
-                    lin_idx += 1;
                 }
             }
         }
