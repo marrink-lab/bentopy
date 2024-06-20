@@ -76,12 +76,17 @@ fn main() -> io::Result<()> {
 
         // Prepare the session.
         let start = std::time::Instant::now();
+        // FIXME: This cloned stuff does not sit right with me.
+        let mut session = state
+            .space
+            .enter_session(segment.compartments.iter().cloned());
+
+        // Set up the placement record for this segment.
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
-        state.space.enter_session(&segment.compartments);
 
         // Get the free locations.
         locations.clear();
-        state.space.get_free_locations(&mut locations);
+        session.get_free_locations(&mut locations);
         if locations.spare_capacity_mut().len() > SHRINK_THRESHOLD {
             // Shrink the `locations` if the spare capacity is getting out of hand.
             locations.shrink_to_fit();
@@ -98,13 +103,13 @@ fn main() -> io::Result<()> {
             let voxels = match segment.voxels() {
                 Some(voxels) => voxels,
                 None => {
-                    segment.voxelize(state.space.resolution, state.bead_radius);
+                    segment.voxelize(session.resolution(), state.bead_radius);
                     segment.voxels().unwrap()
                 }
             };
 
             let [maxx, maxy, maxz] = {
-                let [bx, by, bz] = state.space.dimensions;
+                let [bx, by, bz] = session.dimensions();
                 let [sx, sy, sz] = voxels.dimensions();
                 [bx - sx, by - sy, bz - sz]
             };
@@ -138,11 +143,11 @@ fn main() -> io::Result<()> {
             };
 
             // Try it.
-            if state.space.check_collisions(voxels, location) {
+            if session.check_collisions(voxels, location) {
                 // We found a good spot. Stomp on those stamps!
-                state.space.stamp(voxels, location);
+                session.stamp(voxels, location);
                 // Transform the location to nm.
-                batch_positions.push(location.map(|v| v as f32 * state.space.resolution));
+                batch_positions.push(location.map(|v| v as f32 * session.resolution()));
 
                 // Let's write out the batch and rotate the segment again.
                 // TODO: Perhaps we'll need a little transpose here.
@@ -156,7 +161,6 @@ fn main() -> io::Result<()> {
                 hits += 1;
             }
         }
-        state.space.exit_session();
         let end = std::time::Instant::now();
         let duration = end.duration_since(start).as_secs_f64();
 
