@@ -11,11 +11,12 @@ use state::State;
 
 mod args;
 mod config;
+mod mask;
 mod placement;
 mod state;
 
 /// Threshold of spare capacity at which the `locations` [`Vec`] ought to be shrunk.
-const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<state::Position>();
+const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<mask::Position>();
 
 struct Summary {
     entries: Vec<(String, usize, usize, usize, f64)>,
