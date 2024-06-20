@@ -66,7 +66,7 @@ fn main() -> io::Result<()> {
     for (i, segment) in state.segments.iter_mut().enumerate() {
         eprintln!(
             "({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.",
-            target = segment.number,
+            target = segment.target,
             name = segment.name
         );
 
@@ -78,7 +78,7 @@ fn main() -> io::Result<()> {
         // Get the free locations.
         // TODO: Putting it all into a Vec seems dumb and a waste. Maybe we can select a random
         // subset if the number of locations is very large?
-        let shuffle_guess = segment.number;
+        let shuffle_guess = segment.target;
         let mut locations = state.space.get_free_locations();
         let (mut shuffled, mut locations) =
             locations.partial_shuffle(&mut state.rng, shuffle_guess);
@@ -86,7 +86,7 @@ fn main() -> io::Result<()> {
 
         let mut hits = 0;
         let mut batch_positions = Vec::new();
-        'placement: while hits < segment.number {
+        'placement: while hits < segment.target {
             // TODO: This can become more efficient for successive placement failures.
             let voxels = match segment.voxels() {
                 Some(voxels) => voxels,
@@ -162,7 +162,7 @@ fn main() -> io::Result<()> {
         summary.push(
             segment.name.clone(),
             placement.n_batches(),
-            segment.number,
+            segment.target,
             hits,
             duration,
         );

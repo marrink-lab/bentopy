@@ -332,7 +332,7 @@ impl Space {
 
 pub struct Segment {
     pub name: String,
-    pub number: usize,
+    pub target: usize,
     pub compartments: Vec<CompartmentID>,
     pub path: PathBuf,
     structure: Structure,
@@ -434,7 +434,7 @@ impl State {
                     let structure = load_molecule(&seg.path)?;
                     Ok(Segment {
                         name: seg.name,
-                        number: seg.number,
+                        target: seg.number,
                         compartments: seg.compartments,
                         path: seg.path,
                         structure,
