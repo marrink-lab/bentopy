@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use arraystring::typenum::U5;
 use arraystring::ArrayString;
 use eightyseven::reader::{ParseList, ReadGro};
+use eightyseven::writer::format_atom_line;
 use glam::{Mat3, U64Vec3, Vec3};
 use rand::SeedableRng;
 
@@ -15,7 +16,7 @@ use crate::mask::{Dimensions, Mask, Position};
 pub type CompartmentID = String;
 pub type Size = [f32; 3];
 pub type Rotation = Mat3;
-pub type Voxels = Mask; // TODO: This should become a bitmap.
+pub type Voxels = Mask;
 type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
 type Atom = Vec3;
 
@@ -76,6 +77,29 @@ impl Structure {
     }
 }
 
+use eightyseven::writer::WriteGro;
+impl<'atoms> WriteGro<'atoms, Atom> for Structure {
+    fn title(&self) -> String {
+        "debug".to_string()
+    }
+
+    fn natoms(&self) -> usize {
+        self.atoms.len()
+    }
+
+    fn atoms(&'atoms self) -> impl Iterator<Item = &'atoms Atom> {
+        self.atoms.iter()
+    }
+
+    fn boxvecs(&self) -> String {
+        "400.0 400.0 400.0".to_string()
+    }
+
+    fn format_atom_line(atom: &Atom) -> String {
+        format_atom_line(1, "DUMMY", "DUMMY", 2, atom.to_array(), None)
+    }
+}
+
 impl Mask {
     fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
@@ -104,7 +128,7 @@ impl Mask {
         }
         let cells = cells.into_boxed_slice();
 
-        Self::from_cells(dimensions, cells)
+        Self::from_cells(dimensions, &cells)
     }
 
     fn load_from_path(path: PathBuf) -> io::Result<Self> {
@@ -126,7 +150,7 @@ impl Mask {
         cells
             .iter_mut()
             .for_each(|cell: &mut bool| *cell = !(*cell));
-        Ok(Self::from_cells(size, cells))
+        Ok(Self::from_cells(size, &cells))
     }
 }
 
@@ -193,9 +217,7 @@ impl Session<'_> {
     }
 
     pub fn get_free_locations(&self, locations: &mut Vec<Position>) {
-        self.inner
-            .session_background
-            .indices_where_into_vec::<false>(locations)
+        locations.extend(self.inner.session_background.indices_where::<false>())
     }
 
     /// Returns `true` if no collisions are encountered between the [`Space`] and the provided
@@ -205,8 +227,8 @@ impl Session<'_> {
     pub fn check_collisions(&self, voxels: &Voxels, location: Position) -> bool {
         let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
         let location = U64Vec3::from_array(location);
-        let occupied_indices = occupied_indices.map(|p| p + location);
-        for idx in occupied_indices.map(|p| p.to_array()) {
+
+        for idx in occupied_indices.map(|p| (p + location).to_array()) {
             match self.inner.session_background.get(idx) {
                 Some(false) => continue,    // Free. Moving on to the next one.
                 Some(true) => return false, // Already occupied!
@@ -228,16 +250,8 @@ impl Session<'_> {
             .indices_where::<true>()
             .map(|idx| U64Vec3::from_array(idx) + location)
         {
-            *self
-                .inner
-                .global_background
-                .get_mut(idx.to_array())
-                .expect("cannot stamp outside of bounds") = true;
-            *self
-                .inner
-                .session_background
-                .get_mut(idx.to_array())
-                .expect("cannot stamp outside of bounds") = true;
+            self.inner.global_background.set(idx.to_array(), true);
+            self.inner.session_background.set(idx.to_array(), true);
         }
     }
 
@@ -282,28 +296,6 @@ impl Segment {
     /// If available, return a reference to the voxels that represent this [`Segment`].
     pub fn voxels(&self) -> Option<&Voxels> {
         self.voxels.as_ref()
-    }
-
-    /// If available, take the voxels that represent this [`Segment`].
-    pub fn take_voxels(&mut self) -> Option<Voxels> {
-        self.voxels.take()
-    }
-
-    // TODO: This is obsolete unless we move on to an internal mutability system.
-    /// Return a reference to the voxels that represent this [`Segment`].
-    ///
-    /// If a voxelization already exists, it is returned. Otherwise, a new voxelization is
-    /// determined and returned.
-    ///
-    /// Note that this function operates under the assumption that a potential previous
-    /// voxelization was produced with the same resolution and radius. The responsibility for
-    /// upholding this assumption is with the caller.
-    pub fn get_voxels(&mut self, resolution: f32, radius: f32) -> &Voxels {
-        if self.voxels().is_none() {
-            self.voxelize(resolution, radius);
-        }
-
-        self.voxels().unwrap()
     }
 }
 
@@ -511,9 +503,7 @@ fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: 
         .map(|v| v + 1);
     let mut voxels = Voxels::new(voxels_shape);
     for idx in filled_indices {
-        // NOTE: f32 as usize rounds to 0 and gives us 0 for negative values. We want that.
-        // FIXME: Ponder whether we can safely unwrap here.
-        *voxels.get_mut(idx.to_array()).unwrap() = true;
+        voxels.set(idx.to_array(), true);
     }
 
     voxels
