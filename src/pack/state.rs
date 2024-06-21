@@ -122,7 +122,10 @@ impl Mask {
             "a voxel map must have three dimensions"
         );
         let size = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
-        let cells = array.into_vec()?.into_boxed_slice();
+        let mut cells = array.into_vec()?.into_boxed_slice();
+        cells
+            .iter_mut()
+            .for_each(|cell: &mut bool| *cell = !(*cell));
         Ok(Self::from_cells(size, cells))
     }
 }
