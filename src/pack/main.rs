@@ -15,7 +15,7 @@ mod mask;
 mod placement;
 mod state;
 
-type Location = mask::Position;
+type Location = usize;
 
 /// Threshold of spare capacity at which the `locations` [`Vec`] ought to be shrunk.
 const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<Location>();
@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
     let args = Args::parse();
     let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
     let mut state = State::new(args, config)?;
-    let mut locations = Vec::new();
+    let mut locations: Vec<Location> = Vec::new();
 
     // Packing.
     let mut placements = Vec::new();
@@ -119,8 +119,8 @@ fn main() -> io::Result<()> {
             };
 
             // Pick a random location.
-            let &location = loop {
-                let candidate = match shuffled.get(cursor) {
+            let position = loop {
+                let &candidate = match shuffled.get(cursor) {
                     // Get it from the shuffled set.
                     Some(location) => location,
                     // Or, shuffle more positions if available.
@@ -140,18 +140,19 @@ fn main() -> io::Result<()> {
                     }
                 };
                 cursor += 1;
-                let &[x, y, z] = candidate;
+                let position = session.position(candidate).unwrap();
+                let [x, y, z] = position;
                 if x < maxx && y < maxy && z < maxz {
-                    break candidate;
+                    break position;
                 }
             };
 
             // Try it.
-            if session.check_collisions(voxels, location) {
+            if session.check_collisions(voxels, position) {
                 // We found a good spot. Stomp on those stamps!
-                session.stamp(voxels, location);
+                session.stamp(voxels, position);
                 // Transform the location to nm.
-                batch_positions.push(location.map(|v| v as f32 * session.resolution()));
+                batch_positions.push(position.map(|v| v as f32 * session.resolution()));
 
                 // Let's write out the batch and rotate the segment again.
                 // TODO: Perhaps we'll need a little transpose here.
