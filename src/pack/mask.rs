@@ -13,6 +13,10 @@ pub struct Mask {
 impl Mask {
     pub fn new(dimensions: Dimensions) -> Self {
         let dimensions = dimensions.map(|v| v as usize);
+        assert!(
+            dimensions.iter().all(|&v| v > 0),
+            "a mask must have non-zero dimensions"
+        );
         let n: usize = dimensions.iter().product();
         let n_backings = n.div_ceil(BACKING_BITS);
         Self {
@@ -145,11 +149,9 @@ impl Mask {
         debug_assert!(lin_idx < self.n_cells());
         let (backing_idx, bit_idx) = self.backing_idx(lin_idx);
         if VALUE {
-            let bit = 1 << bit_idx;
-            self.backings[backing_idx] |= bit;
+            self.backings[backing_idx] |= 1 << bit_idx;
         } else {
-            let backing = &mut self.backings[backing_idx];
-            *backing &= !(1 << bit_idx);
+            self.backings[backing_idx] &= !(1 << bit_idx);
         }
     }
 
@@ -220,5 +222,333 @@ impl Mask {
             .iter_mut()
             .zip(mask.backings.iter())
             .for_each(|(s, &m)| *s |= m);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create() {
+        let _ = Mask::new([10, 20, 30]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn create_zero() {
+        let _ = Mask::new([0, 0, 0]);
+    }
+
+    #[test]
+    fn from_cells() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let _ = Mask::from_cells([3, 3, 3], &cells);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_cells_under() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true,
+        ];
+        let _ = Mask::from_cells([3, 3, 3], &cells);
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_cells_over() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true, true, true, false, true,
+        ];
+        let _ = Mask::from_cells([3, 3, 3], &cells);
+    }
+
+    #[test]
+    fn dimensions() {
+        let dimensions = [5172, 1312, 161];
+        let mask = Mask::new(dimensions);
+        assert_eq!(mask.dimensions(), dimensions);
+    }
+
+    #[test]
+    fn count() {
+        let mut mask = Mask::new([172, 1312, 161]);
+
+        mask.set([123, 456, 78], true);
+        mask.set([123, 784, 56], true);
+        mask.set([78, 1236, 45], true);
+
+        assert_eq!(mask.count::<true>(), 3);
+        assert_eq!(mask.count::<false>(), mask.n_cells() - mask.count::<true>());
+
+        mask.set([78, 1236, 45], false);
+        assert_eq!(mask.count::<true>(), 2);
+        assert_eq!(mask.count::<false>(), mask.n_cells() - mask.count::<true>());
+    }
+
+    #[test]
+    fn n_cells() {
+        let mask = Mask::new([123, 456, 789]);
+        assert_eq!(mask.n_cells(), 123 * 456 * 789);
+    }
+
+    #[test]
+    fn n_backings() {
+        let mask = Mask::new([123, 456, 789]);
+        assert_eq!(mask.n_backings(), mask.n_cells().div_ceil(BACKING_BITS));
+    }
+
+    #[test]
+    fn backing_idx() {
+        let mask = Mask::new([123, 456, 789]);
+        assert_eq!(mask.backing_idx(0), (0, 0));
+        assert_eq!(mask.backing_idx(1), (0, 1));
+        assert_eq!(mask.backing_idx(2), (0, 2));
+        assert_eq!(mask.backing_idx(8), (8 / BACKING_BITS, 8 % BACKING_BITS));
+    }
+
+    #[test]
+    fn contains() {
+        let mask = Mask::new([123, 456, 789]);
+        assert!(!mask.contains([123, 456, 789]));
+        assert!(!mask.contains([122, 456, 789]));
+        assert!(!mask.contains([122, 455, 789]));
+        assert!(mask.contains([122, 455, 788]));
+        assert!(mask.contains([0, 0, 0]));
+        assert!(!mask.contains([12345, 0, 0]));
+    }
+
+    #[test]
+    fn spatial_idx() {
+        let mask = Mask::new([100, 100, 100]);
+        assert_eq!(mask.spatial_idx(0), Some([0, 0, 0]));
+        assert_eq!(mask.spatial_idx(99), Some([99, 0, 0]));
+        assert_eq!(mask.spatial_idx(100), Some([0, 1, 0]));
+        assert_eq!(mask.spatial_idx(101), Some([1, 1, 0]));
+        assert_eq!(mask.spatial_idx(1000000 - 1), Some([99, 99, 99]));
+        assert!(mask.spatial_idx(1000000).is_none());
+        assert!(mask.spatial_idx(12345678).is_none());
+    }
+
+    #[test]
+    fn linear_idx() {
+        let mask = Mask::new([100, 100, 100]);
+        assert_eq!(mask.linear_idx([0, 0, 0]), 0);
+        assert_eq!(mask.linear_idx([99, 0, 0]), 99);
+        assert_eq!(mask.linear_idx([0, 1, 0]), 100);
+        assert_eq!(mask.linear_idx([1, 1, 0]), 101);
+        assert_eq!(mask.linear_idx([99, 99, 99]), 1000000 - 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn linear_idx_panic() {
+        let mask = Mask::new([100, 100, 100]);
+        assert_eq!(mask.linear_idx([100, 100, 100]), 1000000); // FIXME: Reconsider this behavior.
+    }
+
+    #[test]
+    fn query_linear_unchecked() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mask = Mask::from_cells([3, 3, 3], &cells);
+
+        assert!(mask.query_linear_unchecked::<false>(0));
+        assert!(mask.query_linear_unchecked::<true>(13));
+        assert!(mask.query_linear_unchecked::<false>(7));
+        assert!(mask.query_linear_unchecked::<true>(12));
+    }
+
+    #[test]
+    fn set_linear_unchecked() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mut mask = Mask::from_cells([3, 3, 3], &cells);
+
+        // Was false, set false.
+        assert!(mask.query_linear_unchecked::<false>(0));
+        mask.set_linear_unchecked::<false>(0);
+        assert!(mask.query_linear_unchecked::<false>(0));
+
+        // Was true, set false.
+        assert!(mask.query_linear_unchecked::<true>(13));
+        mask.set_linear_unchecked::<false>(13);
+        assert!(mask.query_linear_unchecked::<false>(13));
+
+        // Was false, set true.
+        assert!(mask.query_linear_unchecked::<false>(8));
+        mask.set_linear_unchecked::<true>(8);
+        assert!(mask.query_linear_unchecked::<true>(8));
+
+        // Was true, set true.
+        assert!(mask.query_linear_unchecked::<true>(12));
+        mask.set_linear_unchecked::<true>(12);
+        assert!(mask.query_linear_unchecked::<true>(12));
+
+        // Was true, set false.
+        assert!(mask.query_linear_unchecked::<true>(17));
+        mask.set_linear_unchecked::<false>(17);
+        assert!(mask.query_linear_unchecked::<false>(17));
+    }
+
+    #[test]
+    fn get() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mut mask = Mask::from_cells([3, 3, 3], &cells);
+
+        assert_eq!(mask.get([0, 0, 0]), Some(false));
+        assert_eq!(mask.get([1, 1, 1]), Some(true));
+        assert_eq!(mask.get([2, 2, 2]), Some(true));
+        assert_eq!(mask.get([2, 2, 3]), None);
+        assert_eq!(mask.get([3, 3, 3]), None);
+        assert_eq!(mask.get([2, 4, 2]), None);
+
+        mask.set([1, 1, 1], true);
+        assert_eq!(mask.get([1, 1, 1]), Some(true));
+    }
+
+    #[test]
+    fn set() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mut mask = Mask::from_cells([3, 3, 3], &cells);
+
+        // Was false, set false.
+        assert_eq!(mask.get([0, 0, 0]), Some(false));
+        mask.set([0, 0, 0], false);
+        assert_eq!(mask.get([0, 0, 0]), Some(false));
+
+        // Was true, set true.
+        assert_eq!(mask.get([0, 1, 0]), Some(true));
+        mask.set([0, 1, 0], true);
+        assert_eq!(mask.get([0, 1, 0]), Some(true));
+
+        // Was false, set true.
+        assert_eq!(mask.get([1, 2, 0]), Some(false));
+        mask.set([1, 2, 0], true);
+        assert_eq!(mask.get([1, 2, 0]), Some(true));
+
+        // Was true, set false.
+        assert_eq!(mask.get([2, 2, 2]), Some(true));
+        mask.set([2, 2, 2], false);
+        assert_eq!(mask.get([2, 2, 2]), Some(false));
+    }
+
+    #[test]
+    fn indices_where() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mask = Mask::from_cells([3, 3, 3], &cells);
+
+        let where_false = [
+            [0, 0, 0],
+            [1, 0, 0],
+            [2, 0, 0],
+            [0, 2, 0],
+            [1, 2, 0],
+            [2, 2, 0],
+            [0, 0, 1],
+            [2, 0, 1],
+            [0, 2, 1],
+            [1, 2, 1],
+            [0, 0, 2],
+            [1, 0, 2],
+            [2, 0, 2],
+        ];
+
+        assert_eq!(
+            mask.indices_where::<false>().collect::<Vec<_>>(),
+            where_false
+        );
+
+        let where_true = [
+            [0, 1, 0],
+            [1, 1, 0],
+            [2, 1, 0],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+            [2, 1, 1],
+            [2, 2, 1],
+            [0, 1, 2],
+            [1, 1, 2],
+            [2, 1, 2],
+            [0, 2, 2],
+            [1, 2, 2],
+            [2, 2, 2],
+        ];
+
+        assert_eq!(mask.indices_where::<true>().collect::<Vec<_>>(), where_true);
+    }
+
+    #[test]
+    fn linear_indices_where() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mask = Mask::from_cells([3, 3, 3], &cells);
+
+        let where_false = [0, 1, 2, 6, 7, 8, 9, 11, 15, 16, 18, 19, 20];
+
+        assert_eq!(
+            mask.linear_indices_where::<false>().collect::<Vec<_>>(),
+            where_false
+        );
+
+        let where_true = [3, 4, 5, 10, 12, 13, 14, 17, 21, 22, 23, 24, 25, 26];
+
+        assert_eq!(
+            mask.linear_indices_where::<true>().collect::<Vec<_>>(),
+            where_true
+        );
+    }
+
+    #[test]
+    fn apply_mask() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mut base = Mask::from_cells([3, 3, 3], &cells);
+        assert!(base.query_linear_unchecked::<false>(0));
+        assert!(base.query_linear_unchecked::<false>(1));
+
+        let mut mask = base.clone();
+        mask.set([1, 0, 0], true);
+        assert!(mask.query_linear_unchecked::<false>(0));
+        assert!(mask.query_linear_unchecked::<true>(1));
+
+        // Mask the base.
+        base.apply_mask(&mask);
+        // And now base should have that same bit set and be identical aside from that.
+        assert!(base.query_linear_unchecked::<false>(0));
+        assert!(base.query_linear_unchecked::<true>(1));
     }
 }
