@@ -15,8 +15,10 @@ mod mask;
 mod placement;
 mod state;
 
+type Location = mask::Position;
+
 /// Threshold of spare capacity at which the `locations` [`Vec`] ought to be shrunk.
-const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<mask::Position>();
+const SHRINK_THRESHOLD: usize = (100 * 1024_usize.pow(2)) / std::mem::size_of::<Location>();
 
 struct Summary {
     entries: Vec<(String, usize, usize, usize, f64)>,
