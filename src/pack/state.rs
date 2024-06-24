@@ -216,8 +216,12 @@ impl Session<'_> {
         self.inner.dimensions
     }
 
-    pub fn get_free_locations(&self, locations: &mut Vec<Position>) {
-        locations.extend(self.inner.session_background.indices_where::<false>())
+    pub fn get_free_locations(&self, locations: &mut Vec<crate::Location>) {
+        locations.extend(
+            self.inner
+                .session_background
+                .linear_indices_where::<false>(),
+        )
     }
 
     /// Returns `true` if no collisions are encountered between the [`Space`] and the provided
@@ -257,6 +261,10 @@ impl Session<'_> {
 
     pub fn exit_session(&mut self) {
         // Not really doing anything here anymore.
+    }
+
+    pub const fn position(&self, location: crate::Location) -> Option<Position> {
+        self.inner.session_background.spatial_idx(location)
     }
 }
 

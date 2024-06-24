@@ -91,6 +91,21 @@ impl Mask {
         x < w && y < h && z < d
     }
 
+    pub const fn spatial_idx(&self, mut lin_idx: usize) -> Option<Position> {
+        if lin_idx >= self.n_cells() {
+            return None;
+        }
+
+        let [w, h, _] = self.dimensions;
+        let x = lin_idx % w;
+        lin_idx /= w;
+        let y = lin_idx % h;
+        lin_idx /= h;
+        let z = lin_idx;
+
+        Some([x as u64, y as u64, z as u64])
+    }
+
     const fn linear_idx(&self, idx: Position) -> usize {
         let [x, y, z] = idx;
         let [w, h, _] = self.dimensions;
@@ -161,6 +176,11 @@ impl Mask {
         } else {
             self.set_linear_unchecked::<false>(lin_idx)
         }
+    }
+
+    /// Return an [`Iterator`] over all linear indices where the cell is equal to `VALUE`.
+    pub fn linear_indices_where<const VALUE: bool>(&self) -> impl Iterator<Item = usize> + '_ {
+        (0..self.n_cells()).filter(|&lin_idx| self.query_linear_unchecked::<VALUE>(lin_idx))
     }
 
     /// Return an [`Iterator`] over all indices where the cell is equal to `VALUE`.
