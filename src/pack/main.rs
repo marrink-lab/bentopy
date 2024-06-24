@@ -36,8 +36,8 @@ impl Summary {
     }
 
     fn present(&self, packing_duration: f64) {
-        println!("  idx \tname      \tnrots\ttarget\tplaced\ttime (s)\tremark");
-        println!("  ----\t----------\t-----\t------\t------\t--------\t------");
+        println!("idx \tname      \tnrots\ttarget\tplaced\ttime (s)\tremark");
+        println!("----\t----------\t-----\t------\t------\t--------\t------");
         let mut nrots_tot = 0;
         let mut target_tot = 0;
         let mut hits_tot = 0;
