@@ -168,6 +168,9 @@ fn main() -> io::Result<()> {
         .as_secs_f64();
     eprintln!("Packing process took {packing_duration:.3} s.");
 
+    // Drop this memory hog for good measure.
+    drop(locations);
+
     // Output.
     let placement_list_path = format!(
         "{}_placements.json",
