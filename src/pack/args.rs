@@ -17,10 +17,6 @@ pub struct Args {
     #[arg(long)]
     pub seed: Option<u64>,
 
-    /// Set the minimum number of random rotations per segment kind.",
-    #[arg(long, default_value_t = 10)]
-    pub rotations: usize,
-
     /// Set the bead radius that is considered during voxelization in nm.
     #[arg(long, default_value_t = 0.20)]
     pub bead_radius: f32,

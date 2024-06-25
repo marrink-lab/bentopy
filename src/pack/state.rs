@@ -409,7 +409,6 @@ pub struct State {
     pub output: Output,
 
     pub rng: Rng,
-    pub rotations: usize,
     pub bead_radius: f32,
     pub verbose: bool,
     pub summary: bool,
@@ -512,7 +511,6 @@ impl State {
             output: config.output,
 
             rng,
-            rotations: args.rotations,
             bead_radius,
             verbose,
             summary: !args.no_summary,
