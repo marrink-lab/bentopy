@@ -12,6 +12,17 @@ pub(crate) enum Shape {
     None,
 }
 
+impl std::fmt::Display for Shape {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Shape::Spherical => "spherical",
+            Shape::Cuboid => "cuboid",
+            Shape::None => "empty ('none')",
+        }
+        .fmt(f)
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Mask {

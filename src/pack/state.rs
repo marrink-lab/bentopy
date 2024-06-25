@@ -422,24 +422,36 @@ impl State {
             .space
             .size
             .map(|d| (d / config.space.resolution) as u64);
+        eprintln!("Setting up compartments...");
+        let compartments = config
+            .space
+            .compartments
+            .into_iter()
+            .map(|comp| -> io::Result<_> {
+                Ok(Compartment {
+                    id: comp.id,
+                    mask: match comp.mask {
+                        ConfigMask::Shape(shape) => {
+                            if verbose {
+                                eprintln!("\tConstructing a {shape} mask...");
+                            }
+                            Mask::create_from_shape(shape, dimensions)
+                        }
+                        ConfigMask::Voxels { path } => {
+                            if verbose {
+                                eprintln!("\tLoading mask from {path:?}...");
+                            }
+                            Mask::load_from_path(path)?
+                        }
+                    },
+                })
+            })
+            .collect::<io::Result<_>>()?;
         let space = Space {
             size: config.space.size,
             dimensions,
             resolution: config.space.resolution,
-            compartments: config
-                .space
-                .compartments
-                .into_iter()
-                .map(|comp| -> io::Result<_> {
-                    Ok(Compartment {
-                        id: comp.id,
-                        mask: match comp.mask {
-                            ConfigMask::Shape(shape) => Mask::create_from_shape(shape, dimensions),
-                            ConfigMask::Voxels { path } => Mask::load_from_path(path)?,
-                        },
-                    })
-                })
-                .collect::<io::Result<_>>()?,
+            compartments,
 
             global_background: Mask::new(dimensions),
             session_background: Mask::new(dimensions),
@@ -447,6 +459,7 @@ impl State {
         };
 
         let bead_radius = args.bead_radius;
+        eprintln!("Loading segment structures...");
         let segments = {
             let mut segments: Vec<_> = config
                 .segments
