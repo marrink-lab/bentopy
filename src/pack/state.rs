@@ -412,6 +412,7 @@ pub struct State {
     pub rotations: usize,
     pub bead_radius: f32,
     pub verbose: bool,
+    pub summary: bool,
 }
 
 impl State {
@@ -501,6 +502,7 @@ impl State {
             rotations: args.rotations,
             bead_radius,
             verbose,
+            summary: !args.no_summary,
         })
     }
 }
