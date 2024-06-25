@@ -267,12 +267,9 @@ impl Session<'_> {
             match self.inner.session_background.get(idx) {
                 Some(false) => continue,    // Free. Moving on to the next one.
                 Some(true) => return false, // Already occupied!
-                None => {
-                    // Out of bounds!?
-                    #[cfg(debug_assertions)]
-                    eprintln!("out of bounds this is weird");
-                    return false;
-                }
+                None => unreachable!(
+                    "the placement would extend beyond the background, which is illegal"
+                ),
             }
         }
 
