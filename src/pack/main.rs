@@ -189,8 +189,10 @@ fn main() -> io::Result<()> {
     eprintln!("Wrote placement list to {placement_list_path:?}.");
 
     // Final summary.
-    eprintln!("Summary:");
-    summary.present(packing_duration);
+    if state.summary {
+        eprintln!("Summary:");
+        summary.present(packing_duration);
+    }
 
     Ok(())
 }

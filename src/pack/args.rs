@@ -25,6 +25,10 @@ pub struct Args {
     #[arg(long, default_value_t = 0.20)]
     pub bead_radius: f32,
 
+    /// Disable printing the summary after the placement procedure.
+    #[arg(long)]
+    pub no_summary: bool,
+
     /// Display verbose output.
     #[arg(short, long)]
     pub verbose: bool,
