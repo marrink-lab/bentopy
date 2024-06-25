@@ -178,6 +178,11 @@ fn main() -> io::Result<()> {
     // Drop this memory hog for good measure.
     drop(locations);
 
+    // Final summary.
+    if state.summary {
+        summary.present(packing_duration);
+    }
+
     // Output.
     let placement_list_path = format!(
         "{}_placements.json",
@@ -187,12 +192,6 @@ fn main() -> io::Result<()> {
     let placement_list = PlacementList::new(placements, &state);
     serde_json::to_writer(placement_list_file, &placement_list)?;
     eprintln!("Wrote placement list to {placement_list_path:?}.");
-
-    // Final summary.
-    if state.summary {
-        eprintln!("Summary:");
-        summary.present(packing_duration);
-    }
 
     Ok(())
 }
