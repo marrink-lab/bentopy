@@ -411,11 +411,12 @@ pub struct State {
     pub rng: Rng,
     pub rotations: usize,
     pub bead_radius: f32,
-    pub verbose: bool, // TODO: Add verbose flag functionality.
+    pub verbose: bool,
 }
 
 impl State {
     pub fn new(args: Args, config: Configuration) -> io::Result<Self> {
+        let verbose = args.verbose;
         let dimensions = config
             .space
             .size
@@ -450,6 +451,9 @@ impl State {
                 .segments
                 .into_iter()
                 .map(|seg| -> io::Result<_> {
+                    if verbose {
+                        eprintln!("\tLoading {:?}...", &seg.path);
+                    }
                     let structure = load_molecule(&seg.path)?;
                     Ok(Segment {
                         name: seg.name,
@@ -484,8 +488,7 @@ impl State {
 
         let output_dir = &config.output.dir;
         if !output_dir.exists() {
-            // TODO: Reconsider whether we'll want to eprint from here. Seems a bit crunchy.
-            eprintln!("Output directory {output_dir:?} does not exist, yet, and will be created.");
+            eprintln!("Output directory {output_dir:?} does not exist and will be created.");
             std::fs::create_dir_all(&output_dir)?;
         }
 
@@ -497,14 +500,13 @@ impl State {
             rng,
             rotations: args.rotations,
             bead_radius,
-            verbose: args.verbose, // TODO: Add verbose flag functionality.
+            verbose,
         })
     }
 }
 
 /// Load a [`Structure`] from a structure file.
 fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(path: P) -> io::Result<Structure> {
-    eprintln!("\tLoading {path:?}...");
     let file = std::fs::File::open(&path)?;
 
     let structure = match path.as_ref().extension().and_then(|s| s.to_str()) {

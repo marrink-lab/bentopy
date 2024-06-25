@@ -15,6 +15,8 @@ mod mask;
 mod placement;
 mod state;
 
+const CLEAR_LINE: &str = "\u{1b}[2K\r";
+
 type Location = usize;
 
 struct Summary {
@@ -53,8 +55,6 @@ impl Summary {
 }
 
 fn main() -> io::Result<()> {
-    eprintln!("Welcome to new pack. Let's see if I can finish this by Friday.");
-
     // Preparation.
     let args = Args::parse();
     let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
@@ -68,11 +68,13 @@ fn main() -> io::Result<()> {
 
     let n_segments = state.segments.len();
     for (i, segment) in state.segments.iter_mut().enumerate() {
-        eprintln!(
-            "({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.",
+        eprint!(
+            "{prefix}({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.{suffix}",
+            prefix = if state.verbose { "" } else { CLEAR_LINE },
             i = i + 1,
             target = segment.target,
-            name = segment.name
+            name = segment.name,
+            suffix = if state.verbose { "\n" } else { "" }
         );
 
         // Prepare the session.
@@ -147,10 +149,12 @@ fn main() -> io::Result<()> {
         let end = std::time::Instant::now();
         let duration = end.duration_since(start).as_secs_f64();
 
-        eprintln!(
-            "                      Packed {hits:>5} instances in {duration:6.3} s. [{} s]",
-            end.duration_since(packing_start).as_secs()
-        );
+        if state.verbose {
+            let total = end.duration_since(packing_start).as_secs();
+            eprintln!(
+                "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s]",
+            );
+        }
 
         // Save the batches.
         summary.push(
@@ -166,6 +170,9 @@ fn main() -> io::Result<()> {
     let packing_duration = std::time::Instant::now()
         .duration_since(packing_start)
         .as_secs_f64();
+    if !state.verbose {
+        eprintln!(); // Go down one line to prevent overwriting the last line.
+    }
     eprintln!("Packing process took {packing_duration:.3} s.");
 
     // Drop this memory hog for good measure.
