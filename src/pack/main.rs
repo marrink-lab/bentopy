@@ -63,6 +63,8 @@ fn main() -> io::Result<()> {
     let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
     let mut state = State::new(args, config)?;
     let mut locations: Vec<Location> = Vec::new();
+    let mut renew_locations_criterion = 0;
+    let mut used_locations = 0;
 
     // Packing.
     let mut placements = Vec::new();
@@ -88,12 +90,19 @@ fn main() -> io::Result<()> {
         // Set up the placement record for this segment.
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
 
-        // Get the free locations.
-        locations.clear();
-        session.get_free_locations(&mut locations);
-        if locations.spare_capacity_mut().len() > SHRINK_THRESHOLD {
-            // Shrink the `locations` if the spare capacity is getting out of hand.
-            locations.shrink_to_fit();
+        // Get the free locations if necessary.
+        if used_locations >= renew_locations_criterion {
+            // TODO: There is a critical flaw, here. When a new set of compartments is entered,
+            // rather than continuing with the same set of compartments, the locations are not
+            // renewed, even though they should be.
+            locations.clear();
+            session.get_free_locations(&mut locations);
+            if locations.spare_capacity_mut().len() > SHRINK_THRESHOLD {
+                // Shrink the `locations` if the spare capacity is getting out of hand.
+                locations.shrink_to_fit();
+            }
+            used_locations = 0;
+            renew_locations_criterion = locations.len() / 10;
         }
         let shuffle_guess = segment.target;
         let (mut shuffled, mut locations) =
@@ -140,6 +149,7 @@ fn main() -> io::Result<()> {
                     }
                 };
                 cursor += 1;
+                used_locations += 1;
                 let position = session.position(candidate).unwrap();
                 let [x, y, z] = position;
                 if x < maxx && y < maxy && z < maxz {
