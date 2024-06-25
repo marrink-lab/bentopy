@@ -78,7 +78,7 @@ fn main() -> io::Result<()> {
         );
 
         // Prepare the session.
-        let start = std::time::Instant::now();
+        let start_session = std::time::Instant::now();
         let mut session = state.space.enter_session(
             // FIXME: This cloned stuff does not sit right with me.
             segment.compartments.iter().cloned(),
@@ -146,11 +146,10 @@ fn main() -> io::Result<()> {
                 hits += 1;
             }
         }
-        let end = std::time::Instant::now();
-        let duration = end.duration_since(start).as_secs_f64();
+        let duration = start_session.elapsed().as_secs_f64();
 
         if state.verbose {
-            let total = end.duration_since(packing_start).as_secs();
+            let total = packing_start.elapsed().as_secs();
             eprintln!(
                 "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s]",
             );
@@ -167,9 +166,7 @@ fn main() -> io::Result<()> {
         placements.push(placement);
     }
 
-    let packing_duration = std::time::Instant::now()
-        .duration_since(packing_start)
-        .as_secs_f64();
+    let packing_duration = packing_start.elapsed().as_secs_f64();
     if !state.verbose {
         eprintln!(); // Go down one line to prevent overwriting the last line.
     }
@@ -191,12 +188,7 @@ fn main() -> io::Result<()> {
     let placement_list_file = std::fs::File::create(&placement_list_path)?;
     let placement_list = PlacementList::new(placements, &state);
     serde_json::to_writer(placement_list_file, &placement_list)?;
-    eprintln!(
-        "Done in {:.3} s.",
-        std::time::Instant::now()
-            .duration_since(start_output)
-            .as_secs_f64()
-    );
+    eprintln!("Done in {:.3} s.", start_output.elapsed().as_secs_f64());
 
     Ok(())
 }
