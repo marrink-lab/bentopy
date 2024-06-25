@@ -184,14 +184,19 @@ fn main() -> io::Result<()> {
     }
 
     // Output.
-    let placement_list_path = format!(
-        "{}_placements.json",
-        state.output.dir.join(&state.output.title).to_str().unwrap()
-    );
+    let prefix = state.output.dir.join(&state.output.title);
+    let placement_list_path = format!("{}_placements.json", prefix.to_str().unwrap());
+    eprint!("Writing placement list to {placement_list_path:?}... ");
+    let start_output = std::time::Instant::now();
     let placement_list_file = std::fs::File::create(&placement_list_path)?;
     let placement_list = PlacementList::new(placements, &state);
     serde_json::to_writer(placement_list_file, &placement_list)?;
-    eprintln!("Wrote placement list to {placement_list_path:?}.");
+    eprintln!(
+        "Done in {:.3} s.",
+        std::time::Instant::now()
+            .duration_since(start_output)
+            .as_secs_f64()
+    );
 
     Ok(())
 }
