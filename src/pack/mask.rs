@@ -133,13 +133,13 @@ impl Mask {
         if VALUE {
             match backing {
                 0 => false,
-                u8::MAX => true,
+                Backing::MAX => true,
                 _ => backing >> bit_idx & 1 != 0,
             }
         } else {
             match backing {
                 0 => true,
-                u8::MAX => false,
+                Backing::MAX => false,
                 _ => backing >> bit_idx & 1 == 0,
             }
         }
