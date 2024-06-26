@@ -51,4 +51,30 @@ impl Rule {
             }
         }
     }
+
+    fn is_lightweight(&self) -> bool {
+        match self {
+            Rule::Position(_) => true,
+        }
+    }
+}
+
+/// Split rules into a lightweight and heavier subset.
+///
+/// Split a set of rules into those that are cheap to compute for some position, and those that are
+/// more expensive and that should be considered only for promising candidates, such as after
+/// collision checking.
+pub fn split<'r>(
+    rules: &'r [Rule],
+) -> (
+    impl Iterator<Item = &Rule> + 'r,
+    impl Iterator<Item = &Rule> + 'r,
+) {
+    fn criterion(rule: &Rule) -> bool {
+        rule.is_lightweight()
+    }
+    (
+        rules.iter().filter(|rule| criterion(rule)),
+        rules.iter().filter(|rule| !criterion(rule)),
+    )
 }
