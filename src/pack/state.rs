@@ -255,6 +255,7 @@ impl Locations {
             indices.shrink_to_fit();
         }
         self.used = 0;
+        self.cursor = 0;
         // We want to make sure that the threshold is rounded down, such that it eventually could
         // reach 0, indicating the enclosing Session is exhausted. See `pop`.
         self.threshold = (indices.len() as f64 * Self::RENEW_THRESHOLD).floor() as usize
