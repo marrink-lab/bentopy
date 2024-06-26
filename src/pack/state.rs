@@ -87,6 +87,11 @@ pub struct Space {
 
     global_background: Mask,
     session_background: Mask,
+    /// The previous session's compartment IDs are used to see if a renewal of locations is
+    /// necessary between subsequent segment placements.
+    ///
+    /// When set to `None`, a renewal of locations is due for the next session, regardless of the
+    /// previous session's compartment IDs.
     previous_compartments: Option<HashSet<CompartmentID>>,
 }
 
@@ -211,6 +216,11 @@ impl Session<'_> {
 
     pub const fn position(&self, location: Location) -> Option<Position> {
         self.inner.session_background.spatial_idx(location)
+    }
+
+    /// Queue a [renewal](`Self::renew`) of the [`Locations`] in the next [`Session`].
+    pub fn queue_renew(&mut self) {
+        self.inner.previous_compartments = None;
     }
 }
 
