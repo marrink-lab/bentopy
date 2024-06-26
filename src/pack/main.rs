@@ -69,6 +69,17 @@ fn main() -> io::Result<()> {
 
     let n_segments = state.segments.len();
     for (i, segment) in state.segments.iter_mut().enumerate() {
+        if segment.target == 0 {
+            eprint!(
+                "{prefix}({i:>3}/{n_segments}) Skipping attempt to pack 0 instances of segment '{name}'.{suffix}",
+                prefix = if state.verbose { "" } else { CLEAR_LINE },
+                i = i + 1,
+                name = segment.name,
+                suffix = if state.verbose { "\n" } else { "" }
+            );
+            continue;
+        }
+
         eprint!(
             "{prefix}({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.{suffix}",
             prefix = if state.verbose { "" } else { CLEAR_LINE },
