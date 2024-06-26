@@ -30,17 +30,25 @@ impl Mask {
     /// If the provided `dimensions` are not compatible with the number of `cells`, this function
     /// will panic.
     pub fn from_cells(dimensions: Dimensions, cells: &[bool]) -> Self {
-        let mut mask = Self::new(dimensions);
         assert_eq!(
-            mask.n_cells(),
+            dimensions.iter().product::<u64>() as usize,
             cells.len(),
             "the number of cells must match the dimensions"
         );
 
+        Self::from_cells_iter(dimensions, cells.into_iter().copied())
+    }
+
+    /// An internal function for setting up a [`Mask`] from an iterator of `bool`s.
+    ///
+    /// Providing an iterator that is not exactly the correct length is not acceptable behavior but
+    /// is not unsafe.
+    fn from_cells_iter(dimensions: Dimensions, cells: impl Iterator<Item = bool>) -> Self {
+        let mut mask = Self::new(dimensions);
+
         for lin_idx in cells
-            .iter()
             .enumerate()
-            .filter_map(|(i, &v)| if v { Some(i) } else { None })
+            .filter_map(|(i, v)| if v { Some(i) } else { None })
         {
             mask.set_linear_unchecked::<true>(lin_idx)
         }
