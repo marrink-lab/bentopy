@@ -120,6 +120,13 @@ fn main() -> io::Result<()> {
                 break 'placement; // "When you try your best, but you don't succeed."
             }
 
+            // Split the rules into those that are checked when selecting a candidate location, and
+            // those that are checked after the collision check.
+            // TODO: Bikeshed on the names here.
+            let (pre_rules, post_rules) = rules::split(&rules);
+            // These rules may be checked many times while picking a valid random location.
+            let pre_rules: Vec<&Rule> = pre_rules.collect();
+
             // TODO: This can become more efficient for successive placement failures.
             // TODO: Also, this should become a method on Segment.
             let voxels = match segment.voxels() {
@@ -137,7 +144,7 @@ fn main() -> io::Result<()> {
             };
 
             // Pick a random location.
-            let position = loop {
+            let position = 'location: loop {
                 let candidate = match session.pop_location(&mut state.rng) {
                     Some(location) => location,
                     None => {
@@ -149,19 +156,34 @@ fn main() -> io::Result<()> {
                         break 'placement;
                     }
                 };
+
+                // Convert the linear index location to a spatial index.
                 let position = session.position(candidate).unwrap();
                 let [x, y, z] = position;
-                if x < maxx && y < maxy && z < maxz {
-                    break position;
+
+                // Check if the segment will fit in the background, given this position.
+                if x >= maxx || y >= maxy || z >= maxz {
+                    continue 'location;
                 }
+
+                // Check the position against the lightweight rules for this segment.
+                let pos_for_rules =
+                    glam::Vec3::from_array(position.map(|v| v as f32)) * session.resolution();
+                for rule in &pre_rules {
+                    if !rule.is_satisfied(pos_for_rules) {
+                        continue 'location;
+                    }
+                }
+
+                // All seems good, so we continue to see if this position will be accepted.
+                break position;
             };
 
-            // TODO: Split the rules into a pre-collision check and post-collision check section?
             // Check if our rules are satisfied.
             // FIXME: This sucks and will change.
             let pos_for_rules =
                 glam::Vec3::from_array(position.map(|v| v as f32)) * session.resolution();
-            for rule in &rules {
+            for rule in post_rules {
                 if !rule.is_satisfied(pos_for_rules) {
                     tries += 1;
                     continue 'placement; // Reject due to breaking a rule.
