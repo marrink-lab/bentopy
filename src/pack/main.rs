@@ -14,6 +14,7 @@ mod config;
 mod mask;
 mod placement;
 mod state;
+mod structure;
 
 const CLEAR_LINE: &str = "\u{1b}[2K\r";
 
