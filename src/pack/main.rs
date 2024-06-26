@@ -7,12 +7,14 @@ use rand::Rng;
 use args::Args;
 use config::Configuration;
 use placement::{Batch, Placement, PlacementList};
+use rules::{PositionConstraint, Rule};
 use state::{Locations, State};
 
 mod args;
 mod config;
 mod mask;
 mod placement;
+mod rules;
 mod state;
 mod structure;
 
@@ -61,6 +63,11 @@ fn main() -> io::Result<()> {
     let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
     let mut state = State::new(args, config)?;
     let mut locations = Locations::new();
+
+    let rules = vec![Rule::Position(PositionConstraint::GreaterThan(
+        rules::Axis::X,
+        (state.space.size[0] * 0.5) as f64,
+    ))];
 
     // Packing.
     let mut placements = Vec::new();
@@ -114,6 +121,7 @@ fn main() -> io::Result<()> {
             }
 
             // TODO: This can become more efficient for successive placement failures.
+            // TODO: Also, this should become a method on Segment.
             let voxels = match segment.voxels() {
                 Some(voxels) => voxels,
                 None => {
@@ -148,6 +156,17 @@ fn main() -> io::Result<()> {
                 }
             };
 
+            // TODO: Split the rules into a pre-collision check and post-collision check section?
+            // Check if our rules are satisfied.
+            // FIXME: This sucks and will change.
+            let pos_for_rules =
+                glam::Vec3::from_array(position.map(|v| v as f32)) * session.resolution();
+            for rule in &rules {
+                if !rule.is_satisfied(pos_for_rules) {
+                    tries += 1;
+                    continue 'placement; // Reject due to breaking a rule.
+                }
+            }
 
             // Reject if it would cause a collision.
             if !session.check_collisions(voxels, position) {
