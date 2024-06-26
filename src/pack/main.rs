@@ -102,8 +102,17 @@ fn main() -> io::Result<()> {
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
 
         let mut hits = 0;
+        let mut tries = 0; // The number of unsuccessful tries.
+        let max_tries = 1000 * segment.target; // The number of unsuccessful tries.
         let mut batch_positions = Vec::new();
         'placement: while hits < segment.target {
+            if tries >= max_tries {
+                if state.verbose {
+                    eprintln!("Exiting after {tries} unsuccessful tries.");
+                }
+                break 'placement; // "When you try your best, but you don't succeed."
+            }
+
             // TODO: This can become more efficient for successive placement failures.
             let voxels = match segment.voxels() {
                 Some(voxels) => voxels,
@@ -139,31 +148,37 @@ fn main() -> io::Result<()> {
                 }
             };
 
-            // Try it.
-            if session.check_collisions(voxels, position) {
-                // We found a good spot. Stomp on those stamps!
-                session.stamp(voxels, position);
-                // Transform the location to nm.
-                batch_positions.push(position.map(|v| v as f32 * session.resolution()));
 
-                // Let's write out the batch and rotate the segment again.
-                // TODO: Perhaps we'll need a little transpose here.
-                let batch = Batch::new(segment.rotation, batch_positions.clone());
-                placement.push(batch);
-                batch_positions.clear();
-
-                let rotation = Mat3::from_quat(state.rng.gen());
-                segment.set_rotation(rotation);
-
-                hits += 1;
+            // Reject if it would cause a collision.
+            if !session.check_collisions(voxels, position) {
+                tries += 1;
+                continue 'placement; // Reject due to collision.
             }
+
+            // We found a good spot. Stomp on those stamps!
+            session.stamp(voxels, position);
+            // Transform the location to nm.
+            batch_positions.push(position.map(|v| v as f32 * session.resolution()));
+
+            // Let's write out the batch and rotate the segment again.
+            // TODO: Perhaps we'll need a little transpose here.
+            let batch = Batch::new(segment.rotation, batch_positions.clone());
+            placement.push(batch);
+            batch_positions.clear();
+
+            let rotation = Mat3::from_quat(state.rng.gen());
+            segment.set_rotation(rotation);
+
+            hits += 1;
         }
         let duration = start_session.elapsed().as_secs_f64();
 
         if state.verbose {
             let total = packing_start.elapsed().as_secs();
             eprintln!(
-                "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s]",
+                "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s] <{:.4} of max_tries, {:.4} of target>",
+                tries as f32 / max_tries as f32,
+                tries as f32 / segment.target as f32
             );
         }
 
