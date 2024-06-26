@@ -1,11 +1,9 @@
 use std::collections::HashSet;
-use std::io::{self, BufRead, BufReader};
+use std::io;
 use std::path::PathBuf;
 
-use arraystring::typenum::U5;
-use arraystring::ArrayString;
-use eightyseven::reader::{ParseList, ReadGro};
-use eightyseven::writer::format_atom_line;
+use eightyseven::reader::ReadGro;
+use eightyseven::writer::WriteGro;
 use glam::{Mat3, U64Vec3, Vec3};
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -13,6 +11,7 @@ use rand::SeedableRng;
 use crate::args::Args;
 use crate::config::{Configuration, Mask as ConfigMask, Output, Shape as ConfigShape};
 use crate::mask::{Dimensions, Mask, Position};
+use crate::structure::Structure;
 use crate::Location;
 
 pub type CompartmentID = String;
@@ -20,87 +19,6 @@ pub type Size = [f32; 3];
 pub type Rotation = Mat3;
 pub type Voxels = Mask;
 type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
-type Atom = Vec3;
-
-pub struct Structure {
-    atoms: Vec<Atom>,
-}
-
-impl ReadGro<Atom> for Structure {
-    const PARSE_LIST: ParseList = ParseList {
-        resnum: false,
-        resname: false,
-        atomname: false,
-        atomnum: false,
-        position: true,
-        velocity: false,
-    };
-
-    // TODO: Fix this ArrayString bs in eightyseven.
-    fn build_atom(
-        _resnum: Option<u32>,
-        _resname: Option<ArrayString<U5>>,
-        _atomname: Option<ArrayString<U5>>,
-        _atomnum: Option<u32>,
-        position: Option<[f32; 3]>,
-        _velocity: Option<[f32; 3]>,
-    ) -> Atom {
-        Atom::from_array(position.unwrap())
-    }
-
-    fn build_structure(
-        _title: String,
-        atoms: Vec<Atom>,
-        _boxvecs: eightyseven::structure::BoxVecs,
-    ) -> Self {
-        Self { atoms }
-    }
-}
-
-impl Structure {
-    fn read_from_pdb_file(
-        file: std::fs::File,
-    ) -> Result<Structure, eightyseven::reader::ParseGroError> {
-        let reader = BufReader::new(file);
-
-        let mut atoms = Vec::new();
-        for line in reader.lines() {
-            let line = line?;
-            if line.starts_with("ATOM") || line.starts_with("HETATM") {
-                let x = line[30..38].trim().parse().unwrap();
-                let y = line[38..46].trim().parse().unwrap();
-                let z = line[46..54].trim().parse().unwrap();
-                let atom = Atom::new(x, y, z) / 10.0; // Convert from Å to nm.
-                atoms.push(atom);
-            }
-        }
-
-        Ok(Self { atoms })
-    }
-}
-
-use eightyseven::writer::WriteGro;
-impl<'atoms> WriteGro<'atoms, Atom> for Structure {
-    fn title(&self) -> String {
-        "debug".to_string()
-    }
-
-    fn natoms(&self) -> usize {
-        self.atoms.len()
-    }
-
-    fn atoms(&'atoms self) -> impl Iterator<Item = &'atoms Atom> {
-        self.atoms.iter()
-    }
-
-    fn boxvecs(&self) -> String {
-        "400.0 400.0 400.0".to_string()
-    }
-
-    fn format_atom_line(atom: &Atom) -> String {
-        format_atom_line(1, "DUMMY", "DUMMY", 2, atom.to_array(), None)
-    }
-}
 
 impl Mask {
     fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
@@ -583,8 +501,7 @@ fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: 
     // TODO: Consider whether this rotations system is correct. I tend to flip things around.
     // Extract and rotate the points from the structure.
     let mut points: Box<[_]> = structure
-        .atoms
-        .iter()
+        .atoms()
         .map(|&position| rotation.mul_vec3(position))
         .collect();
     let npoints = points.len();
