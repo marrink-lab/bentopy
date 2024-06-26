@@ -1,7 +1,7 @@
 use std::io;
 
 use clap::Parser;
-use glam::Mat3;
+use glam::{Mat3, U64Vec3};
 use rand::Rng;
 
 use args::Args;
@@ -66,7 +66,7 @@ fn main() -> io::Result<()> {
 
     let rules = vec![Rule::Position(PositionConstraint::GreaterThan(
         rules::Axis::X,
-        (state.space.size[0] * 0.5) as f64,
+        state.space.size[0] * 0.5,
     ))];
 
     // Packing.
@@ -129,14 +129,16 @@ fn main() -> io::Result<()> {
 
             // TODO: This can become more efficient for successive placement failures.
             // TODO: Also, this should become a method on Segment.
+            let resolution = session.resolution();
             let voxels = match segment.voxels() {
                 Some(voxels) => voxels,
                 None => {
-                    segment.voxelize(session.resolution(), state.bead_radius);
+                    segment.voxelize(resolution, state.bead_radius);
                     segment.voxels().unwrap()
                 }
             };
 
+            // FIXME: Do all this math with glam::U64Vec?
             let [maxx, maxy, maxz] = {
                 let [bx, by, bz] = session.dimensions();
                 let [sx, sy, sz] = voxels.dimensions();
@@ -144,7 +146,7 @@ fn main() -> io::Result<()> {
             };
 
             // Pick a random location.
-            let position = 'location: loop {
+            let (position, voxels_min, voxels_max) = 'location: loop {
                 let candidate = match session.pop_location(&mut state.rng) {
                     Some(location) => location,
                     None => {
@@ -167,24 +169,23 @@ fn main() -> io::Result<()> {
                 }
 
                 // Check the position against the lightweight rules for this segment.
-                let pos_for_rules =
-                    glam::Vec3::from_array(position.map(|v| v as f32)) * session.resolution();
+                // FIXME: The math of dimensions considered as the max is kind of shaky I guess.
+                let voxels_min = U64Vec3::from_array(position).as_vec3() * resolution;
+                let voxels_max =
+                    voxels_min + U64Vec3::from_array(voxels.dimensions()).as_vec3() * resolution;
                 for rule in &pre_rules {
-                    if !rule.is_satisfied(pos_for_rules) {
+                    if !rule.is_satisfied(voxels_min, voxels_max) {
                         continue 'location;
                     }
                 }
 
                 // All seems good, so we continue to see if this position will be accepted.
-                break position;
+                break (position, voxels_min, voxels_max);
             };
 
             // Check if our rules are satisfied.
-            // FIXME: This sucks and will change.
-            let pos_for_rules =
-                glam::Vec3::from_array(position.map(|v| v as f32)) * session.resolution();
             for rule in post_rules {
-                if !rule.is_satisfied(pos_for_rules) {
+                if !rule.is_satisfied(voxels_min, voxels_max) {
                     tries += 1;
                     continue 'placement; // Reject due to breaking a rule.
                 }
