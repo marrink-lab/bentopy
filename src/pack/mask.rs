@@ -127,8 +127,12 @@ impl Mask {
         lin_idx
     }
 
-    const fn linear_idx_periodic(&self, idx: SignedPosition) -> usize {
+    const fn linear_idx_periodic(&self, idx: Position) -> usize {
         self.linear_idx(normalize_periodic(idx, self.dimensions()))
+    }
+
+    const fn linear_idx_periodic_signed(&self, idx: SignedPosition) -> usize {
+        self.linear_idx(normalize_periodic_signed(idx, self.dimensions()))
     }
 
     const fn get_linear_unchecked(&self, lin_idx: usize) -> bool {
@@ -177,8 +181,13 @@ impl Mask {
         }
     }
 
-    pub const fn get_periodic(&self, idx: SignedPosition) -> bool {
+    pub const fn get_periodic(&self, idx: Position) -> bool {
         let lin_idx = self.linear_idx(normalize_periodic(idx, self.dimensions()));
+        self.get_linear_unchecked(lin_idx)
+    }
+
+    pub const fn get_periodic_signed(&self, idx: SignedPosition) -> bool {
+        let lin_idx = self.linear_idx(normalize_periodic_signed(idx, self.dimensions()));
         self.get_linear_unchecked(lin_idx)
     }
 
@@ -198,8 +207,17 @@ impl Mask {
         }
     }
 
-    pub fn set_periodic(&mut self, idx: SignedPosition, value: bool) {
+    pub fn set_periodic(&mut self, idx: Position, value: bool) {
         let lin_idx = self.linear_idx(normalize_periodic(idx, self.dimensions()));
+        if value {
+            self.set_linear_unchecked::<true>(lin_idx)
+        } else {
+            self.set_linear_unchecked::<false>(lin_idx)
+        }
+    }
+
+    pub fn set_periodic_signed(&mut self, idx: SignedPosition, value: bool) {
+        let lin_idx = self.linear_idx(normalize_periodic_signed(idx, self.dimensions()));
         if value {
             self.set_linear_unchecked::<true>(lin_idx)
         } else {
@@ -253,7 +271,17 @@ impl Mask {
 }
 
 /// Take an `idx` that may fall outside of the `dimensions` and return a normalized [`Position`].
-const fn normalize_periodic(idx: SignedPosition, dimensions: Dimensions) -> Position {
+const fn normalize_periodic(idx: Position, dimensions: Dimensions) -> Position {
+    // FIXME: This const unrolling sucks. See if I can do something about that.
+    [
+        idx[0] % dimensions[0],
+        idx[1] % dimensions[1],
+        idx[2] % dimensions[2],
+    ]
+}
+
+/// Take a signed `idx` that may fall outside of the `dimensions` and return a normalized [`Position`].
+const fn normalize_periodic_signed(idx: SignedPosition, dimensions: Dimensions) -> Position {
     // FIXME: This const unrolling sucks. See if I can do something about that.
     [
         idx[0].rem_euclid(dimensions[0] as i64) as u64,
