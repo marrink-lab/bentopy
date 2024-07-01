@@ -1,19 +1,20 @@
 use std::io;
 
 use clap::Parser;
-use glam::{Mat3, U64Vec3};
+use glam::Mat3;
 use rand::Rng;
 
 use args::Args;
 use config::Configuration;
 use placement::{Batch, Placement, PlacementList};
-use rules::{PositionConstraint, Rule};
+use rules::Rule;
 use state::{Locations, State};
 
 mod args;
 mod config;
 mod mask;
 mod placement;
+#[allow(dead_code)] // FIXME: Remove once the rule system is further developed.
 mod rules;
 mod state;
 mod structure;
@@ -64,15 +65,13 @@ fn main() -> io::Result<()> {
     let mut state = State::new(args, config)?;
     let mut locations = Locations::new();
 
-    let rules = vec![Rule::Position(PositionConstraint::GreaterThan(
-        rules::Axis::X,
-        state.space.size[0] * 0.5,
-    ))];
-
     // Packing.
     let mut placements = Vec::new();
     let mut summary = Summary::new();
     let packing_start = std::time::Instant::now();
+
+    // TODO: Develop rule system further. For now we have an empty rule set.
+    let rules = Vec::new();
 
     let n_segments = state.segments.len();
     for (i, segment) in state.segments.iter_mut().enumerate() {
@@ -120,9 +119,6 @@ fn main() -> io::Result<()> {
                 break 'placement; // "When you try your best, but you don't succeed."
             }
 
-            // Split the rules into those that are checked when selecting a candidate location, and
-            // those that are checked after the collision check.
-            // TODO: Bikeshed on the names here.
             let (pre_rules, post_rules) = rules::split(&rules);
             // These rules may be checked many times while picking a valid random location.
             let pre_rules: Vec<&Rule> = pre_rules.collect();
@@ -146,7 +142,7 @@ fn main() -> io::Result<()> {
             };
 
             // Pick a random location.
-            let (position, voxels_min, voxels_max) = 'location: loop {
+            let position = 'location: loop {
                 let candidate = match session.pop_location(&mut state.rng) {
                     Some(location) => location,
                     None => {
@@ -170,22 +166,19 @@ fn main() -> io::Result<()> {
 
                 // Check the position against the lightweight rules for this segment.
                 // FIXME: The math of dimensions considered as the max is kind of shaky I guess.
-                let voxels_min = U64Vec3::from_array(position).as_vec3() * resolution;
-                let voxels_max =
-                    voxels_min + U64Vec3::from_array(voxels.dimensions()).as_vec3() * resolution;
                 for rule in &pre_rules {
-                    if !rule.is_satisfied(voxels_min, voxels_max) {
+                    if !rule.is_satisfied(position, resolution, voxels, session.compartments()) {
                         continue 'location;
                     }
                 }
 
                 // All seems good, so we continue to see if this position will be accepted.
-                break (position, voxels_min, voxels_max);
+                break position;
             };
 
             // Check if our rules are satisfied.
             for rule in post_rules {
-                if !rule.is_satisfied(voxels_min, voxels_max) {
+                if !rule.is_satisfied(position, resolution, voxels, session.compartments()) {
                     tries += 1;
                     continue 'placement; // Reject due to breaking a rule.
                 }

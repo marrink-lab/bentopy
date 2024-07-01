@@ -1,43 +1,30 @@
-use glam::Vec3;
+use glam::U64Vec3;
 
-#[derive(Clone, Copy)]
-pub enum Axis {
-    X,
-    Y,
-    Z,
-}
+use crate::mask::{Mask, Position};
+use crate::state::{Compartment, CompartmentID};
 
 type Scalar = f32;
 
-pub enum PositionConstraint {
-    GreaterThan(Axis, Scalar),
-    LessThan(Axis, Scalar),
-}
-
-impl PositionConstraint {
-    pub fn axis(&self) -> Axis {
-        match self {
-            PositionConstraint::GreaterThan(axis, _) | PositionConstraint::LessThan(axis, _) => {
-                *axis
-            }
-        }
-    }
-}
-
 pub enum Rule {
     Position(PositionConstraint),
+    IsCloser(CloseStyleBikeshed, CompartmentID, Scalar),
 }
 
 impl Rule {
     /// Return whether this rule is satisfied or not.
     ///
     /// The provided `pos` must be in nanometers.
-    pub fn is_satisfied(&self, min: Vec3, max: Vec3) -> bool {
+    pub fn is_satisfied(
+        &self,
+        position: Position,
+        resolution: f32,
+        voxels: &Mask,
+        compartments: &[Compartment],
+    ) -> bool {
         match self {
             Rule::Position(poscon) => {
-                // TODO: Gotta find a way to know the bounding box or all positions
-                // of the structure placement. We calculate these somewhere already
-                // maybe??
+                let min = U64Vec3::from_array(position).as_vec3() * resolution;
+                let max = min + U64Vec3::from_array(voxels.dimensions()).as_vec3() * resolution;
                 let (min, max) = match poscon.axis() {
                     Axis::X => (min.x, max.x),
                     Axis::Y => (min.y, max.y),
@@ -48,12 +35,85 @@ impl Rule {
                     &PositionConstraint::LessThan(_, value) => value < min,
                 }
             }
+            Rule::IsCloser(CloseStyleBikeshed::BoxCenter, compartment_id, distance) => {
+                assert!(*distance > 0.0, "distance must be a positive float");
+
+                // FIXME: Compartments really ought to be a HashMap of IDs to Compartments.
+                let compartment = compartments
+                    .iter()
+                    .find(|c| c.id == compartment_id.as_str())
+                    // FIXME: This condition can be checked at time of State creation.
+                    .expect("the compartment ID in the rule must exist");
+
+                let position = U64Vec3::from_array(position);
+                let voxels_dimensions = U64Vec3::from_array(voxels.dimensions());
+                let voxels_center = position + voxels_dimensions / 2;
+
+                let voxel_radius = distance / resolution;
+
+                // TODO: All of the asserts littered here must be dealt with earlier on. Sometimes
+                // they do describe artificial limitations, that just need some more implementation
+                // of literal edge cases.
+
+                assert!(voxel_radius.powi(2) as u64 <= voxels_dimensions.length_squared());
+                let inscribed_box_size = U64Vec3::splat((voxel_radius * 2.0).ceil() as u64);
+                let circumscribed_box_size =
+                    U64Vec3::splat((voxel_radius * f32::sqrt(1.0 / 3.0)).ceil() as u64);
+                let inscribed_box_center = inscribed_box_size / 2;
+                let circumscribed_box_center = circumscribed_box_size / 2;
+                // Check whether the upcoming subtractions are safe.
+                assert!(inscribed_box_center.cmple(voxels_center).all());
+                assert!(circumscribed_box_center.cmple(voxels_center).all());
+                let inscribed_box_start = voxels_center - inscribed_box_center;
+                let circumscribed_box_start = voxels_center - circumscribed_box_center;
+
+                // FIXME: We're assuming that the box sizes don't go beyond the actual mask size
+                // from some position. That's really bad.
+
+                let inscribed = compartment.mask.slice_from_start_dimensions(
+                    inscribed_box_start.to_array(),
+                    inscribed_box_size.to_array(),
+                );
+
+                // Since this is the cube inscribed by the radius, any true voxel we find implies
+                // that the distance criterion is met! So we are satisfied with just one hit :)
+                if inscribed.any::<true>() {
+                    // Found a hit! There is at least one voxel from the compartment mask that is
+                    // at least `distance` from the `position`.
+                    return true;
+                }
+
+                // TODO: We should skip checking over the sections we already checked.
+
+                let position_f = position.as_vec3(); // FIXME: Horrible names.
+                let voxel_radius2 = voxel_radius.powi(2);
+                // Haven't found a hit yet, but maybe if we expand our search field a bit.
+                let circumscribed = compartment.mask.slice_from_start_dimensions(
+                    circumscribed_box_start.to_array(),
+                    circumscribed_box_size.to_array(),
+                );
+                // In this case, we actually do need to check the distance, because in the corners
+                // of this cube, the distance to our point of interest is actually greater than our
+                // query `distance`.
+                if circumscribed.iter_where::<true>().any(|idx| {
+                    let hit = U64Vec3::from_array(idx).as_vec3();
+                    let d2 = position_f.distance_squared(hit);
+                    d2 <= voxel_radius2
+                }) {
+                    // Found a hit! There is at least one voxel from the compartment mask that is
+                    // at least `distance` from the `position`.
+                    return true;
+                }
+
+                false
+            }
         }
     }
 
     fn is_lightweight(&self) -> bool {
         match self {
             Rule::Position(_) => true,
+            Rule::IsCloser(_, _, _) => false,
         }
     }
 }
@@ -76,4 +136,31 @@ pub fn split<'r>(
         rules.iter().filter(|rule| criterion(rule)),
         rules.iter().filter(|rule| !criterion(rule)),
     )
+}
+
+#[derive(Clone, Copy)]
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+pub enum PositionConstraint {
+    GreaterThan(Axis, Scalar),
+    LessThan(Axis, Scalar),
+}
+
+impl PositionConstraint {
+    pub fn axis(&self) -> Axis {
+        match self {
+            PositionConstraint::GreaterThan(axis, _) | PositionConstraint::LessThan(axis, _) => {
+                *axis
+            }
+        }
+    }
+}
+
+pub enum CloseStyleBikeshed {
+    BoxCenter,
+    // AnyFilledVoxel,
 }

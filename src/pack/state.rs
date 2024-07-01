@@ -15,6 +15,7 @@ use crate::structure::Structure;
 use crate::Location;
 
 pub type CompartmentID = String;
+pub type Compartments = Vec<Compartment>;
 pub type Size = [f32; 3];
 pub type Rotation = Mat3;
 pub type Voxels = Mask;
@@ -75,15 +76,15 @@ impl Mask {
 }
 
 pub struct Compartment {
-    id: CompartmentID,
-    mask: Mask,
+    pub id: CompartmentID,
+    pub mask: Mask,
 }
 
 pub struct Space {
     pub size: Size,
     pub dimensions: Dimensions,
     pub resolution: f32,
-    pub compartments: Vec<Compartment>,
+    pub compartments: Compartments,
 
     global_background: Mask,
     session_background: Mask,
@@ -151,6 +152,10 @@ impl Session<'_> {
 
     pub fn dimensions(&self) -> Dimensions {
         self.inner.dimensions
+    }
+
+    pub fn compartments(&self) -> &[Compartment] {
+        &self.inner.compartments
     }
 
     /// Returns a location if available.
