@@ -233,6 +233,124 @@ impl Mask {
     }
 }
 
+pub struct MaskSlice<'m> {
+    start: Position,
+    dimensions: Dimensions,
+    mask: &'m Mask,
+}
+
+impl<'m> Mask {
+    pub fn slice_from_start_dimensions(
+        &'m self,
+        start: Position,
+        dimensions: Dimensions,
+    ) -> MaskSlice<'m> {
+        // TODO: A bit sloppy all of this math. Maybe we can just calculate these things with a U64Vec3?
+        let [w, h, d] = dimensions;
+        let [sx, sy, sz] = start;
+        let end = [sx + w, sy + h, sz + d];
+        {
+            let [w, h, d] = self.dimensions(); // The dimensions of the underlying Mask.
+            let [sx, sy, sz] = start;
+            assert!(sx < w && sy < h && sz < d);
+            let [ex, ey, ez] = end;
+            assert!(ex < w && ey < h && ez < d);
+        }
+        assert!(dimensions.iter().all(|&v| v > 0));
+
+        MaskSlice {
+            start,
+            dimensions,
+            mask: &self,
+        }
+    }
+
+    pub fn slice(&'m self, ranges: [std::ops::Range<u64>; 3]) -> MaskSlice<'m> {
+        let [w, h, d] = self.dimensions(); // The dimensions of the underlying Mask.
+
+        let start = ranges.clone().map(|r| r.start);
+        let end = ranges.clone().map(|r| r.end);
+        {
+            let [sx, sy, sz] = start;
+            assert!(sx < w && sy < h && sz < d);
+            let [ex, ey, ez] = end;
+            assert!(ex < w && ey < h && ez < d);
+        }
+        let dimensions = ranges.map(|r| r.end - r.start);
+        assert!(dimensions.iter().all(|&v| v > 0));
+
+        MaskSlice {
+            start,
+            dimensions,
+            mask: &self,
+        }
+    }
+}
+
+impl MaskSlice<'_> {
+    pub fn iter_linear(&self) -> impl Iterator<Item = bool> + '_ {
+        let [start_x, start_y, start_z] = self.start;
+        let [w, h, d] = self.dimensions;
+        let [end_x, end_y, end_z] = [start_x + w, start_y + h, start_z + d];
+
+        (start_z..end_z).flat_map(move |z| {
+            (start_y..end_y).flat_map(move |y| {
+                (start_x..end_x).map(move |x| {
+                    // FIXME: We know that this is valid. Time for a get_unchecked?
+                    self.mask.get([x, y, z]).unwrap()
+                })
+            })
+        })
+    }
+
+    /// Iterator over the [`Position`]s of cells equal to `VALUE` in this [`MaskSlice`].
+    ///
+    /// The `Positions` are according to the internal `Mask`'s absolute coordinates.
+    pub fn iter_where<const VALUE: bool>(&self) -> impl Iterator<Item = Position> + '_ {
+        let [start_x, start_y, start_z] = self.start;
+        let [w, h, d] = self.dimensions;
+        let [end_x, end_y, end_z] = [start_x + w, start_y + h, start_z + d];
+
+        (start_z..end_z).flat_map(move |z| {
+            (start_y..end_y).flat_map(move |y| {
+                (start_x..end_x).flat_map(move |x| {
+                    let idx = [x, y, z];
+                    let lin_idx = self.mask.linear_idx(idx);
+                    if self.mask.query_linear_unchecked::<VALUE>(lin_idx) {
+                        Some(idx)
+                    } else {
+                        None
+                    }
+                })
+            })
+        })
+    }
+
+    pub fn to_mask(&self) -> Mask {
+        let cells = self.iter_linear();
+        Mask::from_cells_iter(self.dimensions, cells)
+    }
+}
+
+impl MaskSlice<'_> {
+    // FIXME: Probably not needed.
+    fn all<const VALUE: bool>(&self) -> bool {
+        self.iter_linear().all(|cell| cell == VALUE)
+    }
+
+    pub fn any<const VALUE: bool>(&self) -> bool {
+        self.iter_linear().any(|cell| cell == VALUE)
+    }
+
+    // FIXME: Probably not needed.
+    /// Return the [`Position`] of the first cell equal to `VALUE` in this [`MaskSlice`] if it exists.
+    ///
+    /// The `Positions` are relative to the `MaskSlice` `start`.
+    fn first_where<const VALUE: bool>(&self) -> Option<Position> {
+        self.iter_where::<VALUE>().next()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
