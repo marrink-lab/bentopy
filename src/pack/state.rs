@@ -85,6 +85,7 @@ pub struct Space {
     pub dimensions: Dimensions,
     pub resolution: f32,
     pub compartments: Compartments,
+    pub periodic: bool,
 
     global_background: Mask,
     session_background: Mask,
@@ -158,6 +159,10 @@ impl Session<'_> {
         &self.inner.compartments
     }
 
+    pub fn periodic(&self) -> bool {
+        self.inner.periodic
+    }
+
     /// Returns a location if available.
     ///
     /// This function also takes a reference to a random number generator, since the internal
@@ -191,17 +196,9 @@ impl Session<'_> {
         let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
         let position = U64Vec3::from_array(position);
 
-        for idx in occupied_indices.map(|p| (p + position).to_array()) {
-            match self.inner.session_background.get(idx) {
-                Some(false) => continue,    // Free. Moving on to the next one.
-                Some(true) => return false, // Already occupied!
-                None => unreachable!(
-                    "the placement would extend beyond the background, which is illegal"
-                ),
-            }
-        }
-
-        return true;
+        occupied_indices
+            .map(|p| (p + position).to_array())
+            .all(|idx| !self.inner.session_background.get_periodic(idx))
     }
 
     pub fn stamp(&mut self, voxels: &Mask, location: Position) {
@@ -210,8 +207,12 @@ impl Session<'_> {
             .indices_where::<true>()
             .map(|idx| U64Vec3::from_array(idx) + location)
         {
-            self.inner.global_background.set(idx.to_array(), true);
-            self.inner.session_background.set(idx.to_array(), true);
+            self.inner
+                .global_background
+                .set_periodic(idx.to_array(), true);
+            self.inner
+                .session_background
+                .set_periodic(idx.to_array(), true);
         }
     }
 
@@ -385,6 +386,7 @@ impl State {
             dimensions,
             resolution: config.space.resolution,
             compartments,
+            periodic: config.space.periodic,
 
             global_background: Mask::new(dimensions),
             session_background: Mask::new(dimensions),

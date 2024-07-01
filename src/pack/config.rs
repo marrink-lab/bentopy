@@ -37,11 +37,17 @@ pub struct Compartment {
     pub mask: Mask,
 }
 
+fn true_by_default() -> bool {
+    true
+}
+
 #[derive(Deserialize)]
 pub struct Space {
     pub size: Size,
     pub resolution: f32,
     pub compartments: Vec<Compartment>,
+    #[serde(default = "true_by_default")]
+    pub periodic: bool,
     // TODO: constraint system.
 }
 

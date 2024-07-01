@@ -135,11 +135,13 @@ fn main() -> io::Result<()> {
             };
 
             // FIXME: Do all this math with glam::U64Vec?
-            let [maxx, maxy, maxz] = {
-                let [bx, by, bz] = session.dimensions();
-                let [sx, sy, sz] = voxels.dimensions();
-                [bx - sx, by - sy, bz - sz]
-            };
+            let [bx, by, bz] = session.dimensions();
+            let [sx, sy, sz] = voxels.dimensions();
+            if sx > bx || sy > by || sz > bz {
+                tries += 1;
+                continue 'placement; // Segment voxels size exceeds the size of the background.
+            }
+            let [maxx, maxy, maxz] = [bx - sx, by - sy, bz - sz];
 
             // Pick a random location.
             let position = 'location: loop {
@@ -157,11 +159,16 @@ fn main() -> io::Result<()> {
 
                 // Convert the linear index location to a spatial index.
                 let position = session.position(candidate).unwrap();
-                let [x, y, z] = position;
 
-                // Check if the segment will fit in the background, given this position.
-                if x >= maxx || y >= maxy || z >= maxz {
-                    continue 'location;
+                // If we are not packing in a periodic manner, we skip candidate positions that
+                // would necessitate periodic behavior. When a location passes this point, it is
+                // valid for non-periodic placement.
+                if !session.periodic() {
+                    // Check if the segment will fit in the background, given this position.
+                    let [x, y, z] = position;
+                    if x >= maxx || y >= maxy || z >= maxz {
+                        continue 'location;
+                    }
                 }
 
                 // Check the position against the lightweight rules for this segment.
