@@ -70,9 +70,6 @@ fn main() -> io::Result<()> {
     let mut summary = Summary::new();
     let packing_start = std::time::Instant::now();
 
-    // TODO: Develop rule system further. For now we have an empty rule set.
-    let rules = Vec::new();
-
     let n_segments = state.segments.len();
     for (i, segment) in state.segments.iter_mut().enumerate() {
         if segment.target == 0 {
@@ -104,6 +101,12 @@ fn main() -> io::Result<()> {
             segment.target, // FIXME: Can probably be bigger.
         );
 
+        let (pre_rules, post_rules) = rules::split(&segment.rules);
+        // These rules may be checked many times while picking a valid random location.
+        let pre_rules: Vec<Rule> = pre_rules.cloned().collect();
+        // These rules are more expensive and will only be performed if the placement seems fine.
+        let post_rules: Vec<Rule> = post_rules.cloned().collect();
+
         // Set up the placement record for this segment.
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
 
@@ -118,10 +121,6 @@ fn main() -> io::Result<()> {
                 }
                 break 'placement; // "When you try your best, but you don't succeed."
             }
-
-            let (pre_rules, post_rules) = rules::split(&rules);
-            // These rules may be checked many times while picking a valid random location.
-            let pre_rules: Vec<&Rule> = pre_rules.collect();
 
             // TODO: This can become more efficient for successive placement failures.
             // TODO: Also, this should become a method on Segment.
@@ -184,7 +183,7 @@ fn main() -> io::Result<()> {
             };
 
             // Check if our rules are satisfied.
-            for rule in post_rules {
+            for rule in &post_rules {
                 if !rule.is_satisfied(position, resolution, voxels, session.compartments()) {
                     tries += 1;
                     continue 'placement; // Reject due to breaking a rule.
