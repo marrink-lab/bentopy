@@ -4,12 +4,15 @@ use std::path::PathBuf;
 
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
-use glam::{Mat3, U64Vec3, Vec3};
+use glam::{EulerRot, Mat3, Quat, U64Vec3, Vec3};
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
+use serde::Deserialize;
 
 use crate::args::Args;
-use crate::config::{Configuration, Mask as ConfigMask, Output, Shape as ConfigShape};
+use crate::config::{
+    true_by_default, Configuration, Mask as ConfigMask, Output, Shape as ConfigShape,
+};
 use crate::mask::{Dimensions, Mask, Position};
 use crate::structure::Structure;
 use crate::Location;
@@ -305,12 +308,35 @@ impl Locations {
     }
 }
 
+#[derive(Deserialize)]
+pub struct Axes {
+    #[serde(default = "true_by_default")]
+    x: bool,
+    #[serde(default = "true_by_default")]
+    y: bool,
+    #[serde(default = "true_by_default")]
+    z: bool,
+}
+
+impl Default for Axes {
+    fn default() -> Self {
+        Self {
+            x: true,
+            y: true,
+            z: true,
+        }
+    }
+}
+
 pub struct Segment {
     pub name: String,
     pub target: usize,
     pub compartments: Vec<CompartmentID>,
     pub path: PathBuf,
+    pub rotation_axes: Axes,
     structure: Structure,
+    /// Invariant: This rotation must satisfy the constraints set by the `rotation_axes` field by
+    /// construction.
     pub(crate) rotation: Rotation,
     voxels: Option<Voxels>,
 }
@@ -319,9 +345,25 @@ impl Segment {
     /// Set a new rotation the [`Segment`].
     ///
     /// This invalidates the voxelization.
+    ///
+    /// The internal `rotation_axes` are taken into account when storing the rotation, such that a
+    /// rotation stored in a `Segment` is always internally consistent.
     pub fn set_rotation(&mut self, rotation: Rotation) {
         // FIXME: Assert it's a well-formed rotation?
-        self.rotation = rotation;
+        // TODO: This seems slightly hacky, since we are converting the rotation between different
+        // formats a couple of times. It should be fine---we just lose an unimportant bit of
+        // accuracy on a random rotation---but perhaps it is more wise to store the rotation
+        // internally as a quaternion and only convert it to Mat3 when writing to the placement
+        // list.
+        const ORDER: EulerRot = EulerRot::XYZ;
+        let axes = &self.rotation_axes;
+        let (ax, ay, az) = Quat::from_mat3(&rotation).to_euler(ORDER);
+        let (ax, ay, az) = (
+            if axes.x { ax } else { 0.0 },
+            if axes.y { ay } else { 0.0 },
+            if axes.z { az } else { 0.0 },
+        );
+        self.rotation = Mat3::from_euler(ORDER, ax, ay, az);
         self.voxels = None;
     }
 
@@ -409,6 +451,7 @@ impl State {
                         target: seg.number,
                         compartments: seg.compartments,
                         path: seg.path,
+                        rotation_axes: seg.rotation_axes,
                         structure,
                         rotation: Rotation::IDENTITY,
                         voxels: None,

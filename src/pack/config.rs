@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use crate::state::{CompartmentID, Size};
+use crate::state::{Axes, CompartmentID, Size};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -37,7 +37,7 @@ pub struct Compartment {
     pub mask: Mask,
 }
 
-fn true_by_default() -> bool {
+pub(crate) fn true_by_default() -> bool {
     true
 }
 
@@ -57,7 +57,9 @@ pub struct Segment {
     pub number: usize,
     pub path: PathBuf,
     pub compartments: Vec<CompartmentID>,
-    // TODO: rotation_axes, center.
+    #[serde(default)]
+    pub rotation_axes: Axes,
+    // TODO: center?
 }
 
 pub type TopolIncludes = Vec<String>;
