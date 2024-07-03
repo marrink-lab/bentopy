@@ -35,8 +35,8 @@ impl Rule {
                     Axis::Z => (min.z, max.z),
                 };
                 match poscon {
-                    &PositionConstraint::GreaterThan(_, value) => value > max,
-                    &PositionConstraint::LessThan(_, value) => value < min,
+                    &PositionConstraint::GreaterThan(_, value) => value < min,
+                    &PositionConstraint::LessThan(_, value) => value > max,
                 }
             }
             Rule::IsCloser(CloseStyleBikeshed::BoxCenter, compartment_id, distance) => {
