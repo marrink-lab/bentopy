@@ -1,3 +1,6 @@
+use std::num::ParseFloatError;
+use std::str::FromStr;
+
 use glam::U64Vec3;
 
 use crate::mask::{Mask, Position};
@@ -5,6 +8,7 @@ use crate::state::{Compartment, CompartmentID};
 
 type Scalar = f32;
 
+#[derive(Clone)]
 pub enum Rule {
     Position(PositionConstraint),
     IsCloser(CloseStyleBikeshed, CompartmentID, Scalar),
@@ -118,6 +122,57 @@ impl Rule {
     }
 }
 
+impl FromStr for Rule {
+    type Err = ParseRuleError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let trimmed = s.trim();
+        let mut words = trimmed.split_whitespace();
+        let keyword = words.next().ok_or(ParseRuleError::Empty)?;
+        match keyword {
+            kind @ ("less_than" | "greater_than") => {
+                let axis = words
+                    .next()
+                    .ok_or(ParseRuleError::SyntaxError("expected axis".to_string()))?
+                    .parse()
+                    .map_err(ParseRuleError::ParseAxisError)?;
+                let value = words
+                    .next()
+                    .ok_or(ParseRuleError::SyntaxError(
+                        "expected scalar value".to_string(),
+                    ))?
+                    .parse()
+                    .map_err(ParseRuleError::ParseScalarError)?;
+
+                let poscon = match kind {
+                    "less_than" => PositionConstraint::LessThan(axis, value),
+                    "greater_than" => PositionConstraint::GreaterThan(axis, value),
+                    _ => unreachable!(), // By virtue of this branche's pattern.
+                };
+                Ok(Rule::Position(poscon))
+            }
+            unknown => Err(ParseRuleError::UnknownKeyword(unknown.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ParseRuleError {
+    Empty,
+    UnknownKeyword(String),
+    SyntaxError(String),
+    ParseScalarError(ParseFloatError),
+    ParseAxisError(String),
+}
+
+impl std::fmt::Display for ParseRuleError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}") // FIXME: This can made much more pretty and clear.
+    }
+}
+
+impl std::error::Error for ParseRuleError {}
+
 /// Split rules into a lightweight and heavier subset.
 ///
 /// Split a set of rules into those that are cheap to compute for some position, and those that are
@@ -145,6 +200,22 @@ pub enum Axis {
     Z,
 }
 
+impl FromStr for Axis {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "x" => Ok(Self::X),
+            "y" => Ok(Self::Y),
+            "z" => Ok(Self::Z),
+            weird => Err(format!(
+                "expected one of 'x', 'y', or 'z', but found {weird:?}"
+            )),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub enum PositionConstraint {
     GreaterThan(Axis, Scalar),
     LessThan(Axis, Scalar),
@@ -160,6 +231,7 @@ impl PositionConstraint {
     }
 }
 
+#[derive(Clone)]
 pub enum CloseStyleBikeshed {
     BoxCenter,
     // AnyFilledVoxel,

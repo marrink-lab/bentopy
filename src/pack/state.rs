@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::io;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
@@ -14,6 +15,7 @@ use crate::config::{
     true_by_default, Configuration, Mask as ConfigMask, Output, Shape as ConfigShape,
 };
 use crate::mask::{Dimensions, Mask, Position};
+use crate::rules::{ParseRuleError, Rule};
 use crate::structure::Structure;
 use crate::Location;
 
@@ -75,6 +77,12 @@ impl Mask {
             .iter_mut()
             .for_each(|cell: &mut bool| *cell = !(*cell));
         Ok(Self::from_cells(size, &cells))
+    }
+}
+
+impl From<ParseRuleError> for io::Error {
+    fn from(value: ParseRuleError) -> Self {
+        io::Error::other(value)
     }
 }
 
@@ -332,6 +340,7 @@ pub struct Segment {
     pub name: String,
     pub target: usize,
     pub compartments: Vec<CompartmentID>,
+    pub rules: Vec<Rule>,
     pub path: PathBuf,
     pub rotation_axes: Axes,
     structure: Structure,
@@ -446,10 +455,16 @@ impl State {
                         eprintln!("\tLoading {:?}...", &seg.path);
                     }
                     let structure = load_molecule(&seg.path)?;
+                    let rules = seg
+                        .rules
+                        .iter()
+                        .map(|s| Rule::from_str(s))
+                        .collect::<Result<Vec<Rule>, _>>()?;
                     Ok(Segment {
                         name: seg.name,
                         target: seg.number,
                         compartments: seg.compartments,
+                        rules,
                         path: seg.path,
                         rotation_axes: seg.rotation_axes,
                         structure,

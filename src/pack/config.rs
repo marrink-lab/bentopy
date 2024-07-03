@@ -48,7 +48,7 @@ pub struct Space {
     pub compartments: Vec<Compartment>,
     #[serde(default = "true_by_default")]
     pub periodic: bool,
-    // TODO: constraint system.
+    // TODO: constraint system (satisfied _somewhat_ by the notion of a rule).
 }
 
 #[derive(Deserialize)]
@@ -57,6 +57,8 @@ pub struct Segment {
     pub number: usize,
     pub path: PathBuf,
     pub compartments: Vec<CompartmentID>,
+    #[serde(default)]
+    pub rules: Vec<String>,
     #[serde(default)]
     pub rotation_axes: Axes,
     // TODO: center?
