@@ -5,8 +5,7 @@ import MDAnalysis as mda
 import numpy as np
 from mdvcontainment import Containers
 
-# Import the parser setup and description here so it is neatly accessible from this module's root.
-from .config import DESCRIPTION as DESCRIPTION, setup_parser as setup_parser
+from .config import setup_parser
 from .utilities import voxels_to_gro
 
 # Let's ignore the wordy warnings we tend to get from MDAnalysis.
@@ -15,7 +14,7 @@ warnings.filterwarnings("ignore")
 log = print
 
 
-def main(args):
+def mask(args):
     # First, we want to verify our arguments.
     # Down the line, we assume that the containment resolution can be treated
     # as integer multiple of the mask resolution. Let's check that at the top.
@@ -26,10 +25,10 @@ def main(args):
             f"must be a multiple of the mask resolution ({args.mask_resolution}),",
             "such that `containment_resolution % mask resolution == 0`.",
         )
-        exit(1)
+        return 1
     if args.mask_resolution < 0:
         log(f"ERROR: The mask resolution ({args.mask_resolution}) cannot be negative.")
-        exit(1)
+        return 1
     zoom = int(args.containment_resolution / args.mask_resolution)
     # Everything must be set correctly in case --no-interactive is used.
     if not args.interactive:
@@ -37,7 +36,7 @@ def main(args):
         if args.labels is None:
             log("ERROR: No labels were specified.")
             log("In non-interactive mode, at least one label must be provided.")
-            exit(1)
+            return 1
 
     # Read in structures.
     structure_path = args.input
@@ -134,7 +133,7 @@ def main(args):
         for label in labels:
             if label not in possible_labels:
                 log(f"ERROR: '{label}' is not a valid compartment label.")
-                exit(1)
+                return 1
     log(f"Selected the following labels: {labels}.")
 
     # Get our compartment by masking out all voxels that have our selected labels.
@@ -187,3 +186,13 @@ def main(args):
     log(f"Writing the voxel mask to {args.output}... ", end="")
     np.savez(args.output, zoomed)
     log("done.")
+
+
+def main():
+    parser = setup_parser()
+    args = parser.parse_args()
+    return mask(args)
+
+
+if __name__ == "__main__":
+    main()
