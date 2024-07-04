@@ -1,11 +1,9 @@
 import argparse
-from pathlib import Path
 
 from extensions._extensions import py_voxelize as voxelize
 
 from .grocat import grocat
 from .mask import mask
-from .check import check
 from .pack import pack
 
 __all__ = ["voxelize"]
@@ -73,37 +71,14 @@ def main():
         By default, the box vector of the first file is chosen.""",
     )
 
-    check_parser = subparsers.add_parser(
-        "check",
-        help="Check for collisions in rendered structures.",
-    )
-    check_parser.add_argument(
-        "file",
-        type=Path,
-        help="File to check (a structure file)."
-    )
-    check_parser.add_argument(
-        "--cutoff",
-        type=float,
-        default=0.02,
-        help="Collision distance between beads in nm. (default: %(default)s nm)",
-    )
-    check_parser.add_argument(
-        "-e",
-        "--exit-early",
-        action="store_true",
-        help="Exit early at the first collision.",
-    )
-
     args = parser.parse_args()
 
     if args.version:
         import importlib.metadata
-        import sys
 
         version = importlib.metadata.version("bentopy")
         print(version)
-        sys.exit(0)
+        return 0
 
     if args.subcommand == "pack":
         state = pack.configure(args)
@@ -112,5 +87,3 @@ def main():
         mask.main(args)
     elif args.subcommand == "grocat":
         grocat.main(args)
-    elif args.subcommand == "check":
-        check.main(args)
