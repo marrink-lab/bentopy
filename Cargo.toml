@@ -9,11 +9,11 @@ path = "src/extensions/lib.rs"
 crate-type = ["cdylib"]
 
 [[bin]]
-name = "pack"
+name = "bentopy-pack"
 path = "src/pack/main.rs"
 
 [[bin]]
-name = "render"
+name = "bentopy-render"
 path = "src/render/main.rs"
 
 [dependencies]
