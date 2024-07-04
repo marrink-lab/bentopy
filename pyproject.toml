@@ -33,8 +33,3 @@ Issues = "https://github.com/marrink-lab/bentopy/issues"
 bentopy-check = "check:check.main"
 bentopy-mask = "mask:mask.main"
 bentopy-grocat = "grocat:grocat.main"
-
-[[tool.setuptools-rust.ext-modules]]
-target = "extensions._extensions"
-path = "Cargo.toml"
-binding = "PyO3"
