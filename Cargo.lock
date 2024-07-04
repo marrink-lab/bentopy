@@ -90,6 +90,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
+name = "bentopy"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "eightyseven",
+ "glam 0.28.0",
+ "npyz",
+ "numpy",
+ "pyo3",
+ "rand",
+ "rayon",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,22 +315,6 @@ name = "either"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a47c1c47d2f5964e29c61246e81db715514cd532db6b5116a25ea3c03d6780a2"
-
-[[package]]
-name = "extensions"
-version = "0.1.0"
-dependencies = [
- "clap",
- "eightyseven",
- "glam 0.28.0",
- "npyz",
- "numpy",
- "pyo3",
- "rand",
- "rayon",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "flate2"
