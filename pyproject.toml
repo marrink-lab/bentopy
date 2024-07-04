@@ -32,6 +32,7 @@ Issues = "https://github.com/marrink-lab/bentopy/issues"
 [project.scripts]
 bentopy = "bentopy:main"
 bentopy-check = "check:check.main"
+bentopy-mask = "mask:mask.main"
 
 [[tool.setuptools-rust.ext-modules]]
 target = "extensions._extensions"

@@ -3,7 +3,6 @@ import argparse
 from extensions._extensions import py_voxelize as voxelize
 
 from .grocat import grocat
-from .mask import mask
 from .pack import pack
 
 __all__ = ["voxelize"]
@@ -83,7 +82,5 @@ def main():
     if args.subcommand == "pack":
         state = pack.configure(args)
         pack.main(state)
-    elif args.subcommand == "mask":
-        mask.main(args)
     elif args.subcommand == "grocat":
         grocat.main(args)
