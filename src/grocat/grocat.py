@@ -1,5 +1,5 @@
-from argparse import FileType
-from sys import exit, stderr
+import argparse
+from sys import stderr
 
 # This should be sufficient space to write the final natoms into.
 NATOMS_PLACEHOLDER = " " * 32
@@ -19,7 +19,7 @@ class InputFile:
         else:
             path = s
             resname = None
-        self.file = FileType("r")(path)
+        self.file = argparse.FileType("r")(path)
         self.resname = resname
 
 
@@ -56,11 +56,11 @@ def parse_boxvec(s: str) -> tuple[float]:
     )
 
 
-def main(args):
+def grocat(args):
     output = args.output
     if not output.seekable():
         eprint("ERROR: Output into non-seekable files is currently not supported.")
-        exit(1)
+        return 1
 
     # Write the title.
     if args.title is not None:
@@ -124,3 +124,53 @@ def main(args):
     # Let's replace that with the correct total number of atom records we wrote to output.
     output.seek(natoms_location)
     output.write(str(natoms_total))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Concatenate gro files.",
+        prog="bentopy-grocat",
+    )
+
+    parser.add_argument(
+        "files",
+        type=InputFile,
+        nargs="+",
+        help="""Files to concatenate (gro; <path>[:<resname>]). 
+
+        Optionally, a residue name can be set for all atoms in a file by 
+        appending a colon followed by the residue name. 
+        Note that this name can be at most 5 characters long. 
+
+        Replacing the residue names can be very useful in distinguishing between 
+        parts of very large systems within a concatenated file.""",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        required=True,
+        help="Output path.",
+    )
+    parser.add_argument(
+        "-t",
+        "--title",
+        type=str,
+        default="bentopy grocat",
+        help="Set the final title. (default: %(default)s)",
+    )
+    parser.add_argument(
+        "-b",
+        "--box",
+        type=parse_boxvec,
+        help="""Set the final box vectors. 
+        Expects a valid gro box line, which is a space-separated list of either 3 or 9 floats. 
+        By default, the box vector of the first file is chosen.""",
+    )
+
+    args = parser.parse_args()
+    grocat(args)
+
+
+if __name__ == "__main__":
+    main()
