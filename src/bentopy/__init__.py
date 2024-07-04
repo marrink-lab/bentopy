@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 
-from extensions._extensions import py_render_placements as render_placements
 from extensions._extensions import py_voxelize as voxelize
 
 from .grocat import grocat
@@ -9,7 +8,7 @@ from .mask import mask
 from .check import check
 from .pack import pack
 
-__all__ = ["render_placements", "voxelize"]
+__all__ = ["voxelize"]
 
 
 def main():
@@ -33,81 +32,6 @@ def main():
         """,
     )
     pack.setup_parser(pack_parser)
-
-    render_parser = subparsers.add_parser(
-        "render",
-        help="""
-        Render structures from a placement list into a gro file.
-
-        Structures specified in the placement list are retrieved from their pdb
-        files and placed into a gro file according to their rotations and positions.
-        """,
-    )
-    render_parser.add_argument(
-        "input",
-        type=Path,
-        help="""
-        Path to the placement list.
-
-        To read from stdin, pass "-".
-        """,
-    )
-    render_parser.add_argument(
-        "output",
-        type=Path,
-        help="Output gro file path.",
-    )
-    render_parser.add_argument(
-        "--root",
-        type=Path,
-        help="""
-        Root path for the structure paths.
-        
-        When set, this path will be prepended to any relative path pointing to a structure in the
-        placement list. Absolute paths are respected.
-        """,
-    )
-    render_parser.add_argument(
-        "--limits",
-        type=str,
-        help="""
-        Only render structures that have a position within a smaller cuboid.
-
-        Arguments can be provided as a comma-separated array of 6 values. Each value can be a
-        number indicating a bound or a non-numerical value indicating an unset bound.
-
-        For example, `none,none,none,none,90,110` produces a 20 nm slice.
-        """,
-    )
-    render_parser.add_argument(
-        "--resnum-mode",
-        type=str,
-        choices=["instance", "segment"],
-        default="instance",
-        help="""Write out a unique resnum for each segment instance, or use one
-        grouped resnum for each instance of a segment. (default: %(default)s)""",
-    )
-
-    mode_or_topol = render_parser.add_mutually_exclusive_group()
-    mode_or_topol.add_argument(
-        "-t",
-        "--topology",
-        dest="topol",
-        type=Path,
-        help="Write a topology (.top) file.",
-    )
-    mode_or_topol.add_argument(
-        "--mode",
-        type=str,
-        choices=["full", "backbone", "alpha", "residue", "instance"],
-        help="Granularity of the produced output.",
-    )
-
-    mask_parser = subparsers.add_parser(
-        "mask",
-        help=mask.DESCRIPTION,
-    )
-    mask.setup_parser(mask_parser)
 
     grocat_parser = subparsers.add_parser(
         "grocat",
@@ -184,10 +108,6 @@ def main():
     if args.subcommand == "pack":
         state = pack.configure(args)
         pack.main(state)
-    elif args.subcommand == "render":
-        render_placements(
-            args.input, args.output, args.topol, args.root, args.limits, args.mode
-        )
     elif args.subcommand == "mask":
         mask.main(args)
     elif args.subcommand == "grocat":

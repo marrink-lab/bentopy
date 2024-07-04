@@ -311,7 +311,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "rand",
- "render-placements",
+ "rayon",
  "serde",
  "serde_json",
 ]
@@ -830,19 +830,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469052894dcb553421e483e4209ee581a45100d31b4018de03e5a7ad86374a7e"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "render-placements"
-version = "0.2.2"
-source = "git+https://git.sr.ht/~ma3ke/render-placements#f3dbea799c5e7f344cc49092968c47c9d89c4365"
-dependencies = [
- "arraystring",
- "clap",
- "glam 0.25.0",
- "rayon",
- "serde",
- "serde_json",
 ]
 
 [[package]]
