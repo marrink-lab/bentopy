@@ -12,8 +12,6 @@ name = "bentopy-render"
 path = "src/render/main.rs"
 
 [dependencies]
-pyo3 = { version = "0.20.3", features = ["extension-module"] }
-numpy = "0.20"
 glam = { version = "0.28.0", features = ["rand"] }
 rand = "0.8.5"
 clap = { version = "4.5.7", features = ["derive"] }
