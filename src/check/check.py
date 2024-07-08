@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from time import time
 from sys import stderr
 
 import freud
@@ -31,6 +32,7 @@ def check(args):
     # Sift through the neighbors to find collisions.
     collision = False
     min_distance = None
+    collisions = [] if args.output_collisions else None
     for id, hit in neighbors:
         a = u.atoms[id]
         b = u.atoms[hit]
@@ -44,8 +46,26 @@ def check(args):
                 f"Distance between atom {id:>6} and {hit:>6} (residue {a.resname} ({a.resid:>3}) and {b.resname} ({b.resid:>3})) is {distance:<6.3} <= {cutoff_nm} nm.",
                 "(new smallest distance)" if new_low else "",
             )
+            if collisions is not None:
+                collisions.append((a.position + b.position) / 2)
             if args.exit_early:
                 break
+
+    # If desired, write out a structure with beads at the collision sites.
+    if args.output_collisions is not None:
+        log(f"Writing collision coordinates to {args.output_collisions}... ", end="")
+        start = time()
+        natoms = len(collisions)
+        positions = np.array(collisions)
+        assert positions.shape == (natoms, 3)
+        # Create a new Universe. We need to set trajectory to True in order to add positions.
+        cu = mda.Universe.empty(natoms, trajectory=True)
+        cu.atoms.positions = positions
+        cu.dimensions = u.dimensions
+        cu.atoms.write(args.output_collisions)
+        duration = time() - start
+        log(f"Done in {duration:.3} s")
+
     # Report whether we found any collisions through the error number.
     return 1 if collision else 0
 
@@ -74,6 +94,11 @@ def main():
         type=float,
         default=0.4,
         help="Collision distance between beads in nm. (default: %(default)s nm)",
+    )
+    parser.add_argument(
+        "--output-collisions",
+        type=Path,
+        help="Write out a structure file with dummy beads at the collision sites.",
     )
     parser.add_argument(
         "-e",
