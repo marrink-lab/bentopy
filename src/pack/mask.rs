@@ -1,6 +1,5 @@
 pub type Dimensions = [u64; 3]; // TODO: Make into usize? Rather awkward in places right now.
 pub type Position = Dimensions;
-pub type SignedPosition = [i64; 3];
 
 type Backing = u8;
 const BACKING_BITS: usize = Backing::BITS as usize;
@@ -127,14 +126,6 @@ impl Mask {
         lin_idx
     }
 
-    const fn linear_idx_periodic(&self, idx: Position) -> usize {
-        self.linear_idx(normalize_periodic(idx, self.dimensions()))
-    }
-
-    const fn linear_idx_periodic_signed(&self, idx: SignedPosition) -> usize {
-        self.linear_idx(normalize_periodic_signed(idx, self.dimensions()))
-    }
-
     const fn get_linear_unchecked(&self, lin_idx: usize) -> bool {
         debug_assert!(lin_idx < self.n_cells());
         let (backing_idx, bit_idx) = self.backing_idx(lin_idx);
@@ -186,11 +177,6 @@ impl Mask {
         self.get_linear_unchecked(lin_idx)
     }
 
-    pub const fn get_periodic_signed(&self, idx: SignedPosition) -> bool {
-        let lin_idx = self.linear_idx(normalize_periodic_signed(idx, self.dimensions()));
-        self.get_linear_unchecked(lin_idx)
-    }
-
     /// # Panics
     ///
     /// If `idx` is not within the dimensions of this `Mask`, this function will panic.
@@ -209,15 +195,6 @@ impl Mask {
 
     pub fn set_periodic(&mut self, idx: Position, value: bool) {
         let lin_idx = self.linear_idx(normalize_periodic(idx, self.dimensions()));
-        if value {
-            self.set_linear_unchecked::<true>(lin_idx)
-        } else {
-            self.set_linear_unchecked::<false>(lin_idx)
-        }
-    }
-
-    pub fn set_periodic_signed(&mut self, idx: SignedPosition, value: bool) {
-        let lin_idx = self.linear_idx(normalize_periodic_signed(idx, self.dimensions()));
         if value {
             self.set_linear_unchecked::<true>(lin_idx)
         } else {
@@ -277,16 +254,6 @@ const fn normalize_periodic(idx: Position, dimensions: Dimensions) -> Position {
         idx[0] % dimensions[0],
         idx[1] % dimensions[1],
         idx[2] % dimensions[2],
-    ]
-}
-
-/// Take a signed `idx` that may fall outside of the `dimensions` and return a normalized [`Position`].
-const fn normalize_periodic_signed(idx: SignedPosition, dimensions: Dimensions) -> Position {
-    // FIXME: This const unrolling sucks. See if I can do something about that.
-    [
-        idx[0].rem_euclid(dimensions[0] as i64) as u64,
-        idx[1].rem_euclid(dimensions[1] as i64) as u64,
-        idx[2].rem_euclid(dimensions[2] as i64) as u64,
     ]
 }
 
@@ -390,21 +357,8 @@ impl MaskSlice<'_> {
 }
 
 impl MaskSlice<'_> {
-    // FIXME: Probably not needed.
-    fn all<const VALUE: bool>(&self) -> bool {
-        self.iter_linear().all(|cell| cell == VALUE)
-    }
-
     pub fn any<const VALUE: bool>(&self) -> bool {
         self.iter_linear().any(|cell| cell == VALUE)
-    }
-
-    // FIXME: Probably not needed.
-    /// Return the [`Position`] of the first cell equal to `VALUE` in this [`MaskSlice`] if it exists.
-    ///
-    /// The `Positions` are relative to the `MaskSlice` `start`.
-    fn first_where<const VALUE: bool>(&self) -> Option<Position> {
-        self.iter_where::<VALUE>().next()
     }
 }
 
