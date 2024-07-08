@@ -33,25 +33,29 @@ def check(args):
     collision = False
     min_distance = None
     collisions = [] if args.output_collisions else None
-    for id, hit in neighbors:
-        a = u.atoms[id]
-        b = u.atoms[hit]
-        if a.resid != b.resid:
-            if args.ignore_same_resname and a.resname == b.resname:
-                continue
-            collision = True
-            distance = np.linalg.norm(a.position - b.position) / 10.0  # From Å to nm.
-            new_low = min_distance is not None and min_distance > distance
-            if new_low or min_distance is None:
-                min_distance = distance
-            print(
-                f"Distance between atom {id:>6} and {hit:>6} (residue {a.resname} ({a.resid:>3}) and {b.resname} ({b.resid:>3})) is {distance:<6.3} <= {cutoff_nm} nm.",
-                "(new smallest distance)" if new_low else "",
-            )
-            if collisions is not None:
-                collisions.append((a.position + b.position) / 2)
-            if args.exit_early:
-                break
+    try:
+        for id, hit in neighbors:
+            a = u.atoms[id]
+            b = u.atoms[hit]
+            if a.resid != b.resid:
+                if args.ignore_same_resname and a.resname == b.resname:
+                    continue
+                collision = True
+                distance = np.linalg.norm(a.position - b.position) / 10.0  # From Å to nm.
+                new_low = min_distance is not None and min_distance > distance
+                if new_low or min_distance is None:
+                    min_distance = distance
+                print(
+                    f"Distance between atom {id:>6} and {hit:>6} (residue {a.resname} ({a.resid:>3}) and {b.resname} ({b.resid:>3})) is {distance:<6.3} <= {cutoff_nm} nm.",
+                    "(new smallest distance)" if new_low else "",
+                )
+                if collisions is not None:
+                    collisions.append((a.position + b.position) / 2)
+                if args.exit_early:
+                    break
+        log("Done.")
+    except KeyboardInterrupt:
+        log("Stopping the search.")
 
     # If desired, write out a structure with beads at the collision sites.
     if args.output_collisions is not None:
