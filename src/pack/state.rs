@@ -71,11 +71,31 @@ impl Mask {
             3,
             "a voxel map must have three dimensions"
         );
-        let size = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
-        let mut cells = array.into_vec()?.into_boxed_slice();
-        cells
-            .iter_mut()
-            .for_each(|cell: &mut bool| *cell = !(*cell));
+        let size: [u64; 3] = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
+
+        let order = array.order();
+        let mut cells: Box<[bool]> = array.into_vec()?.into_boxed_slice();
+        cells.iter_mut().for_each(|cell| *cell = !(*cell));
+        let cells = match order {
+            npyz::Order::C => {
+                // We need to re-order the cells to get them into the expected Fortran ordering.
+                let mut reordered = Vec::with_capacity(cells.len());
+                reordered.resize(cells.len(), false);
+                let mut cells = cells.iter().copied();
+                let mut reordered = reordered.into_boxed_slice();
+                let [w, h, d] = size;
+                for x in 0..w {
+                    for y in 0..h {
+                        for z in 0..d {
+                            reordered[(x + y * w + z * w * h) as usize] = cells.next().unwrap();
+                        }
+                    }
+                }
+                reordered
+            }
+            npyz::Order::Fortran => cells,
+        };
+
         Ok(Self::from_cells(size, &cells))
     }
 }
