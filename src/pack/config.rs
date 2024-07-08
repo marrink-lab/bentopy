@@ -69,7 +69,6 @@ pub type TopolIncludes = Vec<String>;
 #[derive(Deserialize)]
 pub struct Output {
     pub title: String,
-    pub dir: PathBuf,
     pub topol_includes: Option<TopolIncludes>,
 }
 

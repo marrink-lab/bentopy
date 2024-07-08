@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 use crate::args::Args;
 use crate::config::{
-    true_by_default, Configuration, Mask as ConfigMask, Output, Shape as ConfigShape,
+    true_by_default, Configuration, Mask as ConfigMask, Shape as ConfigShape, TopolIncludes,
 };
 use crate::mask::{Dimensions, Mask, Position};
 use crate::rules::{ParseRuleError, Rule};
@@ -409,6 +409,12 @@ impl Segment {
     }
 }
 
+pub struct Output {
+    pub title: String,
+    pub path: PathBuf,
+    pub topol_includes: Option<TopolIncludes>,
+}
+
 pub struct State {
     pub space: Space,
     pub segments: Vec<Segment>,
@@ -507,22 +513,22 @@ impl State {
             segments
         };
 
+        let output = Output {
+            title: config.output.title,
+            path: args.output,
+            topol_includes: config.output.topol_includes,
+        };
+
         let rng = if let Some(seed) = args.seed {
             Rng::seed_from_u64(seed)
         } else {
             Rng::from_entropy()
         };
 
-        let output_dir = &config.output.dir;
-        if !output_dir.exists() {
-            eprintln!("Output directory {output_dir:?} does not exist and will be created.");
-            std::fs::create_dir_all(&output_dir)?;
-        }
-
         Ok(Self {
             space,
             segments,
-            output: config.output,
+            output,
 
             rng,
             bead_radius,
