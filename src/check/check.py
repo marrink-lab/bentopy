@@ -1,11 +1,13 @@
 import argparse
 from pathlib import Path
+from sys import stderr
 
 import freud
 import MDAnalysis as mda
 import numpy as np
 
-log = print
+def log(*args, **kwargs):
+    print(*args, **kwargs, file=stderr)
 
 
 def check(args):
