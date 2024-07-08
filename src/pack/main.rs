@@ -61,7 +61,7 @@ impl Summary {
 fn main() -> io::Result<()> {
     // Preparation.
     let args = Args::parse();
-    let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.path)?)?;
+    let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.config)?)?;
     let mut state = State::new(args, config)?;
     let mut locations = Locations::new();
 
@@ -249,8 +249,7 @@ fn main() -> io::Result<()> {
     }
 
     // Output.
-    let prefix = state.output.dir.join(&state.output.title);
-    let placement_list_path = format!("{}_placements.json", prefix.to_str().unwrap());
+    let placement_list_path = &state.output.path;
     eprint!("Writing placement list to {placement_list_path:?}... ");
     let start_output = std::time::Instant::now();
     let placement_list_file = std::fs::File::create(&placement_list_path)?;

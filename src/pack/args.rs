@@ -6,8 +6,11 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(version)]
 pub struct Args {
-    // Configuration file to define the run (json).
-    pub path: PathBuf,
+    // Configuration input file to define the run (json).
+    pub config: PathBuf,
+
+    // Placement list output file (json).
+    pub output: PathBuf,
 
     /// Sort the input structures by approximate size to optimize packing.
     #[arg(long, default_value_t = true)]
