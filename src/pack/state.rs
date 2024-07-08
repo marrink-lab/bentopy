@@ -254,11 +254,6 @@ impl Session<'_> {
     pub const fn position(&self, location: Location) -> Option<Position> {
         self.inner.session_background.spatial_idx(location)
     }
-
-    /// Queue a [renewal](`Self::renew`) of the [`Locations`] in the next [`Session`].
-    pub fn queue_renew(&mut self) {
-        self.inner.previous_compartments = None;
-    }
 }
 
 impl<'s> Drop for Session<'s> {
