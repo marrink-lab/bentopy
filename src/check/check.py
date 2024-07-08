@@ -37,6 +37,8 @@ def check(args):
         a = u.atoms[id]
         b = u.atoms[hit]
         if a.resid != b.resid:
+            if args.ignore_same_resname and a.resname == b.resname:
+                continue
             collision = True
             distance = np.linalg.norm(a.position - b.position) / 10.0  # From Å to nm.
             new_low = min_distance is not None and min_distance > distance
@@ -99,6 +101,11 @@ def main():
         "--output-collisions",
         type=Path,
         help="Write out a structure file with dummy beads at the collision sites.",
+    )
+    parser.add_argument(
+        "--ignore-same-resname",
+        action="store_true",
+        help="Ignore collisions between particles with the same residue name.",
     )
     parser.add_argument(
         "-e",
