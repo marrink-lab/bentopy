@@ -1,9 +1,10 @@
 import warnings
+from time import time
 from pathlib import Path
 
 import MDAnalysis as mda
 import numpy as np
-from mdvcontainment import Containers
+from mdvcontainment import Containment
 
 from .config import setup_parser
 from .utilities import voxels_to_gro
@@ -49,37 +50,44 @@ def mask(args):
     log(f"Selected {selection.n_atoms} atoms according to '{args.selection}'.")
 
     # Calculate the containments. This is all in the hands of mdvcontainment.
-    log("Calculating containment...")
-    log("\n--- mdvcontainment --- 8< ---")
-    containment = Containers(selection, args.containment_resolution)
-    log("--- >8 --- mdvcontainment ---\n")
+    log("Calculating containment... ", end="")
+    start = time()
+    containment = Containment(
+        selection, resolution=args.containment_resolution, slab=args.slab
+    )
+    duration = time() - start
+    log(f"Done in {duration:.3} s.")
 
     # Show what we found.
-    log("Found the following component groups:")
-    log(f"        root:\t{containment.get_root_components()}")
-    log(f"      leaves:\t{containment.get_leaf_components()}")
+    log("Found the following node groups:")
+    log(f"        root:\t{containment.voxel_containment.root_nodes}")
+    log(f"        leaf:\t{containment.voxel_containment.leaf_nodes}")
+    # And show it as a tree of containments.
+    # TODO: This has got to change on Bart's end. I just want a string that I can print at my own leisure. @Bart
+    containment.voxel_containment.print_containment()
 
     # Write the plot of the containments if desired.
-    if args.plot is None and args.interactive:
-        log("Do you want to write an interactive plot to inspect the containments?")
-        log("Provide an output path. To skip this step, leave this field empty.")
+    show_plot = args.plot
+    if show_plot is None and args.interactive:
+        log("Do you want to inspect a plot of the containments?")
         while True:
-            path = input("(html) -> ").strip()
-            if len(path) == 0:
-                plot_path = None
+            answer = input("[y/N] -> ").strip()
+            if len(answer) == 0 or answer.lower() == "n":
                 break
-            plot_path = Path(path)
-            if plot_path.suffix == ".html":
+            if answer == "y":
+                show_plot = True
                 break
-            log(f"Path must have an html extension. Found '{plot_path.suffix}'.")
-    else:
-        plot_path = args.plot
-    if plot_path is not None:
-        log(f"Plotting to {plot_path}.")
-        containment.plot(name=str(plot_path))
+    elif isinstance(args.plot, Path):
+        # TODO: Write the plot to a file. @Bart
+        log("WARNING: This is not implemented, yet.")
+        log(f"Writing the containment plot to {args.plot}.")
+        containment.voxel_containment.draw(file=args.plot)
+    if show_plot:
+        log("Showing the containment plot.")
+        containment.voxel_containment.draw()
 
-    # Get the label array that forms the basis of our masking.
-    label_array = containment.data["relabeled_combined_label_array"]
+    # Get the label array.
+    label_array = containment.voxel_containment.components_grid
     # Write the labels to a gro file if desired.
     if args.inspect_labels_path is None and args.interactive:
         log("Do you want to write a label map as a gro file to view the containments?")
@@ -122,7 +130,7 @@ def mask(args):
                     labels.clear()
                     break
     elif args.autofill is True:
-        labels = containment.get_leaf_components()
+        labels = containment.voxel_containment.leaf_nodes
         log(f"Automatically choosing leaf components: {labels}.")
     else:
         # Making sure we this is the case, even though we do this check at the top as well.
@@ -137,8 +145,10 @@ def mask(args):
     log(f"Selected the following labels: {labels}.")
 
     # Get our compartment by masking out all voxels that have our selected labels.
-    compartment = np.isin(label_array, labels)
-    (_things, (full, free)) = np.unique(compartment, return_counts=True)
+    compartment = containment.voxel_containment.get_voxel_mask(labels)
+    (_things, (full, free)) = np.unique(
+        compartment, return_counts=True
+    )  # &&  We can get this from the class.
     containment_voxel_volume = args.containment_resolution**3
     full_volume = full * containment_voxel_volume
     free_volume = free * containment_voxel_volume
