@@ -52,13 +52,20 @@ pub struct Space {
 }
 
 #[derive(Deserialize)]
+#[serde(untagged)]
+pub enum RuleExpression {
+    Rule(String),
+    Or(Vec<RuleExpression>),
+}
+
+#[derive(Deserialize)]
 pub struct Segment {
     pub name: String,
     pub number: usize,
     pub path: PathBuf,
     pub compartments: Vec<CompartmentID>,
     #[serde(default)]
-    pub rules: Vec<String>,
+    pub rules: Vec<RuleExpression>,
     #[serde(default)]
     pub rotation_axes: Axes,
     // TODO: center?
