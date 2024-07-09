@@ -12,7 +12,8 @@ use serde::Deserialize;
 
 use crate::args::Args;
 use crate::config::{
-    true_by_default, Configuration, Mask as ConfigMask, Shape as ConfigShape, TopolIncludes,
+    true_by_default, Configuration, Mask as ConfigMask, RuleExpression, Shape as ConfigShape,
+    TopolIncludes,
 };
 use crate::mask::{Dimensions, Mask, Position};
 use crate::rules::{ParseRuleError, Rule};
@@ -479,7 +480,7 @@ impl State {
                     let rules = seg
                         .rules
                         .iter()
-                        .map(|s| Rule::from_str(s))
+                        .map(parse_rule)
                         .collect::<Result<Vec<Rule>, _>>()?;
                     Ok(Segment {
                         name: seg.name,
@@ -530,6 +531,15 @@ impl State {
             verbose,
             summary: !args.no_summary,
         })
+    }
+}
+
+fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
+    match expr {
+        RuleExpression::Rule(s) => Rule::from_str(s),
+        RuleExpression::Or(exprs) => Ok(Rule::Or(
+            exprs.iter().map(parse_rule).collect::<Result<_, _>>()?,
+        )),
     }
 }
 

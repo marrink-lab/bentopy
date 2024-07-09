@@ -12,6 +12,9 @@ type Scalar = f32;
 pub enum Rule {
     Position(PositionConstraint),
     IsCloser(CloseStyleBikeshed, CompartmentID, Scalar),
+
+    /// A set of rules where any of them can be true for this [`Rule`] to apply.
+    Or(Vec<Rule>),
 }
 
 impl Rule {
@@ -111,6 +114,9 @@ impl Rule {
 
                 false
             }
+            Rule::Or(rules) => rules
+                .iter()
+                .any(|rule| rule.is_satisfied(position, resolution, voxels, compartments)),
         }
     }
 
@@ -118,6 +124,7 @@ impl Rule {
         match self {
             Rule::Position(_) => true,
             Rule::IsCloser(_, _, _) => false,
+            Rule::Or(rules) => rules.iter().all(Rule::is_lightweight),
         }
     }
 }
