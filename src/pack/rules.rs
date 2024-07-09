@@ -1,14 +1,15 @@
 use std::num::ParseFloatError;
+use std::ops::{BitAndAssign, BitOrAssign};
 use std::str::FromStr;
 
 use glam::U64Vec3;
 
-use crate::mask::{Mask, Position};
+use crate::mask::{Dimensions, Mask, Position};
 use crate::state::{Compartment, CompartmentID};
 
 type Scalar = f32;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Rule {
     Position(PositionConstraint),
     IsCloser(CloseStyleBikeshed, CompartmentID, Scalar),
@@ -127,6 +128,67 @@ impl Rule {
             Rule::Or(rules) => rules.iter().all(Rule::is_lightweight),
         }
     }
+
+    fn distill(&self, dimensions: Dimensions, resolution: f32) -> Mask {
+        let mut mask = Mask::new(dimensions);
+        match self {
+            Rule::Position(poscon) => {
+                let axi = poscon.axis().as_idx();
+                match poscon {
+                    &PositionConstraint::GreaterThan(_, value) => {
+                        mask.apply_function(|pos| value < pos[axi] as f32 * resolution)
+                    }
+                    &PositionConstraint::LessThan(_, value) => {
+                        mask.apply_function(|pos| value > pos[axi] as f32 * resolution)
+                    }
+                }
+            }
+            Rule::IsCloser(_, _, _) => todo!(),
+            Rule::Or(rules) => {
+                // FIXME: I'd rather just apply it to the same mask once.
+                for rule in rules {
+                    mask |= rule.distill(dimensions, resolution)
+                }
+            }
+        }
+
+        mask
+    }
+}
+
+impl BitOrAssign for Mask {
+    fn bitor_assign(&mut self, rhs: Self) {
+        assert_eq!(
+            self.dimensions(),
+            rhs.dimensions(),
+            "the dimensions of both masks must be identical"
+        );
+        // For good measure, so the compiler gets it.
+        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
+
+        self.backings
+            .iter_mut()
+            .zip(rhs.backings.iter())
+            .for_each(|(s, &m)| *s |= m);
+    }
+}
+
+impl BitAndAssign for Mask {
+    // TODO: Perhaps introduce a macro to set up functions like this?
+    fn bitand_assign(&mut self, rhs: Self) {
+        assert_eq!(
+            self.dimensions(),
+            rhs.dimensions(),
+            "the dimensions of both masks must be identical"
+        );
+        // For good measure, so the compiler gets it.
+        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
+
+        self.backings
+            .iter_mut()
+            .zip(rhs.backings.iter())
+            .for_each(|(s, &m)| *s &= m);
+    }
 }
 
 impl FromStr for Rule {
@@ -200,11 +262,26 @@ pub fn split<'r>(
     )
 }
 
-#[derive(Clone, Copy)]
+pub fn distill(rules: &[Rule], dimensions: Dimensions, resolution: f32) -> Mask {
+    let mut mask = Mask::fill::<true>(dimensions);
+    for rule in rules {
+        mask &= rule.distill(dimensions, resolution);
+    }
+
+    mask
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axis {
-    X,
-    Y,
-    Z,
+    X = 0,
+    Y = 1,
+    Z = 2,
+}
+
+impl Axis {
+    pub const fn as_idx(&self) -> usize {
+        *self as usize
+    }
 }
 
 impl FromStr for Axis {
@@ -222,7 +299,7 @@ impl FromStr for Axis {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PositionConstraint {
     GreaterThan(Axis, Scalar),
     LessThan(Axis, Scalar),
@@ -238,7 +315,7 @@ impl PositionConstraint {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CloseStyleBikeshed {
     BoxCenter,
     // AnyFilledVoxel,
