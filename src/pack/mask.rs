@@ -7,11 +7,15 @@ const BACKING_BITS: usize = Backing::BITS as usize;
 #[derive(Debug, Clone)]
 pub struct Mask {
     dimensions: [usize; 3],
-    backings: Box<[Backing]>,
+    pub(crate) backings: Box<[Backing]>,
 }
 
 impl Mask {
     pub fn new(dimensions: Dimensions) -> Self {
+        Self::fill::<false>(dimensions)
+    }
+
+    pub fn fill<const VALUE: bool>(dimensions: Dimensions) -> Self {
         let dimensions = dimensions.map(|v| v as usize);
         assert!(
             dimensions.iter().all(|&v| v > 0),
@@ -19,9 +23,10 @@ impl Mask {
         );
         let n: usize = dimensions.iter().product();
         let n_backings = n.div_ceil(BACKING_BITS);
+        let value = if VALUE { Backing::MAX } else { Backing::MIN };
         Self {
             dimensions,
-            backings: vec![0; n_backings].into_boxed_slice(),
+            backings: vec![value; n_backings].into_boxed_slice(),
         }
     }
 
@@ -89,7 +94,7 @@ impl Mask {
         w * h * d
     }
 
-    const fn n_backings(&self) -> usize {
+    pub(crate) const fn n_backings(&self) -> usize {
         self.backings.len()
     }
 
@@ -244,6 +249,27 @@ impl Mask {
             .iter_mut()
             .zip(mask.backings.iter())
             .for_each(|(s, &m)| *s |= m);
+    }
+
+    pub fn apply_function(&mut self, f: impl Fn(Position) -> bool) {
+        let [w, h, d] = self.dimensions();
+        let mut lin_idx = 0;
+        for z in 0..d {
+            for y in 0..h {
+                for x in 0..w {
+                    if f([x, y, z]) {
+                        self.set_linear_unchecked::<true>(lin_idx);
+                    } else {
+                        self.set_linear_unchecked::<false>(lin_idx);
+                    }
+                    lin_idx += 1;
+                }
+            }
+        }
+    }
+
+    pub fn any<const VALUE: bool>(&self) -> bool {
+        (0..self.n_cells()).any(|lin_idx| self.query_linear_unchecked::<VALUE>(lin_idx))
     }
 }
 
