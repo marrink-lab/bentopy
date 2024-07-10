@@ -206,7 +206,7 @@ fn main() -> io::Result<()> {
 
             // Let's write out the batch and rotate the segment again.
             // TODO: Perhaps we'll need a little transpose here.
-            let batch = Batch::new(segment.rotation, batch_positions.clone());
+            let batch = Batch::new(segment.rotation(), batch_positions.clone());
             placement.push(batch);
             batch_positions.clear();
 

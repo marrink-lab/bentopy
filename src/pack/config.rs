@@ -68,6 +68,8 @@ pub struct Segment {
     pub rules: Vec<RuleExpression>,
     #[serde(default)]
     pub rotation_axes: Axes,
+    #[serde(default)]
+    pub initial_rotation: [f32; 3],
     // TODO: center?
 }
 
