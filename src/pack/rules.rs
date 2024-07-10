@@ -1,5 +1,5 @@
 use std::num::ParseFloatError;
-use std::ops::{BitAndAssign, BitOrAssign};
+use std::ops::{BitAndAssign, BitOrAssign, Not};
 use std::str::FromStr;
 
 use glam::U64Vec3;
@@ -188,6 +188,15 @@ impl BitAndAssign for Mask {
             .iter_mut()
             .zip(rhs.backings.iter())
             .for_each(|(s, &m)| *s &= m);
+    }
+}
+
+impl Not for Mask {
+    type Output = Self;
+
+    fn not(mut self) -> Self::Output {
+        self.backings.iter_mut().for_each(|b| *b = !*b);
+        self
     }
 }
 

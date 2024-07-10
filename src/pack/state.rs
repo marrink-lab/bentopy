@@ -16,7 +16,7 @@ use crate::config::{
     TopolIncludes,
 };
 use crate::mask::{Dimensions, Mask, Position};
-use crate::rules::{ParseRuleError, Rule};
+use crate::rules::{self, ParseRuleError, Rule};
 use crate::structure::Structure;
 use crate::Location;
 
@@ -127,6 +127,7 @@ pub struct Space {
     /// When set to `None`, a renewal of locations is due for the next session, regardless of the
     /// previous session's compartment IDs.
     previous_compartments: Option<HashSet<CompartmentID>>,
+    previous_rules: Option<Vec<Rule>>,
 }
 
 impl Space {
@@ -134,23 +135,30 @@ impl Space {
     pub fn enter_session<'s>(
         &'s mut self,
         compartment_ids: impl IntoIterator<Item = CompartmentID>,
+        rules: impl IntoIterator<Item = Rule>,
         locations: &'s mut Locations,
         target: usize,
     ) -> Session {
         let compartment_ids = HashSet::from_iter(compartment_ids);
+        let rules = Vec::from_iter(rules);
 
         // Set up a new session background if necessary.
         // Otherwise, leave the session background and locations alone. The session background
         // will stay exactly the same, since it was already set up for this set of
         // compartments. The locations are likely still valid.
-        if !self
+        let same_previous_compartments = self
             .previous_compartments
             .as_ref()
-            .is_some_and(|prev| prev == &compartment_ids)
-        {
+            .is_some_and(|prev| prev == &compartment_ids);
+        let same_previous_rules = self
+            .previous_rules
+            .as_ref()
+            .is_some_and(|prev| prev == &rules);
+        if !same_previous_compartments || !same_previous_rules {
             // Clone the global background, which has all structures stamped onto it.
             self.session_background = self.global_background.clone();
 
+            // Apply the compartments to the background.
             for compartment in self
                 .compartments
                 .iter()
@@ -159,6 +167,11 @@ impl Space {
                 self.session_background.apply_mask(&compartment.mask)
             }
             self.previous_compartments = Some(compartment_ids);
+
+            // Apply the rules to the background.
+            let rule_mask = rules::distill(&rules, self.dimensions, self.resolution);
+            self.session_background |= !rule_mask;
+            self.previous_rules = Some(rules);
 
             // We must renew the locations as well, based on the newly masked session background.
             locations.renew(self.session_background.linear_indices_where::<false>());
@@ -464,6 +477,7 @@ impl State {
             global_background: Mask::new(dimensions),
             session_background: Mask::new(dimensions),
             previous_compartments: None,
+            previous_rules: None,
         };
 
         let bead_radius = args.bead_radius;
