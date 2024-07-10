@@ -20,6 +20,8 @@ use crate::rules::{self, ParseRuleError, Rule};
 use crate::structure::Structure;
 use crate::Location;
 
+const ORDER: EulerRot = EulerRot::XYZ;
+
 pub type CompartmentID = String;
 pub type Compartments = Vec<Compartment>;
 pub type Size = [f32; 3];
@@ -373,9 +375,11 @@ pub struct Segment {
     pub path: PathBuf,
     pub rotation_axes: Axes,
     structure: Structure,
+    /// The initial rotation of the structure must be applied before the random rotation.
+    initial_rotation: Rotation,
     /// Invariant: This rotation must satisfy the constraints set by the `rotation_axes` field by
     /// construction.
-    pub(crate) rotation: Rotation,
+    rotation: Rotation,
     voxels: Option<Voxels>,
 }
 
@@ -393,7 +397,6 @@ impl Segment {
         // accuracy on a random rotation---but perhaps it is more wise to store the rotation
         // internally as a quaternion and only convert it to Mat3 when writing to the placement
         // list.
-        const ORDER: EulerRot = EulerRot::XYZ;
         let axes = &self.rotation_axes;
         let (ax, ay, az) = Quat::from_mat3(&rotation).to_euler(ORDER);
         let (ax, ay, az) = (
@@ -405,11 +408,21 @@ impl Segment {
         self.voxels = None;
     }
 
+    /// Get the correctly formed rotation of this [`Segment`].
+    pub fn rotation(&self) -> Rotation {
+        self.rotation * self.initial_rotation
+    }
+
     /// Voxelize this [`Segment`] according to its current rotation.
     ///
     /// The voxelization can be accessed through [`Segment::voxels`].
     pub fn voxelize(&mut self, resolution: f32, radius: f32) {
-        self.voxels = Some(voxelize(&self.structure, self.rotation, resolution, radius));
+        self.voxels = Some(voxelize(
+            &self.structure,
+            self.rotation(),
+            resolution,
+            radius,
+        ));
     }
 
     /// If available, return a reference to the voxels that represent this [`Segment`].
@@ -496,6 +509,10 @@ impl State {
                         .iter()
                         .map(parse_rule)
                         .collect::<Result<Vec<Rule>, _>>()?;
+                    let initial_rotation = {
+                        let [ax, ay, az] = seg.initial_rotation.map(f32::to_radians);
+                        Rotation::from_euler(ORDER, ax, ay, az)
+                    };
                     Ok(Segment {
                         name: seg.name,
                         target: seg.number,
@@ -504,6 +521,7 @@ impl State {
                         path: seg.path,
                         rotation_axes: seg.rotation_axes,
                         structure,
+                        initial_rotation,
                         rotation: Rotation::IDENTITY,
                         voxels: None,
                     })
