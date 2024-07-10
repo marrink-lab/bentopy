@@ -121,15 +121,10 @@ fn main() -> io::Result<()> {
         let mut session = state.space.enter_session(
             // FIXME: This cloned stuff does not sit right with me.
             segment.compartments.iter().cloned(),
+            segment.rules.iter().cloned(),
             &mut locations,
-            segment.target, // FIXME: Can probably be bigger.
+            segment.target,
         );
-
-        let (pre_rules, post_rules) = rules::split(&segment.rules);
-        // These rules may be checked many times while picking a valid random location.
-        let pre_rules: Vec<Rule> = pre_rules.cloned().collect();
-        // These rules are more expensive and will only be performed if the placement seems fine.
-        let post_rules: Vec<Rule> = post_rules.cloned().collect();
 
         // Set up the placement record for this segment.
         let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
@@ -194,25 +189,9 @@ fn main() -> io::Result<()> {
                     }
                 }
 
-                // Check the position against the lightweight rules for this segment.
-                // FIXME: The math of dimensions considered as the max is kind of shaky I guess.
-                for rule in &pre_rules {
-                    if !rule.is_satisfied(position, resolution, voxels, session.compartments()) {
-                        continue 'location;
-                    }
-                }
-
                 // All seems good, so we continue to see if this position will be accepted.
                 break position;
             };
-
-            // Check if our rules are satisfied.
-            for rule in &post_rules {
-                if !rule.is_satisfied(position, resolution, voxels, session.compartments()) {
-                    tries += 1;
-                    continue 'placement; // Reject due to breaking a rule.
-                }
-            }
 
             // Reject if it would cause a collision.
             if !session.check_collisions(voxels, position) {
