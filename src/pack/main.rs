@@ -7,7 +7,6 @@ use rand::Rng;
 use args::Args;
 use config::Configuration;
 use placement::{Batch, Placement, PlacementList};
-use rules::Rule;
 use state::{Locations, State};
 
 mod args;
