@@ -58,6 +58,14 @@ pub enum RuleExpression {
     Or(Vec<RuleExpression>),
 }
 
+fn parse_axes<'de, D>(deserializer: D) -> Result<Axes, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse().map_err(serde::de::Error::custom)
+}
+
 #[derive(Deserialize)]
 pub struct Segment {
     pub name: String,
@@ -66,7 +74,7 @@ pub struct Segment {
     pub compartments: Vec<CompartmentID>,
     #[serde(default)]
     pub rules: Vec<RuleExpression>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "parse_axes")]
     pub rotation_axes: Axes,
     #[serde(default)]
     pub initial_rotation: [f32; 3],
