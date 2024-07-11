@@ -347,13 +347,9 @@ impl Locations {
     }
 }
 
-#[derive(Deserialize)]
 pub struct Axes {
-    #[serde(default = "true_by_default")]
     x: bool,
-    #[serde(default = "true_by_default")]
     y: bool,
-    #[serde(default = "true_by_default")]
     z: bool,
 }
 
@@ -364,6 +360,25 @@ impl Default for Axes {
             y: true,
             z: true,
         }
+    }
+}
+
+impl FromStr for Axes {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let len = s.len();
+        if len > 3 {
+            return Err(format!(
+                "an axes string may consist of at most 3 characters, '{s}' has {len} characters"
+            ));
+        }
+
+        Ok(Self {
+            x: s.contains('x'),
+            y: s.contains('y'),
+            z: s.contains('z'),
+        })
     }
 }
 
