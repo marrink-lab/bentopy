@@ -53,7 +53,10 @@ def mask(args):
     log("Calculating containment... ", end="")
     start = time()
     containment = Containment(
-        selection, resolution=args.containment_resolution, slab=args.slab
+        selection,
+        resolution=args.containment_resolution,
+        slab=args.slab,
+        verbose=args.verbose,
     )
     duration = time() - start
     log(f"Done in {duration:.3} s.")

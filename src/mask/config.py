@@ -105,4 +105,10 @@ def setup_parser(parser=None):
         help="""Write the final voxel mask as a gro file for inspection with molecule viewers. 
         This can be useful when you want to verify the voxel mask that is produced for some selection of labels.""",
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Display verbose output.",
+    )
     return parser
