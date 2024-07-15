@@ -1,13 +1,13 @@
 use std::io;
 
-use clap::Parser;
-use glam::Mat3;
-use rand::Rng;
-
 use args::Args;
+use clap::Parser;
 use config::Configuration;
+use glam::Mat3;
 use placement::{Batch, Placement, PlacementList};
-use state::{Locations, State};
+use rand::Rng;
+use session::Locations;
+use state::State;
 
 mod args;
 mod config;
@@ -15,6 +15,7 @@ mod mask;
 mod placement;
 #[allow(dead_code)] // FIXME: Remove once the rule system is further developed.
 mod rules;
+mod session;
 mod state;
 mod structure;
 
