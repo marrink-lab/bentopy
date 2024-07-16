@@ -2,16 +2,16 @@
 
 ## State
 
-This project is under development and solely for internal use. Many parts are in flux, and no guarantees
-about correctness or stability can be made.
+This project is under development and solely for internal use. Many parts are
+in flux, and no guarantees about correctness or stability can be made.
 
 ## Installation
 
 ### Prerequisites
 
-_bentopy_ uses [Rust][rust] to speed up some I/O operations of large files.
-Hence, a Rust compiler is required during installation. To check whether this
-is the case, you can run
+_bentopy_ is built on a [Rust][rust] core.
+A Rust compiler is required during installation. To check whether one is
+present, you can run
 
 ```console
 cargo --version
@@ -26,7 +26,6 @@ If you don't care about peeking into the sources and just want access to the
 program, this is the quickest option.
 
 ```console
-python3 -m venv venv && source venv/bin/activate # Not required, but often convenient.
 pip3 install git+https://github.com/marrink-lab/bentopy
 ```
 
@@ -35,7 +34,7 @@ pip3 install git+https://github.com/marrink-lab/bentopy
 ```console
 git clone https://github.com/marrink-lab/bentopy
 cd bentopy
-python3 -m venv venv && source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate # Not required, but often convenient.
 pip3 install .
 ```
 
@@ -54,6 +53,13 @@ bentopy --help
 bentopy pack --help
 ```
 
+> [!NOTE] For the moment, the bentopy subcommands can be accessed through the
+> `bentopy-<subcommand>` pattern. For example, `bentopy-pack`.
+> Shortly, a `bentopy` root command will be introduced, which provides access
+> through a `bentopy <subcommand>` pattern, e.g., `bentopy pack`.
+> Throughout this document, the latter usage is shown.
+> But for now, a dash between the words is necessary.
+
 A typical _bentopy_ workflow may look like this.
 
 ```
@@ -71,20 +77,20 @@ configuration file, a packing of the input structures within the specified
 space is created.
 
 ```console
-bentopy pack input.json --rearrange --seed 5172
+bentopy pack --rearrange --seed 5172 input.json placements.json
 ```
 
-_Pack a system defined in `input.json`. Prior to packing, rearrange the
-specified structures according to a size heuristic to improve the possible
-density and set the random seed to 5172._
+_Pack a system defined in `input.json` and write the output placement list to
+`placements.json`. Prior to packing, rearrange the specified structures
+according to a size heuristic to improve the possible density and set the
+random seed to 5172._
 
 ### _render_
 
 This packing is stored as a **placement list**, which is a `json` file that
 describes _which structures_ at _what rotations_ are _placed where_. In order
-to create a structure file (and topology file) from this placement list that
-can be read by molecular visualization and simulation programs, the _render_
-subcommand can be used.
+to create a structure file (and topology file) from this placement list, the
+_render_ subcommand can be used.
 
 ```console
 bentopy render placements.json structure.gro -t topol.top
@@ -97,15 +103,15 @@ and write a topology file to `topol.top`._
 
 To set up a configuration for _pack_, you must define a space into which the
 structures will be packed. This space can be defined according to an analytical
-function, such as a sphere. But, _bentopy_ is also capable of packing arbitrary
-spaces provided as voxel masks. Any boolean numpy array [stored as a compressed
-file (`.npz`)][numpy-npz] of the correct dimensions can function as a valid
-mask.
+function, such as a sphere. But, more interestingly, _bentopy_ is capable of
+packing arbitrary spaces. These spaces can be provided as voxel masks. Any
+boolean numpy array [stored as a compressed file (`.npz`)][numpy-npz] of the
+correct dimensions can function as a valid mask.
 
 The _mask_ subcommand provides a convenient and powerful means of setting up
-such masks based on your existing structures from the command line. _mask_ can
-be used to automatically or manually select different compartments as
-determined by [mdvcontainment][mdvc].
+such masks based on your existing structures, right from the command line.
+_mask_ can be used to automatically or manually select different compartments
+as determined by [mdvcontainment][mdvc].
 
 ```console
 bentopy mask chrom_mem.gro mask.npz --autofill
@@ -113,15 +119,15 @@ bentopy mask chrom_mem.gro mask.npz --autofill
 
 _Determine the compartments in `chrom_mem.gro` and automatically select the
 innermost compartment (`--autofill`). From that selected compartment, write a
-mask to `mask.npz`_
+mask to `mask.npz`._
 
 ### _grocat_
 
 As the name suggests, _grocat_ is a tool for concatenating `gro` files. Though
 this is a relatively simple operation, _grocat_ provides a convenient way of
 telling apart different sections of large models by optionally specifying a new
-residue name for a whole file in the argument list by appending `:<residue
-name>` to a file path.
+residue name for a whole file in the argument list by appending
+`:<residue name>` to a file path.
 
 ```console
 bentopy grocat chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
@@ -133,7 +139,10 @@ to `MEM` in the concatenated structure._
 
 ## Example
 
-Let's try to pack a spherical system that is full of lysozyme structures.
+<!--- TODO: Write an example that is based on a masked space. That would be a
+much better representation of what makes bentopy cool. --->
+
+Let's try to pack a spherical system full of lysozyme structures.
 First, we want a structure to pack, so we can download the structure for
 [`3LYZ`][3lyz]. We place it in a `structures` directory to stay organized.
 
@@ -162,7 +171,6 @@ Now we can set up our input configuration, which we will call
 	},
 	"output": {
 		"title": "3lyz",
-		"dir": "output",
 		"topol_includes": [
 			"forcefields/forcefield.itp",
 			"structures/3lyz.itp"
@@ -181,8 +189,8 @@ Now we can set up our input configuration, which we will call
 
 #### Space
 
-We set the **space** up to a **size** of 100&times;100&times;100 nm, with a
-**resolution** of 0.5 nm. The mask&mdash;the volume that defines where
+We set the **space** up to a **size** of 100&times;100&times;100 nm&sup3;, with
+a **resolution** of 0.5 nm. The mask&mdash;the volume that defines where
 structures can be placed&mdash;is set to be derived from a **spherical**
 analytical function.
 
@@ -205,32 +213,12 @@ interpreted as a three-dimensional boolean mask. The provided mask must have
 the same size as specified in the **space** section's **dimensions** divided by
 the **resolution**.
 
-<details>
-<summary>Constraining compartments.</summary>
-
-A compartment definition can also take a **constraint** parameter. Currently,
-only the **axis** predicate is available, which constrains all placements in
-that compartment such that only placements with the specified value for that
-axis are considered valid. The following example of a compartment definition
-accepts placements as valid if and only if the _z_-component of a placement is
-at 50 nm.
-
-```json
-		{
-			"id": "flat",
-			"constraint": "axis:z=50.0",
-			"shape": "cuboid"
-		}
-```
-
-</details>
-
 #### Output
 
-In **output**, we set a **title** and **dir**ectory to write the placement list
-to. With the optional field **topol_includes**, we can specify what [`itp`
-files][gromacs-itp] files are to be included if the placement list produced
-from this config is written to a topology file ([`.top`][gromacs-top]).
+In **output** we set a **title** for the system, and the optional field
+**topol_includes**, we can specify what [`itp` files][gromacs-itp] files are to
+be included if the placement list produced from this config is written to a
+topology file ([`.top`][gromacs-top]).
 
 > [!NOTE]
 > For this example, we filled this field with dummy paths.
@@ -248,41 +236,43 @@ the structure file for this segment can be found.
 > correspond to the names in the `itp` files.
 
 <details>
-<summary>Constraining segment rotations and setting a center adjustment.</summary>
+<summary>Constraining segment rotations.</summary>
 
-For some structures, it can be helpful or necessary to constrain the rotation
+For some systems, it can be helpful or necessary to constrain the rotation
 of certain segments. The **rotation_axes** parameter takes a string with the
-axes over which a structure may be randomly rotated. Any axes that are not
-mentioned will not be rotated. For instance, the axes definition `"xyz"`
-indicates full rotational freedom and is the tacit default (rotation is allowed
-over _x_, _y_, and _z_ axes), while `"z"` constrains the rotation such that it
-may only occur over the _z_-axis, leaving _x_ and _z_ rotation as provided in
-the structure file.
+axes over which a structure may be randomly rotated. Over axes that are not
+mentioned, no random rotation will be applied. For instance, the axes
+definition `"xyz"` indicates full rotational freedom and is the tacit default
+(rotation is allowed over _x_, _y_, and _z_ axes), while `"z"` constrains the
+rotation such that it may only occur over the _z_-axis, leaving _x_ and _z_
+rotation as provided in the structure file.
 
-The **center** parameter can be used to provide an offset in nm. When ommitted,
-its default value is `"auto, auto, auto"`, which defines the center as the
-geometric center of the structure. Any of the three values can be replaced by a
-floating point value, which sets an adjustment _from_ the `auto` center.
-
-See [#24](https://github.com/marrink-lab/bentopy/issues/24), which tracks the
-development of an additional `keep` parameter, which would respect the center
-for some axis as its zero-value in the structure file.
+Additionally, one can set an **initial_rotation** for a segment.
+It can be set in an axis-angle (degrees) `[xangle, yangle, zangle]` list, where
+the rotations are applied in _x_, _y_, _z_ order.
+This rotation will be applied to the structure as it is loaded from its file
+and serves as the starting point for any subsequent rotations. The initial
+rotation and constraining of the rotation axes as described above work together
+to provide open-ended control of the possible rotations for segments.
 
 ```json
 		{
 			"name": "1a0s",
 			"number": 100,
 			"path": "structures/1a0s.pdb",
-			"rotation_axes": "z",
-			"center": "auto, auto, -1.2",
+			"initial_rotation": [0, 90, 0],
+			"rotation_axes": "x",
 			"compartments": ["flat"]
 		}
 ```
 
 With the above segment definition, up to a 100 instances of some structure will
-be placed according to some compartment with the id "flat", with a -1.2 nm
-offset to its geometric center over the _z_-axis, while only allowing rotation
-over its _z_-axis.
+be placed according to some compartment with the id "flat". The structure will
+be rotated 90 degrees over its _y_-axis. Random rotations are applied only over
+its (post-initial rotation) _x_-axis.
+
+This snippet thus allows placement of that structure over a _yz_ plane,
+rotating over the axis that is perpendicular to that plane (_x_-axis).
 
 </details>
 
@@ -291,7 +281,7 @@ over its _z_-axis.
 Now, we are ready to pack the system. We could simply do this as follows.
 
 ```console
-bentopy pack 3lyz_input.json
+bentopy pack 3lyz_input.json 3lyz_placements.json
 ```
 
 In order to make the procedure deterministic, the `--seed` parameter can be
@@ -299,7 +289,7 @@ set. This means that the same command will produce the same output between
 runs.
 
 ```console
-bentopy pack --seed 1312 3lyz_input.json
+bentopy pack --seed 1312 3lyz_input.json 3lyz_placements.json
 ```
 
 In case we want to pack multiple structures, we may want to pass the
@@ -308,13 +298,13 @@ structures are placed first, and small structures are placed last. This
 placement heuristic can lead to denser packings. When it is not set, the order
 of the structures in the input configuration is respected.
 
-After the command finishes, we will find that `output/3lyz_placements.json` has
+After the command finishes, we will find that `3lyz_placements.json` has
 been created. This is a single-line `json` file, which can be hard to inspect.
 If you are curious, you can use a tool such as [`jq`][jq] to look at what was
 written in a more readable form.
 
 ```console
-jq . output/3lyz_placement.json
+jq . 3lyz_placement.json
 ```
 
 <details>
@@ -322,6 +312,10 @@ jq . output/3lyz_placement.json
 The output may look like this (some lines have been cut and adjusted for
 legibility).
 </summary>
+
+<!--- TODO: This is not strictly an incorrect placement list, but since the
+rewrite n_rotations == n_placements, while here n_rotations < n_placements.
+--->
 
 ```
 {
@@ -373,15 +367,13 @@ since the packed systems can become very large. Storing the placement list as
 an intermediate product decouples the hard task of packing from the simple work
 of writing it into a structure file.
 
----
-
 We want to render out the placement list we just created into a structure file
 called `3lyz_sphere.gro`. Additionally, we would like to produce topology file
 (`topol.top`) that Gromacs uses to understand how the structure file is built
 up.
 
 ```console
-bentopy render output/3lyz_placements.json 3lyz_sphere.gro -t topol.top
+bentopy render 3lyz_placements.json 3lyz_sphere.gro -t topol.top
 ```
 
 You can now inspect the `3lyz_sphere.gro` structure in a molecular
@@ -408,14 +400,14 @@ For example, to only render a 10&times;10&times;10 nm cube extending
 from the point (40, 40, 40) to (50, 50, 50), we can pass the following limits.
 
 ```console
-bentopy render output/3lyz_placements.json 3lyz_small_cube.gro --limits 40,50,40,50,40,50
+bentopy render 3lyz_placements.json 3lyz_small_cube.gro --limits 40,50,40,50,40,50
 ```
 
 Perhaps we would like to see a pancake instead! To do this, we can define the
 limits only for the _z_-direction.
 
 ```console
-bentopy render output/3lyz_placements.json 3lyz_pancake.gro --limits none,none,none,none,45,55
+bentopy render 3lyz_placements.json 3lyz_pancake.gro --limits none,none,none,none,45,55
 ```
 
 Using `--limits`, we can cut out a part of the packed structure, but perhaps
@@ -425,9 +417,6 @@ For this, you can try the `--mode` option, which gives you the ability to only
 render out certain atoms (`backbone`, `alpha` carbon) or beads (representing
 each `residue`, or even only one per structure `instance`). By default, the
 mode is `full`, and we have just seen its output. Let's try `alpha`, now.
-
-> [!WARNING]
-> Some of these options (`backbone`) may not be functional right now.
 
 ```console
 bentopy render output/3lyz_placements.json 3lyz_alpha.gro --mode alpha
@@ -446,6 +435,18 @@ takes to inspect a packing, if necessary.
 > Using modes other than `full` (the default) is obviously not relevant beyond
 > inspection and analysis of the packed structure. To reflect this, the option
 > to write a topology file and setting a mode are mutually exclusive.
+
+The residue numbers can be assigned to the atoms in the output structure file in two ways. This behavior can be set using the `--resnum-mode` option.
+
+- `--resnum-mode instance`: each instance of a segment will have its own
+residue number. The first instance that is placed will have a residue number of
+1, the second is 2, etc.
+- `--resnum-mode segment`: all instances of a segment will have the same
+residue number. The whole group of placed structures for a segment can be
+selected by its associated group residue number. In a system with a hundred
+instances of two segments each, the hundred structures for the first segment
+can be selected with residue number 1, the hundred structures for the second
+segment with residue number 2.
 
 In case you want to render out a structure based on a placement list that you
 or a colleague have created in a different environment, it can be useful to
