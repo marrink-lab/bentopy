@@ -382,6 +382,13 @@ impl State {
                     if verbose {
                         eprintln!("\tLoading {:?}...", &seg.path);
                     }
+                    let name = seg.name;
+                    let tag = seg.tag;
+                    match tag.as_ref().map(String::len) {
+                        Some(0) => eprintln!("WARNING: The tag for segment '{name}' is empty."),
+                        Some(6.. ) => eprintln!("WARNING: The tag for segment '{name}' is longer than 5 characters, and may be truncated when the placement list is rendered."),
+                        _ => {} // Nothing to warn about.
+                    }
                     let structure = load_molecule(&seg.path)?;
                     let rules = seg
                         .rules
@@ -393,8 +400,8 @@ impl State {
                         Rotation::from_euler(ORDER, ax, ay, az)
                     };
                     Ok(Segment {
-                        name: seg.name,
-                        tag: seg.tag,
+                        name,
+                        tag,
                         target: seg.number,
                         compartments: seg.compartments,
                         rules,
