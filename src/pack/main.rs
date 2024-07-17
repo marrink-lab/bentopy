@@ -60,38 +60,25 @@ impl Summary {
 fn main() -> io::Result<()> {
     // Preparation.
     let args = Args::parse();
-    let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.config)?)?;
-    let mut state = State::new(args, config)?;
+    let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.config)?)
+        .unwrap_or_else(|err| {
+            eprintln!(
+                "ERROR: Failed to process configuration from {:?}: {err}",
+                &args.config
+            );
+            std::process::exit(1)
+        });
+    let mut state = State::new(args, config).unwrap_or_else(|err| {
+        eprintln!("ERROR: Failed to set up program state: {err}");
+        std::process::exit(1)
+    });
     let mut locations = Locations::new();
 
     // Check whether the rules make any sense.
-    let mut checked = Vec::new(); // FIXME: BTreeMap?
-    for segment in &state.segments {
-        let rules = &segment.rules;
-        if rules.is_empty() {
-            // No rules to check.
-            continue;
-        }
-        if checked.contains(rules) {
-            // Already checked this rule.
-            continue;
-        }
-
-        // Check the rules.
-        let distilled = rules::distill(
-            rules,
-            state.space.dimensions,
-            state.space.resolution,
-            &state.space.compartments,
-        );
-        if !distilled.any::<true>() {
-            let name = &segment.name;
-            eprintln!("ERROR: The rules {rules:?} preclude any placement of segment '{name}'.");
-            std::process::exit(1);
-        }
-
-        checked.push(rules.clone())
-    }
+    state.check_rules().unwrap_or_else(|err| {
+        eprintln!("ERROR: Encountered a problem while checking the rules: {err}");
+        std::process::exit(1)
+    });
 
     // Packing.
     let mut placements = Vec::new();
