@@ -56,6 +56,9 @@ struct Args {
     /// number indicating a bound or a non-numerical value indicating an unset bound.
     #[arg(long)]
     limits: Option<Limits>,
+
+    #[arg(long)]
+    ignore_tags: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -67,6 +70,16 @@ fn main() -> io::Result<()> {
         mode,
         limits,
         resnum_mode,
+        ignore_tags,
     } = Args::parse();
-    render(input, output, topol, root, limits, mode, resnum_mode)
+    render(
+        input,
+        output,
+        topol,
+        root,
+        limits,
+        mode,
+        resnum_mode,
+        ignore_tags,
+    )
 }

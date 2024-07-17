@@ -69,6 +69,7 @@ where
 #[derive(Deserialize)]
 pub struct Segment {
     pub name: String,
+    pub tag: Option<String>,
     pub number: usize,
     pub path: PathBuf,
     pub compartments: Vec<CompartmentID>,

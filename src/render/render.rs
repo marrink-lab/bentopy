@@ -27,9 +27,17 @@ struct Placements {
 #[derive(Debug, Clone, Deserialize)]
 struct Placement {
     name: String,
+    /// A tag that will replace the associated structure's `resname` field, if present.
+    tag: Option<String>,
     /// Path to the segment's molecule file.
     path: PathBuf,
     batches: Vec<Batch>,
+}
+
+impl Placement {
+    fn tag(&self) -> Option<&str> {
+        self.tag.as_ref().map(|t| t.as_str())
+    }
 }
 
 /// A set of positions that share a specific rotation.
@@ -103,7 +111,16 @@ fn write_gro(
     limits: Limits,
     mode: Mode,
     resnum_mode: ResnumMode,
+    ignore_tags: bool,
 ) -> io::Result<Box<[(String, usize)]>> {
+    let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
+        if !ignore_tags {
+            if let Some(tag) = tag {
+                molecule.apply_tag(tag)
+            }
+        }
+    };
+
     let min_limits = Vec3::new(
         limits.minx.unwrap_or_default(),
         limits.miny.unwrap_or_default(),
@@ -118,6 +135,7 @@ fn write_gro(
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
+                    apply_tag(&mut molecule, p.tag());
                     molecule.translate_to_center();
                     Ok(molecule)
                 })
@@ -126,6 +144,7 @@ fn write_gro(
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
+                    apply_tag(&mut molecule, p.tag());
                     molecule.translate_to_center();
                     molecule.atoms = molecule
                         .atoms
@@ -139,6 +158,7 @@ fn write_gro(
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
+                    apply_tag(&mut molecule, p.tag());
                     molecule.translate_to_center();
                     molecule.atoms = molecule
                         .atoms
@@ -180,14 +200,19 @@ fn write_gro(
                         }
                     }
                     molecule.atoms = residues;
+                    apply_tag(&mut molecule, p.tag());
                     molecule.translate_to_center();
                     Ok(molecule)
                 })
                 .collect::<io::Result<Vec<_>>>()?,
             Mode::Instance => placements
                 .iter()
-                .map(|_| Molecule {
-                    atoms: vec![Atom::dummy()],
+                .map(|p| {
+                    let mut atom = Atom::dummy();
+                    if let Some(tag) = p.tag() {
+                        atom.resname = tag.into();
+                    }
+                    Molecule { atoms: vec![atom] }
                 })
                 .collect(),
         }
@@ -380,6 +405,7 @@ pub fn render(
     limits: Option<Limits>,
     mode: Mode,
     resnum_mode: ResnumMode,
+    ignore_tags: bool,
 ) -> io::Result<()> {
     eprint!("Reading from {input_path:?}... ");
     let t0 = std::time::Instant::now();
@@ -402,6 +428,7 @@ pub fn render(
         limits.unwrap_or_default(),
         mode,
         resnum_mode,
+        ignore_tags,
     )?;
     let dt = std::time::Instant::now() - t0;
     eprintln!("Done in {:.3} s.", dt.as_secs_f32());

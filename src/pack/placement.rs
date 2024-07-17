@@ -36,14 +36,16 @@ impl Batch {
 #[derive(Serialize)]
 pub struct Placement {
     name: String,
+    tag: Option<String>,
     path: PathBuf,
     batches: Vec<Batch>,
 }
 
 impl Placement {
-    pub fn new(name: String, path: PathBuf) -> Self {
+    pub fn new(name: String, tag: Option<String>, path: PathBuf) -> Self {
         Self {
             name,
+            tag,
             path,
             batches: Default::default(),
         }

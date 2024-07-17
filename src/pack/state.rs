@@ -246,6 +246,7 @@ impl FromStr for Axes {
 
 pub struct Segment {
     pub name: String,
+    pub tag: Option<String>,
     pub target: usize,
     pub compartments: Vec<CompartmentID>,
     pub rules: Vec<Rule>,
@@ -393,6 +394,7 @@ impl State {
                     };
                     Ok(Segment {
                         name: seg.name,
+                        tag: seg.tag,
                         target: seg.number,
                         compartments: seg.compartments,
                         rules,
@@ -521,7 +523,11 @@ impl State {
             );
 
             // Set up the placement record for this segment.
-            let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
+            let mut placement = Placement::new(
+                segment.name.clone(),
+                segment.tag.clone(),
+                segment.path.clone(),
+            );
 
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.
