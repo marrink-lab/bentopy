@@ -436,6 +436,39 @@ impl State {
             summary: !args.no_summary,
         })
     }
+
+    pub fn check_rules(&self) -> Result<(), String> {
+        let mut checked = Vec::new(); // FIXME: BTreeMap?
+        for segment in &self.segments {
+            let rules = &segment.rules;
+            if rules.is_empty() {
+                // No rules to check.
+                continue;
+            }
+            if checked.contains(rules) {
+                // Already checked this rule.
+                continue;
+            }
+
+            // Check the rules.
+            let distilled = rules::distill(
+                rules,
+                self.space.dimensions,
+                self.space.resolution,
+                &self.space.compartments,
+            );
+            if !distilled.any::<true>() {
+                let name = &segment.name;
+                return Err(format!(
+                    "the rules {rules:?} preclude any placement of segment '{name}'"
+                ));
+            }
+
+            checked.push(rules.clone())
+        }
+
+        Ok(())
+    }
 }
 
 fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
