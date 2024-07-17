@@ -53,67 +53,17 @@ impl Rule {
                     // FIXME: This condition can be checked at time of State creation.
                     .expect("the compartment ID in the rule must exist");
 
+                let voxel_radius = distance / resolution;
+                let distance_mask = compartment.get_distance_mask(voxel_radius);
+
+                // FIXME: Basically the internals of Session::check_collisions here.
+                let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
                 let position = U64Vec3::from_array(position);
                 let voxels_dimensions = U64Vec3::from_array(voxels.dimensions());
                 let voxels_center = position + voxels_dimensions / 2;
-
-                let voxel_radius = distance / resolution;
-
-                // TODO: All of the asserts littered here must be dealt with earlier on. Sometimes
-                // they do describe artificial limitations, that just need some more implementation
-                // of literal edge cases.
-
-                assert!(voxel_radius.powi(2) as u64 <= voxels_dimensions.length_squared());
-                let inscribed_box_size = U64Vec3::splat((voxel_radius * 2.0).ceil() as u64);
-                let circumscribed_box_size =
-                    U64Vec3::splat((voxel_radius * f32::sqrt(1.0 / 3.0)).ceil() as u64);
-                let inscribed_box_center = inscribed_box_size / 2;
-                let circumscribed_box_center = circumscribed_box_size / 2;
-                // Check whether the upcoming subtractions are safe.
-                assert!(inscribed_box_center.cmple(voxels_center).all());
-                assert!(circumscribed_box_center.cmple(voxels_center).all());
-                let inscribed_box_start = voxels_center - inscribed_box_center;
-                let circumscribed_box_start = voxels_center - circumscribed_box_center;
-
-                // FIXME: We're assuming that the box sizes don't go beyond the actual mask size
-                // from some position. That's really bad.
-
-                let inscribed = compartment.mask.slice_from_start_dimensions(
-                    inscribed_box_start.to_array(),
-                    inscribed_box_size.to_array(),
-                );
-
-                // Since this is the cube inscribed by the radius, any true voxel we find implies
-                // that the distance criterion is met! So we are satisfied with just one hit :)
-                if inscribed.any::<true>() {
-                    // Found a hit! There is at least one voxel from the compartment mask that is
-                    // at least `distance` from the `position`.
-                    return true;
-                }
-
-                // TODO: We should skip checking over the sections we already checked.
-
-                let position_f = position.as_vec3(); // FIXME: Horrible names.
-                let voxel_radius2 = voxel_radius.powi(2);
-                // Haven't found a hit yet, but maybe if we expand our search field a bit.
-                let circumscribed = compartment.mask.slice_from_start_dimensions(
-                    circumscribed_box_start.to_array(),
-                    circumscribed_box_size.to_array(),
-                );
-                // In this case, we actually do need to check the distance, because in the corners
-                // of this cube, the distance to our point of interest is actually greater than our
-                // query `distance`.
-                if circumscribed.iter_where::<true>().any(|idx| {
-                    let hit = U64Vec3::from_array(idx).as_vec3();
-                    let d2 = position_f.distance_squared(hit);
-                    d2 <= voxel_radius2
-                }) {
-                    // Found a hit! There is at least one voxel from the compartment mask that is
-                    // at least `distance` from the `position`.
-                    return true;
-                }
-
-                false
+                occupied_indices
+                    .map(|p| (p + voxels_center).to_array())
+                    .all(|idx| !distance_mask.get_periodic(idx))
             }
             Rule::Or(rules) => rules
                 .iter()
@@ -129,10 +79,15 @@ impl Rule {
         }
     }
 
-    fn distill(&self, dimensions: Dimensions, resolution: f32) -> Mask {
-        let mut mask = Mask::new(dimensions);
+    fn distill(
+        &self,
+        dimensions: Dimensions,
+        resolution: f32,
+        compartments: &[Compartment],
+    ) -> Mask {
         match self {
             Rule::Position(poscon) => {
+                let mut mask = Mask::new(dimensions);
                 let axi = poscon.axis().as_idx();
                 match poscon {
                     &PositionConstraint::GreaterThan(_, value) => {
@@ -142,17 +97,31 @@ impl Rule {
                         mask.apply_function(|pos| value > pos[axi] as f32 * resolution)
                     }
                 }
+
+                mask
             }
-            Rule::IsCloser(_, _, _) => todo!(),
+            Rule::IsCloser(_style, compartment_id, distance) => {
+                eprintln!("NOTE: Doing the whole mask thing right now.");
+                let compartment = compartments
+                    .iter()
+                    .find(|c| c.id == compartment_id.as_str())
+                    // FIXME: This condition can be checked at time of State creation.
+                    .expect("the compartment ID in the rule must exist");
+
+                let m = compartment.get_distance_mask(distance / resolution);
+                eprintln!("NOTE: Done.");
+                m
+            }
             Rule::Or(rules) => {
+                let mut mask = Mask::new(dimensions);
                 // FIXME: I'd rather just apply it to the same mask once.
                 for rule in rules {
-                    mask |= rule.distill(dimensions, resolution)
+                    mask |= rule.distill(dimensions, resolution, compartments)
                 }
+
+                mask
             }
         }
-
-        mask
     }
 }
 
@@ -229,6 +198,24 @@ impl FromStr for Rule {
                 };
                 Ok(Rule::Position(poscon))
             }
+            "is_closer_to" => {
+                let compartment_id = words.next().ok_or(ParseRuleError::SyntaxError(
+                    "expected compartment id".to_string(),
+                ))?;
+                let distance = words
+                    .next()
+                    .ok_or(ParseRuleError::SyntaxError(
+                        "expected scalar value".to_string(),
+                    ))?
+                    .parse()
+                    .map_err(ParseRuleError::ParseScalarError)?;
+
+                Ok(Rule::IsCloser(
+                    CloseStyleBikeshed::BoxCenter,
+                    compartment_id.to_string(),
+                    distance,
+                ))
+            }
             unknown => Err(ParseRuleError::UnknownKeyword(unknown.to_string())),
         }
     }
@@ -271,10 +258,15 @@ pub fn split<'r>(
     )
 }
 
-pub fn distill(rules: &[Rule], dimensions: Dimensions, resolution: f32) -> Mask {
+pub fn distill(
+    rules: &[Rule],
+    dimensions: Dimensions,
+    resolution: f32,
+    compartments: &[Compartment],
+) -> Mask {
     let mut mask = Mask::fill::<true>(dimensions);
     for rule in rules {
-        mask &= rule.distill(dimensions, resolution);
+        mask &= rule.distill(dimensions, resolution, compartments);
     }
 
     mask

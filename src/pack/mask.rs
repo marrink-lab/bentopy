@@ -1,3 +1,6 @@
+use glam::{IVec3, U64Vec3};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
 pub type Dimensions = [u64; 3]; // TODO: Make into usize? Rather awkward in places right now.
 pub type Position = Dimensions;
 
@@ -386,6 +389,132 @@ impl MaskSlice<'_> {
     pub fn any<const VALUE: bool>(&self) -> bool {
         self.iter_linear().any(|cell| cell == VALUE)
     }
+}
+
+type Block = Vec<U64Vec3>;
+
+struct Blocks {
+    radius: u64,
+    size: [usize; 3],
+    blocks: Vec<Block>,
+}
+
+impl Blocks {
+    fn from_iter(
+        radius: u64,
+        dimensions: Dimensions,
+        positions: impl Iterator<Item = U64Vec3>,
+    ) -> Self {
+        let size = dimensions.map(|v| (v / radius) as usize + 1);
+        dbg!(size);
+        let [w, h, _] = size;
+        let mut blocks = vec![Vec::new(); size.iter().product()];
+        for pos in positions {
+            let idx = pos / radius;
+            let [x, y, z] = idx.to_array().map(|v| v as usize);
+            let lin_idx = x + y * w + z * w * h;
+            blocks[lin_idx].push(pos)
+        }
+
+        Self {
+            radius,
+            size,
+            blocks,
+        }
+    }
+
+    fn nearby(&self, position: U64Vec3) -> impl Iterator<Item = U64Vec3> + '_ {
+        let [w, h, d] = self.size;
+        let block_idx = (position / self.radius).as_ivec3();
+        [
+            IVec3::new(0, 0, 0),
+            IVec3::new(-1, 0, 0),
+            IVec3::new(1, 0, 0),
+            IVec3::new(0, -1, 0),
+            IVec3::new(0, 1, 0),
+            IVec3::new(0, 0, -1),
+            IVec3::new(0, 0, 1),
+            IVec3::new(-1, -1, -1),
+            IVec3::new(-1, -1, 0),
+            IVec3::new(-1, -1, 1),
+            IVec3::new(-1, 0, -1),
+            IVec3::new(-1, 0, 1),
+            IVec3::new(-1, 1, -1),
+            IVec3::new(-1, 1, 0),
+            IVec3::new(-1, 1, 1),
+            IVec3::new(0, -1, -1),
+            IVec3::new(0, -1, 1),
+            IVec3::new(0, 1, -1),
+            IVec3::new(0, 1, 1),
+            IVec3::new(1, -1, -1),
+            IVec3::new(1, -1, 0),
+            IVec3::new(1, -1, 1),
+            IVec3::new(1, 0, -1),
+            IVec3::new(1, 0, 1),
+            IVec3::new(1, 1, -1),
+            IVec3::new(1, 1, 0),
+            IVec3::new(1, 1, 1),
+        ]
+        .into_iter()
+        .map(move |offset| block_idx + offset)
+        .filter(move |block_idx| {
+            (0..w as i32).contains(&block_idx.x)
+                && (0..h as i32).contains(&block_idx.y)
+                && (0..d as i32).contains(&block_idx.z)
+        })
+        .flat_map(move |block_idx| {
+            let [x, y, z] = block_idx.to_array().map(|v| v as usize);
+            let lin_idx = x + y * w + z * w * h;
+            &self.blocks[lin_idx]
+        })
+        .copied()
+    }
+}
+
+// TODO: Add a periodic counterpart or setting.
+pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
+    let dimensions = thing.dimensions();
+
+    assert!(radius >= 0.0);
+    let positions = thing
+        .indices_where::<false>()
+        .map(|idx| U64Vec3::from_array(idx));
+    let thing_blocks = Blocks::from_iter(radius as u64, dimensions, positions);
+
+    let radius_squared = radius.powi(2) as i64;
+    let [w, h, d] = dimensions;
+    let start = std::time::Instant::now();
+    let slices = (0..d).into_par_iter().map(|z| {
+        let mut slice = Mask::new(dimensions);
+        for y in 0..h {
+            for x in 0..w {
+                let pos = U64Vec3::from_array([x, y, z]);
+                let posi = pos.as_i64vec3();
+                let mut nearby = thing_blocks.nearby(pos);
+                if nearby.any(|t| {
+                    let distance_squared = t.as_i64vec3().distance_squared(posi);
+                    distance_squared < radius_squared
+                }) {
+                    let lin_idx = x + y * w + z * w * h;
+                    slice.set_linear_unchecked::<true>(lin_idx as usize)
+                }
+            }
+        }
+
+        slice
+    });
+
+    let mask = slices.reduce(
+        || Mask::new(dimensions),
+        |mut acc, slice| {
+            acc |= slice;
+            acc
+        },
+    );
+
+    eprintln!("DISTANCE MASK took {:.3} s", start.elapsed().as_secs_f32());
+
+    mask
 }
 
 #[cfg(test)]
