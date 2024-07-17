@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -12,7 +13,7 @@ use crate::args::Args;
 use crate::config::{
     Configuration, Mask as ConfigMask, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
-use crate::mask::{Dimensions, Mask};
+use crate::mask::{distance_mask, Dimensions, Mask};
 use crate::rules::{self, ParseRuleError, Rule};
 use crate::session::{Locations, Session};
 use crate::structure::Structure;
@@ -27,12 +28,13 @@ pub type Voxels = Mask;
 pub type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
 
 impl Mask {
-    fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
+    pub(crate) fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
         let r = (dimensions.into_iter().min().unwrap() as usize) / 2;
         let c = r as isize;
         let r2 = r.pow(2);
 
+        // TODO: We can use some nice iterator tricks to avoid allocating a big Vec<bool> here.
         // TODO: Profile to see whether we can help the inlining along.
         let mut cells = Vec::with_capacity(w * h * d);
         for z in 0..d as isize {
@@ -106,9 +108,30 @@ impl From<ParseRuleError> for io::Error {
     }
 }
 
+type DistanceMasksKey = u64;
+
 pub struct Compartment {
     pub id: CompartmentID,
     pub mask: Mask,
+    // We make use of some internal mutability, here, through the RefCell. This allows us to lazily
+    // set up the distance masks, such that they are created only once we need them.
+    distance_masks: RefCell<HashMap<DistanceMasksKey, Mask>>,
+}
+
+impl Compartment {
+    /// Get or create and return a reference to a distance mask for some voxel distance.
+    ///
+    /// Note that the distance is in terms of voxels, not in nm.
+    pub fn get_distance_mask(&self, distance: f32) -> Mask {
+        let key = distance as u64;
+        let mut distance_masks = self.distance_masks.borrow_mut();
+        distance_masks
+            .entry(key)
+            .or_insert_with(|| distance_mask(&self.mask, distance));
+        // We clone here because we can't guarantee that the value is not moved by a resize of
+        // the HashMap.
+        self.distance_masks.borrow().get(&key).unwrap().clone()
+    }
 }
 
 pub struct Space {
@@ -167,7 +190,8 @@ impl Space {
             self.previous_compartments = Some(compartment_ids);
 
             // Apply the rules to the background.
-            let rule_mask = rules::distill(&rules, self.dimensions, self.resolution);
+            let rule_mask =
+                rules::distill(&rules, self.dimensions, self.resolution, &self.compartments);
             self.session_background |= !rule_mask;
             self.previous_rules = Some(rules);
 
@@ -324,6 +348,7 @@ impl State {
                             Mask::load_from_path(path)?
                         }
                     },
+                    distance_masks: Default::default(),
                 })
             })
             .collect::<io::Result<_>>()?;

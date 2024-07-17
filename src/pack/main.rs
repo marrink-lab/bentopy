@@ -13,7 +13,6 @@ mod args;
 mod config;
 mod mask;
 mod placement;
-#[allow(dead_code)] // FIXME: Remove once the rule system is further developed.
 mod rules;
 mod session;
 mod state;
@@ -79,7 +78,12 @@ fn main() -> io::Result<()> {
         }
 
         // Check the rules.
-        let distilled = rules::distill(rules, state.space.dimensions, state.space.resolution);
+        let distilled = rules::distill(
+            rules,
+            state.space.dimensions,
+            state.space.resolution,
+            &state.space.compartments,
+        );
         if !distilled.any::<true>() {
             let name = &segment.name;
             eprintln!("ERROR: The rules {rules:?} preclude any placement of segment '{name}'.");
