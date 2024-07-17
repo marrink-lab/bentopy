@@ -47,6 +47,16 @@ impl Molecule {
         Self { atoms }
     }
 
+    /// Apply a `tag` to the atoms in this [`Molecule`].
+    ///
+    /// This will replace the `resname` for each atom with the provided `tag`.
+    pub fn apply_tag(&mut self, tag: impl Into<ResName>) {
+        let tag = tag.into();
+        for Atom { resname, .. } in &mut self.atoms {
+            *resname = tag;
+        }
+    }
+
     /// Returns the center of this [`Molecule`].
     ///
     /// Here, center refers to mean position. This can be understood as a center of mass where all
