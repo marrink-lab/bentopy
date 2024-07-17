@@ -13,7 +13,7 @@ use crate::args::Args;
 use crate::config::{
     Configuration, Mask as ConfigMask, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
-use crate::mask::{distance_mask, Dimensions, Mask};
+use crate::mask::{distance_mask, distance_mask_grow, Dimensions, Mask};
 use crate::placement::{Batch, Placement};
 use crate::rules::{self, ParseRuleError, Rule};
 use crate::session::{Locations, Session};
@@ -126,10 +126,14 @@ impl Compartment {
     /// Note that the distance is in terms of voxels, not in nm.
     pub fn get_distance_mask(&self, distance: f32) -> Mask {
         let key = distance as u64;
-        let mut distance_masks = self.distance_masks.borrow_mut();
-        distance_masks
-            .entry(key)
-            .or_insert_with(|| distance_mask(&self.mask, distance));
+        {
+            // In this scope, we mutably borrow the distance_masks. At the end of the scope, the
+            // mutable borrow is dropped, and we are okay to perform a non-mutable borrow after it.
+            let mut distance_masks = self.distance_masks.borrow_mut();
+            distance_masks
+                .entry(key)
+                .or_insert_with(|| distance_mask_grow(&self.mask, distance as u64));
+        }
         // We clone here because we can't guarantee that the value is not moved by a resize of
         // the HashMap.
         self.distance_masks.borrow().get(&key).unwrap().clone()

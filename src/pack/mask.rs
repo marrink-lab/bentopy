@@ -1,4 +1,4 @@
-use glam::{IVec3, U64Vec3};
+use glam::{I64Vec3, IVec3, U64Vec3};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub type Dimensions = [u64; 3]; // TODO: Make into usize? Rather awkward in places right now.
@@ -274,6 +274,101 @@ impl Mask {
     pub fn any<const VALUE: bool>(&self) -> bool {
         (0..self.n_cells()).any(|lin_idx| self.query_linear_unchecked::<VALUE>(lin_idx))
     }
+
+    // TODO: Periodicity?
+    /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
+    pub fn grow_old(&mut self) {
+        const OFFSETS: [I64Vec3; 6] = [
+            I64Vec3::X,
+            I64Vec3::NEG_X,
+            I64Vec3::Y,
+            I64Vec3::NEG_Y,
+            I64Vec3::Z,
+            I64Vec3::NEG_Z,
+        ];
+
+        let old = self.clone();
+        let [w, h, d] = self.dimensions();
+        for z in 0..d {
+            for y in 0..h {
+                for x in 0..w {
+                    let pos = U64Vec3::new(x, y, z).as_i64vec3();
+                    if OFFSETS.into_iter().any(|offset| {
+                        let pos = pos + offset;
+                        if pos.is_negative_bitmask() != 0 {
+                            false
+                        } else {
+                            let [x, y, z] = pos.as_u64vec3().to_array();
+                            let lin_idx = x + y * w + z * w * h;
+                            old.contains([x, y, z])
+                                && old.query_linear_unchecked::<true>(lin_idx as usize)
+                        }
+                    }) {
+                        self.set([x, y, z], true)
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: Periodicity?
+    /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
+    pub fn grow(&mut self) {
+        const OFFSETS: [I64Vec3; 6] = [
+            I64Vec3::X,
+            I64Vec3::NEG_X,
+            I64Vec3::Y,
+            I64Vec3::NEG_Y,
+            I64Vec3::Z,
+            I64Vec3::NEG_Z,
+        ];
+
+        let old = self.clone();
+        let dimensions = self.dimensions();
+        let [w, h, d] = dimensions;
+        let offset_masks = OFFSETS.into_par_iter().map(|offset| {
+            let mut mask = Mask::new(dimensions);
+            for z in 0..d {
+                let oz = z as i64 + offset.z;
+                if oz < 0 || oz >= d as i64 {
+                    continue;
+                }
+                let oz = oz as u64;
+
+                for y in 0..h {
+                    let oy = y as i64 + offset.y;
+                    if oy < 0 || oy >= h as i64 {
+                        continue;
+                    }
+                    let oy = oy as u64;
+
+                    for x in 0..w {
+                        let ox = x as i64 + offset.x;
+                        if ox < 0 || ox >= w as i64 {
+                            continue;
+                        }
+                        let ox = ox as u64;
+
+                        let offset_lin_idx = ox + oy * w + oz * w * h;
+                        if old.query_linear_unchecked::<true>(offset_lin_idx as usize) {
+                            let lin_idx = x + y * w + z * w * h;
+                            mask.set_linear_unchecked::<true>(lin_idx as usize)
+                        }
+                    }
+                }
+            }
+
+            mask
+        });
+
+        *self = offset_masks.reduce(
+            || Mask::new(dimensions),
+            |mut acc, mask| {
+                acc |= mask;
+                acc
+            },
+        );
+    }
 }
 
 /// Take an `idx` that may fall outside of the `dimensions` and return a normalized [`Position`].
@@ -513,6 +608,24 @@ pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
     );
 
     eprintln!("DISTANCE MASK took {:.3} s", start.elapsed().as_secs_f32());
+
+    mask
+}
+
+// TODO: Add a periodic counterpart or setting.
+/// Create a distance mask by growing the starting point by `radius` voxel steps.
+pub fn distance_mask_grow(thing: &Mask, radius: u64) -> Mask {
+    let mut mask = !thing.clone();
+
+    let start = std::time::Instant::now();
+    for _ in 0..radius {
+        mask.grow()
+    }
+
+    eprintln!(
+        "DISTANCE MASK (grow, {radius} steps) took {:.3} s",
+        start.elapsed().as_secs_f32()
+    );
 
     mask
 }
@@ -842,5 +955,35 @@ mod tests {
         // And now base should have that same bit set and be identical aside from that.
         assert!(base.query_linear_unchecked::<false>(0));
         assert!(base.query_linear_unchecked::<true>(1));
+    }
+
+    #[test]
+    fn grow() {
+        let mut cells = [false; 27];
+        cells[cells.len() / 2] = true; // Set the center cell.
+        let mut mask = Mask::from_cells([3, 3, 3], &cells);
+
+        assert_eq!(mask.count::<true>(), 1);
+
+        // After this, we should have a 3d cross.
+        mask.grow();
+
+        assert_eq!(mask.count::<true>(), 1 + 6);
+        assert_eq!(mask.get([0, 0, 0]), Some(false));
+        assert_eq!(mask.get([1, 0, 0]), Some(false));
+        assert_eq!(mask.get([2, 0, 0]), Some(false));
+        assert_eq!(mask.get([0, 1, 0]), Some(false));
+        assert_eq!(mask.get([1, 1, 0]), Some(true));
+        assert_eq!(mask.get([2, 1, 0]), Some(false));
+        assert_eq!(mask.get([0, 1, 1]), Some(true));
+        assert_eq!(mask.get([1, 1, 1]), Some(true));
+        assert_eq!(mask.get([2, 1, 1]), Some(true));
+        assert_eq!(mask.get([1, 1, 1]), Some(true));
+        assert_eq!(mask.get([2, 2, 2]), Some(false));
+
+        // Finally, this will fill up the whole mask.
+        mask.grow();
+
+        assert_eq!(mask.count::<true>(), mask.n_cells());
     }
 }
