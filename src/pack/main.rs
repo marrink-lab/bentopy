@@ -3,10 +3,7 @@ use std::io;
 use args::Args;
 use clap::Parser;
 use config::Configuration;
-use glam::Mat3;
-use placement::{Batch, Placement, PlacementList};
-use rand::Rng;
-use session::Locations;
+use placement::PlacementList;
 use state::State;
 
 mod args;
@@ -72,7 +69,6 @@ fn main() -> io::Result<()> {
         eprintln!("ERROR: Failed to set up program state: {err}");
         std::process::exit(1)
     });
-    let mut locations = Locations::new();
 
     // Check whether the rules make any sense.
     state.check_rules().unwrap_or_else(|err| {
@@ -81,161 +77,10 @@ fn main() -> io::Result<()> {
     });
 
     // Packing.
-    let mut placements = Vec::new();
-    let mut summary = Summary::new();
     let packing_start = std::time::Instant::now();
-
-    let n_segments = state.segments.len();
-    for (i, segment) in state.segments.iter_mut().enumerate() {
-        if segment.target == 0 {
-            eprint!(
-                "{prefix}({i:>3}/{n_segments}) Skipping attempt to pack 0 instances of segment '{name}'.{suffix}",
-                prefix = if state.verbose { "" } else { CLEAR_LINE },
-                i = i + 1,
-                name = segment.name,
-                suffix = if state.verbose { "\n" } else { "" }
-            );
-            continue;
-        }
-
-        eprint!(
-            "{prefix}({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.{suffix}",
-            prefix = if state.verbose { "" } else { CLEAR_LINE },
-            i = i + 1,
-            target = segment.target,
-            name = segment.name,
-            suffix = if state.verbose { "\n" } else { "" }
-        );
-
-        // Prepare the session.
-        let start_session = std::time::Instant::now();
-        let mut session = state.space.enter_session(
-            // FIXME: This cloned stuff does not sit right with me.
-            segment.compartments.iter().cloned(),
-            segment.rules.iter().cloned(),
-            &mut locations,
-            segment.target,
-        );
-
-        // Set up the placement record for this segment.
-        let mut placement = Placement::new(segment.name.clone(), segment.path.clone());
-
-        let mut hits = 0;
-        let mut tries = 0; // The number of unsuccessful tries.
-        let max_tries = 1000 * segment.target; // The number of unsuccessful tries.
-        let mut batch_positions = Vec::new();
-        'placement: while hits < segment.target {
-            if tries >= max_tries {
-                if state.verbose {
-                    eprintln!("Exiting after {tries} unsuccessful tries.");
-                }
-                break 'placement; // "When you try your best, but you don't succeed."
-            }
-
-            // TODO: This can become more efficient for successive placement failures.
-            // TODO: Also, this should become a method on Segment.
-            let resolution = session.resolution();
-            let voxels = match segment.voxels() {
-                Some(voxels) => voxels,
-                None => {
-                    segment.voxelize(resolution, state.bead_radius);
-                    segment.voxels().unwrap()
-                }
-            };
-
-            // FIXME: Do all this math with glam::U64Vec?
-            let [bx, by, bz] = session.dimensions();
-            let [sx, sy, sz] = voxels.dimensions();
-            if sx > bx || sy > by || sz > bz {
-                tries += 1;
-                continue 'placement; // Segment voxels size exceeds the size of the background.
-            }
-            let [maxx, maxy, maxz] = [bx - sx, by - sy, bz - sz];
-
-            // Pick a random location.
-            let position = 'location: loop {
-                let candidate = match session.pop_location(&mut state.rng) {
-                    Some(location) => location,
-                    None => {
-                        // We've gone through all the locations.
-                        // TODO: This is rather unlikely, but must be dealt with correctly. I think
-                        // this may require a nice custom type that does some internal mutabilty
-                        // trickery.
-                        // For now, we'll just break here.
-                        break 'placement;
-                    }
-                };
-
-                // Convert the linear index location to a spatial index.
-                let position = session.position(candidate).unwrap();
-
-                // If we are not packing in a periodic manner, we skip candidate positions that
-                // would necessitate periodic behavior. When a location passes this point, it is
-                // valid for non-periodic placement.
-                if !session.periodic() {
-                    // Check if the segment will fit in the background, given this position.
-                    let [x, y, z] = position;
-                    if x >= maxx || y >= maxy || z >= maxz {
-                        continue 'location;
-                    }
-                }
-
-                // All seems good, so we continue to see if this position will be accepted.
-                break position;
-            };
-
-            // Reject if it would cause a collision.
-            if !session.check_collisions(voxels, position) {
-                tries += 1;
-                continue 'placement; // Reject due to collision.
-            }
-
-            // We found a good spot. Stomp on those stamps!
-            session.stamp(voxels, position);
-            // Transform the location to nm.
-            batch_positions.push(position.map(|v| v as f32 * session.resolution()));
-
-            // Let's write out the batch and rotate the segment again.
-            // TODO: Perhaps we'll need a little transpose here.
-            let batch = Batch::new(segment.rotation(), batch_positions.clone());
-            placement.push(batch);
-            batch_positions.clear();
-
-            let rotation = Mat3::from_quat(state.rng.gen());
-            segment.set_rotation(rotation);
-
-            hits += 1;
-        }
-        let duration = start_session.elapsed().as_secs_f64();
-
-        if state.verbose {
-            let total = packing_start.elapsed().as_secs();
-            eprintln!(
-                "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s] <{:.4} of max_tries, {:.4} of target>",
-                tries as f32 / max_tries as f32,
-                tries as f32 / segment.target as f32
-            );
-        }
-
-        // Save the batches.
-        summary.push(
-            segment.name.clone(),
-            placement.n_batches(),
-            segment.target,
-            hits,
-            duration,
-        );
-        placements.push(placement);
-    }
-
+    let (placements, summary) = state.pack(&mut io::stderr())?;
     let packing_duration = packing_start.elapsed().as_secs_f64();
-    if !state.verbose {
-        eprintln!(); // Go down one line to prevent overwriting the last line.
-    }
     eprintln!("Packing process took {packing_duration:.3} s.");
-
-    // Drop this memory hog for good measure.
-    drop(locations);
 
     // Final summary.
     if state.summary {
