@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use eightyseven::reader::ReadGro;
+use eightyseven::writer::WriteGro;
 use structure::WriteParExt;
 
 use crate::solvate::solvate;
@@ -35,7 +36,8 @@ struct Args {
     // /// Number of negative ions.
     // #[arg(short, long, default_value = "0")]
     // negions: u32,
-
+    #[arg(long)]
+    no_write_parallel: bool,
     // TODO: Consider adding an option for overshooting, cutting off, or undershooting when the
     // input box size is not an integer multiple of the template box.
 }
@@ -69,7 +71,11 @@ fn main() -> io::Result<()> {
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
-    structure.save_gro_par(config.output)?;
+    if config.no_write_parallel {
+        structure.save_gro(config.output)?;
+    } else {
+        structure.save_gro_par(config.output)?;
+    }
     let delta = std::time::Instant::now() - start;
     eprintln!("Took {:.3} s", delta.as_secs_f32());
 
