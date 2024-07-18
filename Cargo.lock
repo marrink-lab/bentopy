@@ -132,9 +132,9 @@ checksum = "248e3bacc7dc6baa3b21e405ee045c3047101a49145e7e9eca583ab4c2ca5345"
 
 [[package]]
 name = "eightyseven"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "143794de38939a2fbf1dac35bcfcbc3c4cf316f1f06872857cd66f878c37db9b"
+checksum = "cf568d06c658893fad9ed5a08beb2853cd9d932cd2540e7a6a69d4ca37806a2a"
 dependencies = [
  "arraystring",
  "glam",

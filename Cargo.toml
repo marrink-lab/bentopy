@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 arraystring = "0.3.0"
 clap = { version = "4.5.1", features = ["derive"] }
-eightyseven = "0.1.3"
+eightyseven = "0.1.4"
 glam = "0.25.0"
 rayon = "1.9.0"
