@@ -15,6 +15,7 @@ pub struct PlaceMap<'s> {
     pub solvent: &'s Structure,
     dimensions: UVec3,
     // Invariant: length = (solvent.natoms() / 8).ceil() * dimensions.product()
+    // Invariant: Any wasted bits are always set to zero.
     // Value is 0 if the place of this solvent bead is not otherwise occupied.
     // Conversely, if the value of a bit is 1, a solvent bead cannot be placed there.
     placements: Box<[u8]>,
@@ -30,6 +31,14 @@ impl<'s> PlaceMap<'s> {
             solvent,
             placements,
         }
+    }
+
+    pub fn dimensions(&self) -> UVec3 {
+        self.dimensions
+    }
+
+    pub fn n_cells(&self) -> usize {
+        self.dimensions.x as usize * self.dimensions.y as usize * self.dimensions.z as usize
     }
 
     pub fn get_mut(&mut self, pos: UVec3) -> Option<PlacementMut> {
@@ -60,6 +69,24 @@ impl<'s> PlaceMap<'s> {
         let bytes = self.placements.chunks_exact(n_bytes).nth(idx).unwrap();
 
         Some(Placement::new(bytes, n_beads))
+    }
+
+    /// Return the count of the positions that are marked as occupied.
+    pub fn occupied_count(&self) -> usize {
+        // Since a bit is marked as 1 iff the position it represents is occupied, we can just
+        // perform a popcount over the whole bit array.
+        // Note that we don't have to worry about the wasted bits, since these are always set to
+        // zero.
+        self.placements
+            .iter()
+            .map(|b| b.count_ones() as usize)
+            .sum()
+    }
+
+    /// Return the count of unoccupied positions.
+    pub fn unoccupied_count(&self) -> usize {
+        let total = self.solvent.natoms() * self.n_cells();
+        total - self.occupied_count()
     }
 }
 

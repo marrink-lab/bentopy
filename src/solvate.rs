@@ -7,14 +7,14 @@ use crate::placement::PlaceMap;
 use crate::structure::{BoxVecsExtension, Structure};
 
 /// Solvate a [`Structure`] with a template solvent box.
-pub fn solvate(
+pub fn solvate<'sol>(
     structure: &mut Structure,
-    solvent: &Structure,
+    solvent: &'sol Structure,
     cutoff: f32,
     center: bool,
     // posions: u32,
     // negions: u32,
-) {
+) -> PlaceMap<'sol> {
     // Determine how many copies of the solvent cell are required to fill the input box for each
     // direction. If the solvent box does not fit precisely (viz., the input box size is not an
     // integer multiple of the solvent box size), the size will be overshot. This means that in
@@ -76,34 +76,12 @@ pub fn solvate(
         }
     }
 
-    for z_cell in 0..dimensions.z {
-        for y_cell in 0..dimensions.y {
-            for x_cell in 0..dimensions.x {
-                let cell_pos = UVec3::new(x_cell, y_cell, z_cell);
-                let translation = cookies.offset(cell_pos);
-                let placement = placemap.get(cell_pos).unwrap();
-                let solvent_positions = placemap
-                    .solvent
-                    .atoms() // FIXME: Par?
-                    .zip(placement)
-                    .filter_map(|(&sb, occupied)| {
-                        if occupied {
-                            None
-                        } else {
-                            let mut sb = sb; // Copy the solvent bead.
-                            sb.position += translation;
-                            Some(sb)
-                        }
-                    });
-                structure.atoms.extend(solvent_positions)
-            }
-        }
-    }
-
     match &mut structure.boxvecs {
         eightyseven::structure::BoxVecs::Short(three) => {
             *three = (Vec3::from_array(*three) + remainder).to_array()
         }
         eightyseven::structure::BoxVecs::Full(_) => todo!(),
     };
+
+    placemap
 }
