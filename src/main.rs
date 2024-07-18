@@ -19,9 +19,11 @@ struct Args {
     template: PathBuf,
     /// Output path.
     output: PathBuf,
-    /// Cutoff radius.
-    #[arg(long, default_value = "0.4")]
+
+    /// Cutoff radius (nm).
+    #[arg(long, default_value_t = 0.21)]
     cutoff: f32,
+
     /// Center the structure in the new box.
     #[arg(short, long)]
     center: bool,
