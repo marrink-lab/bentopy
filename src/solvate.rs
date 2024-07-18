@@ -1,8 +1,10 @@
+use eightyseven::writer::WriteGro;
 use glam::UVec3;
+use glam::Vec3;
 
 use crate::placement::Cookies;
 use crate::placement::PlaceMap;
-use crate::structure::Structure;
+use crate::structure::{BoxVecsExtension, Structure};
 
 /// Solvate a [`Structure`] with a template solvent box.
 pub fn solvate(
@@ -17,15 +19,15 @@ pub fn solvate(
     // direction. If the solvent box does not fit precisely (viz., the input box size is not an
     // integer multiple of the solvent box size), the size will be overshot. This means that in
     // many cases, the size of the output box may be greater than that of the input structure.
-    let d = structure.boxvec / solvent.boxvec;
-    let remainder = d.fract() * solvent.boxvec;
+    let d = structure.boxvecs.as_vec3() / solvent.boxvecs.as_vec3();
+    let remainder = d.fract() * solvent.boxvecs.as_vec3();
     let dimensions = d.ceil().as_uvec3();
     if center {
         // Add half of the overshot to the positions in the structure to place it in the center of
         // the final box.
         let offset = remainder * 0.5;
-        for bead in &mut structure.beads {
-            bead.pos += offset;
+        for bead in &mut structure.atoms {
+            bead.position += offset;
         }
     }
     let cutoff2 = cutoff.powi(2); // Square to avoid taking the square root of the distances.
@@ -34,7 +36,7 @@ pub fn solvate(
 
     // Cut the input structure into cell-sized cookies that are ordered in the same manner as the
     // solvent placement map is.
-    let cookies = Cookies::new(structure, solvent.boxvec, dimensions);
+    let cookies = Cookies::new(structure, solvent.boxvecs.as_vec3(), dimensions);
 
     for z_cell in 0..dimensions.z {
         for y_cell in 0..dimensions.y {
@@ -44,11 +46,12 @@ pub fn solvate(
                 if cookie.is_empty() {
                     // If the cookie does not contain any structure beads, we can just skip
                     // measuring any distances.
-                    continue
+                    continue;
                 }
                 let translation = cookies.offset(cell_pos);
-                for (idx, solvent_bead) in placemap.solvent.beads.iter().enumerate() {
-                    let solvent_pos = solvent_bead.pos + translation;
+                // FIXME: Par?
+                for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
+                    let solvent_pos = solvent_bead.position + translation;
                     let mut collision = false;
                     for &cookie_bead in cookie {
                         // TODO: Consider applying this translation as a map before the iter over
@@ -79,25 +82,28 @@ pub fn solvate(
                 let cell_pos = UVec3::new(x_cell, y_cell, z_cell);
                 let translation = cookies.offset(cell_pos);
                 let placement = placemap.get(cell_pos).unwrap();
-                let solvent_positions =
-                    placemap
-                        .solvent
-                        .beads
-                        .iter()
-                        .zip(placement)
-                        .filter_map(|(&sb, occupied)| {
-                            if occupied {
-                                None
-                            } else {
-                                let mut sb = sb; // Copy the solvent bead.
-                                sb.pos += translation;
-                                Some(sb)
-                            }
-                        });
-                structure.beads.extend(solvent_positions)
+                let solvent_positions = placemap
+                    .solvent
+                    .atoms() // FIXME: Par?
+                    .zip(placement)
+                    .filter_map(|(&sb, occupied)| {
+                        if occupied {
+                            None
+                        } else {
+                            let mut sb = sb; // Copy the solvent bead.
+                            sb.position += translation;
+                            Some(sb)
+                        }
+                    });
+                structure.atoms.extend(solvent_positions)
             }
         }
     }
 
-    structure.boxvec += remainder;
+    match &mut structure.boxvecs {
+        eightyseven::structure::BoxVecs::Short(three) => {
+            *three = (Vec3::from_array(*three) + remainder).to_array()
+        }
+        eightyseven::structure::BoxVecs::Full(_) => todo!(),
+    };
 }

@@ -14,7 +14,7 @@ fn index_3d(pos: UVec3, dimensions: UVec3) -> usize {
 pub struct PlaceMap<'s> {
     pub solvent: &'s Structure,
     dimensions: UVec3,
-    // Invariant: length = (solvent.beads.len() / 8).ceil() * dimensions.product()
+    // Invariant: length = (solvent.natoms() / 8).ceil() * dimensions.product()
     // Value is 0 if the place of this solvent bead is not otherwise occupied.
     // Conversely, if the value of a bit is 1, a solvent bead cannot be placed there.
     placements: Box<[u8]>,
@@ -23,7 +23,7 @@ pub struct PlaceMap<'s> {
 impl<'s> PlaceMap<'s> {
     pub fn new(solvent: &'s Structure, size: UVec3) -> Self {
         let n_cells = size.x as usize * size.y as usize * size.z as usize;
-        let n_bytes = solvent.beads.len().div_ceil(8);
+        let n_bytes = solvent.natoms().div_ceil(8);
         let placements = vec![0x00; n_bytes * n_cells].into_boxed_slice();
         Self {
             dimensions: size,
@@ -38,7 +38,7 @@ impl<'s> PlaceMap<'s> {
         }
 
         // TODO: Is it wasteful to 'compute' this here? Or does it reduce down well?
-        let n_beads = self.solvent.beads.len();
+        let n_beads = self.solvent.natoms();
         let n_bytes = n_beads.div_ceil(8);
         let idx = index_3d(pos, self.dimensions);
         // This unwrap should be safe, since we checked at the start of the function.
@@ -53,7 +53,7 @@ impl<'s> PlaceMap<'s> {
         }
 
         // TODO: Is it wasteful to 'compute' this here? Or does it reduce down well?
-        let n_beads = self.solvent.beads.len();
+        let n_beads = self.solvent.natoms();
         let n_bytes = n_beads.div_ceil(8);
         let idx = index_3d(pos, self.dimensions);
         // This unwrap should be safe, since we checked at the start of the function.
@@ -131,8 +131,8 @@ impl Cookies {
         // Place the bead's position in the appropriate cookie.
         // Like raisins or pieces of chocolate. But in our case the cookies aren't round but
         // cuboid. Look, I don't even remember why I picked this name.
-        for bead in &structure.beads {
-            let pos = bead.pos;
+        for bead in &structure.atoms {
+            let pos = bead.position;
             let cell_pos = (pos / cookie_size).floor().as_uvec3();
             let idx = index_3d(cell_pos, dimensions);
             cookies[idx].push(pos);

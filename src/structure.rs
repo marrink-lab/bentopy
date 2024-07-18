@@ -1,200 +1,81 @@
-use std::{
-    io::{self, BufRead, BufReader, BufWriter, Read, Write},
-    path::Path,
-};
+use std::{io, path::Path};
 
-use arraystring::{typenum::U5, ArrayString};
+use eightyseven::structure::BoxVecs;
+use eightyseven::writer::WriteGro;
 use glam::Vec3;
-use rayon::prelude::*;
+use rayon::iter::ParallelIterator;
+use rayon::slice::ParallelSlice;
 
-/// The maximum number that can be represented by a 5-digit integer as found in gro files is 99999.
-/// Any value up to this number can be correctly displayed within 5 characters.
-const GRO_INTEGER_LIMIT: u32 = 100000;
-const GRO_LINE_LENGTH: usize = 44 + 1;
 const WRITE_CHUNK_SIZE: usize = 0x1000000;
 const FORMAT_CHUNK_SIZE: usize = WRITE_CHUNK_SIZE / 0x10;
 
-type GroStr = ArrayString<U5>;
+pub type Structure = eightyseven::structure::Structure;
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Bead {
-    pub resnum: u32,
-    pub resname: GroStr,
-    pub atomname: GroStr,
-    pub atomnum: u32,
-    pub pos: Vec3,
+pub trait BoxVecsExtension {
+    fn as_vec3(&self) -> glam::Vec3;
 }
 
-impl Bead {
-    pub fn new(
-        resnum: u32,
-        resname: &str,
-        atomname: &str,
-        atomnum: u32,
-        pos: impl Into<Vec3>,
-    ) -> Self {
-        Self {
-            resnum,
-            resname: resname.into(),
-            atomname: atomname.into(),
-            atomnum,
-            pos: pos.into(),
+impl BoxVecsExtension for BoxVecs {
+    fn as_vec3(&self) -> Vec3 {
+        match self {
+            &BoxVecs::Short(three) => Vec3::from_array(three),
+            BoxVecs::Full(nine) => todo!("nine-value boxvecs ({nine:?}) are currently unsupported"),
         }
-    }
-
-    // TODO: Consider whether inlining like this is actually appropriate?
-    #[inline(always)]
-    pub fn format_gro(&self, s: &mut String) {
-        let resnum = self.resnum % GRO_INTEGER_LIMIT;
-        let resname = self.resname.to_string(); // TODO: The ArrayString size problem remains.
-        let atomname = self.atomname.to_string();
-        let atomnum = self.atomnum % GRO_INTEGER_LIMIT;
-        let [x, y, z] = self.pos.to_array();
-
-        s.push_str(&format!(
-            "{resnum:>5}{resname:<5}{atomname:>5}{atomnum:>5}{x:>8.3}{y:>8.3}{z:>8.3}"
-        ));
-    }
-
-    // TODO: Consider whether inlining like this is actually appropriate?
-    #[inline(always)]
-    pub fn write_gro(&self, mut writer: impl Write) -> io::Result<()> {
-        let resnum = self.resnum % GRO_INTEGER_LIMIT;
-        let resname = self.resname.to_string(); // TODO: The ArrayString size problem remains.
-        let atomname = self.atomname.to_string();
-        let atomnum = self.atomnum % GRO_INTEGER_LIMIT;
-        let [x, y, z] = self.pos.to_array();
-        writeln!(
-            writer,
-            "{resnum:>5}{resname:<5}{atomname:>5}{atomnum:>5}{x:>8.3}{y:>8.3}{z:>8.3}"
-        )
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Structure {
-    pub beads: Vec<Bead>,
-    pub boxvec: Vec3,
+pub trait WriteParExt {
+    fn save_gro_par<P: AsRef<Path>>(&self, path: P) -> io::Result<()>;
 }
 
-impl Structure {
-    pub fn read_from_gro(reader: impl Read) -> io::Result<Self> {
-        let reader = BufReader::new(reader);
-        let mut lines = reader.lines();
-
-        // Skip the title.
-        let _title = lines
-            .next()
-            .expect("unexpected end of file: no title specified")?;
-
-        // Read the number of upcoming atoms.
-        let n_atoms: usize = lines
-            .next()
-            .expect("unexpected end of file: no number of atoms specified")?
-            .trim()
-            .parse()
-            .expect("invalid integer: could not parse number of atoms");
-
-        // Stream in the firehose of atoms.
-        let mut beads = Vec::with_capacity(n_atoms);
-        for _ in 0..n_atoms {
-            let line = lines
-                .next()
-                .expect("unexpected end of file: still reading atoms")?;
-
-            let resnum = line[0..5].trim().parse().expect("invalid resnum integer");
-            let resname = line[5..10].trim();
-            let atomname = line[10..15].trim();
-            let atomnum = line[15..20]
-                .trim()
-                .parse()
-                .expect("invalid atomnum integer");
-            // NOTE: This position parsing may fail when the last float does not fill out all its
-            // decimal zeros. The gro file documentation explicitly describes the C format string
-            // that describes an atom line ("%5d%-5s%5s%5d%8.3f%8.3f%8.3f%8.4f%8.4f%8.4f"). The C
-            // behavior here is to print trailing zeros. I take that to mean that files that do not
-            // do this are invalid gro files. The failure is with the original writer in that case.
-            let pos = [&line[20..28], &line[28..36], &line[36..44]]
-                .map(|v| v.trim().parse::<f32>().expect("invalid position float"));
-
-            beads.push(Bead::new(resnum, resname, atomname, atomnum, pos));
-        }
-
-        // Finally, read the box vectors.
-        let boxvec: [f32; 3] = lines
-            .next()
-            .expect("unexpected end of file: no box vectors specified")?
-            .split_whitespace()
-            .take(3)
-            .map(|v| {
-                v.parse()
-                    .expect("invalid box vectors: cannot parse component value")
-            })
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("invalid box vectors: fewer than three components are provided");
-        let boxvec = Vec3::from_array(boxvec);
-
-        Ok(Structure { beads, boxvec })
-    }
-
-    pub fn write_to_gro(&self, writer: impl Write) -> io::Result<()> {
-        let mut writer = BufWriter::new(writer);
-
-        // Write the title.
-        writeln!(writer, "solvated by {}", env!("CARGO_PKG_NAME"))?;
-
-        // And the number of atoms in the system.
-        let n_atoms = self.beads.len();
-        writeln!(writer, "{n_atoms}")?;
-
-        // Write the atoms.
-        let mut n = 0;
-        let start = std::time::Instant::now();
-        for chunk in self.beads.chunks(WRITE_CHUNK_SIZE) {
-            // Format this chunk in parallel.
-            let formatted = chunk
-                .par_chunks(FORMAT_CHUNK_SIZE)
-                .map(|beads| {
-                    let mut s = String::with_capacity(GRO_LINE_LENGTH * FORMAT_CHUNK_SIZE);
-                    for bead in beads {
-                        bead.format_gro(&mut s);
-                        s.push('\n');
-                    }
-                    s
-                })
-                .collect_vec_list();
-            // And write it away.
-            for f in formatted.iter().flatten() {
-                writer.write_all(f.as_bytes())?;
-            }
-
-            // Report the progress.
-            n += chunk.len();
-            let progress = n as f32 / n_atoms as f32;
-            let percentage = progress * 100.0;
-            let delta = std::time::Instant::now() - start;
-            let time_left = delta.as_secs_f32() * (progress.recip() - 1.0);
-            eprint!(
-                "\r({percentage:>4.1}%) Wrote {n:>9}/{n_atoms} atoms. (ETA {time_left:>4.0} s) "
-            );
-        }
-        eprintln!();
-
-        // End with the box vectors.
-        let [v1x, v2y, v3z] = self.boxvec.to_array();
-        writeln!(writer, "{v1x:.5} {v2y:.5} {v3z:.5}")?;
-
-        writer.flush()
-    }
-
-    pub fn read_from_gro_file<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let file = std::fs::File::open(path)?;
-        Self::read_from_gro(file)
-    }
-
-    pub fn write_to_gro_file<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
+impl WriteParExt for Structure {
+    fn save_gro_par<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
         let file = std::fs::File::create(path)?;
-        self.write_to_gro(file)
+        let mut writer = io::BufWriter::new(file);
+        write_par(self, &mut writer)
     }
+}
+
+pub fn write_par(structure: &Structure, writer: &mut impl io::Write) -> io::Result<()> {
+    // Write the title.
+    writeln!(writer, "solvated by {}", env!("CARGO_PKG_NAME"))?;
+
+    // And the number of atoms in the system.
+    let natoms = structure.natoms();
+    writeln!(writer, "{natoms}")?;
+
+    // Write the atoms.
+    let mut n = 0;
+    let start = std::time::Instant::now();
+    for chunk in structure.atoms.chunks(WRITE_CHUNK_SIZE) {
+        // Format this chunk in parallel.
+        let formatted = chunk
+            .par_chunks(FORMAT_CHUNK_SIZE)
+            .map(|atoms| {
+                atoms
+                    .into_iter()
+                    .map(Structure::format_atom_line)
+                    .collect::<String>()
+            })
+            .collect_vec_list();
+        // And write it away.
+        for f in formatted.iter().flatten() {
+            writer.write_all(f.as_bytes())?;
+        }
+
+        // Report the progress.
+        n += chunk.len();
+        let progress = n as f32 / natoms as f32;
+        let percentage = progress * 100.0;
+        let delta = std::time::Instant::now() - start;
+        let time_left = delta.as_secs_f32() * (progress.recip() - 1.0);
+        eprint!("\r({percentage:>4.1}%) Wrote {n:>9}/{natoms} atoms. (ETA {time_left:>4.0} s) ");
+    }
+    eprintln!();
+
+    // End with the box vectors.
+    // FIXME: What to do with >3 value box vectors?
+    writeln!(writer, "{}", structure.boxvecs())?;
+
+    writer.flush()
 }

@@ -2,6 +2,8 @@ use std::io;
 use std::path::PathBuf;
 
 use clap::Parser;
+use eightyseven::reader::ReadGro;
+use structure::WriteParExt;
 
 use crate::solvate::solvate;
 use crate::structure::Structure;
@@ -43,12 +45,12 @@ fn main() -> io::Result<()> {
 
     eprint!("Loading template {:?}... ", config.template);
     let start = std::time::Instant::now();
-    let template = Structure::read_from_gro_file(config.template)?;
+    let template = Structure::open_gro(config.template)?;
     let delta = std::time::Instant::now() - start;
     eprintln!("Took {:.6} s", delta.as_secs_f32());
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
-    let mut structure = Structure::read_from_gro_file(config.input)?;
+    let mut structure = Structure::open_gro(config.input)?;
     let delta = std::time::Instant::now() - start;
     eprintln!("Took {:.3} s", delta.as_secs_f32());
 
@@ -67,7 +69,7 @@ fn main() -> io::Result<()> {
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
-    structure.write_to_gro_file(config.output)?;
+    structure.save_gro_par(config.output)?;
     let delta = std::time::Instant::now() - start;
     eprintln!("Took {:.3} s", delta.as_secs_f32());
 
