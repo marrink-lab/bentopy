@@ -1,6 +1,7 @@
 use glam::{UVec3, Vec3};
 
-use crate::structure::Structure;
+use crate::structure::{BoxVecsExtension, Structure};
+use crate::PeriodicMode;
 
 /// Return an index into a linear array that represents items on a 3-dimensional grid in a z-major
 /// ordering.
@@ -175,8 +176,8 @@ impl std::ops::Not for PlaceMap<'_> {
 }
 
 pub struct Placement<'ps> {
-    bytes: &'ps [u8],
-    len: usize,
+    pub(crate) bytes: &'ps [u8],
+    pub(crate) len: usize,
     idx: usize,
 }
 
@@ -207,7 +208,7 @@ pub struct PlacementMut<'ps> {
 }
 
 impl<'ps> PlacementMut<'ps> {
-    fn new(bytes: &'ps mut [u8], len: usize) -> Self {
+    pub(crate) fn new(bytes: &'ps mut [u8], len: usize) -> Self {
         Self { bytes, len }
     }
 
@@ -253,16 +254,41 @@ pub struct Cookies {
 }
 
 impl Cookies {
-    pub fn new(structure: &Structure, cookie_size: Vec3, dimensions: UVec3) -> Self {
+    /// Creates a new [`Cookies`].
+    ///
+    /// Note that the box size for the `structure` are treated as the dimensions when considering
+    /// the treatment of atoms according to the [`PeriodicMode`].
+    pub fn new(
+        structure: &Structure,
+        cookie_size: Vec3,
+        dimensions: UVec3,
+        mode: PeriodicMode,
+    ) -> Self {
         let n_cells = dimensions.x as usize * dimensions.y as usize * dimensions.z as usize;
         let mut cookies = vec![Vec::new(); n_cells];
 
-        // TODO: Great target for parallelization! (If at all necessary?)
         // Place the bead's position in the appropriate cookie.
         // Like raisins or pieces of chocolate. But in our case the cookies aren't round but
         // cuboid. Look, I don't even remember why I picked this name.
-        for bead in &structure.atoms {
-            let pos = bead.position;
+        let box_dimensions = structure.boxvecs.as_vec3();
+        for (i, bead) in structure.atoms.iter().enumerate() {
+            let mut pos = bead.position;
+            match mode {
+                PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
+                PeriodicMode::Ignore => {
+                    if pos.cmplt(Vec3::ZERO).any() || pos.cmpgt(box_dimensions).any() {
+                        continue;
+                    }
+                }
+                PeriodicMode::Deny => {
+                    if pos.cmplt(Vec3::ZERO).any() || pos.cmpgt(box_dimensions).any() {
+                        eprintln!("ERROR: Atom {i} with position {pos} lies outside the box {box_dimensions}.");
+                        // FIXME: It's rather gross to me to exit from inside this function. A nice
+                        // improvement could be to bubble it up as an Err to the caller.
+                        std::process::exit(2);
+                    }
+                }
+            }
             let cell_pos = (pos / cookie_size).floor().as_uvec3();
             let idx = index_3d(cell_pos, dimensions);
             cookies[idx].push(pos);
