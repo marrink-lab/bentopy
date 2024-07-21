@@ -9,24 +9,6 @@ use crate::structure::{BoxVecsExtension, Structure};
 use crate::BoundaryMode;
 use crate::PeriodicMode;
 
-fn create_outers(dimensions: UVec3) -> [([std::ops::Range<u32>; 3], BVec3); 7] {
-    let m = dimensions - 1; // The maximum index.
-    let d = dimensions; // A shorter alias.
-
-    [
-        // The planes (x, y, z).
-        ([m.x..d.x, 0..m.y, 0..m.z], BVec3::new(true, false, false)),
-        ([0..m.x, m.y..d.y, 0..m.z], BVec3::new(false, true, false)),
-        ([0..m.x, 0..m.y, m.z..d.z], BVec3::new(false, false, true)),
-        // The edges (xy, xz, yz).
-        ([m.x..d.x, m.y..d.y, 0..m.z], BVec3::new(true, true, false)),
-        ([m.x..d.x, 0..m.y, m.z..d.z], BVec3::new(true, false, true)),
-        ([0..m.x, m.y..d.y, m.z..d.z], BVec3::new(false, true, true)),
-        // The outer corner (xyz).
-        ([m.x..d.x, m.y..d.y, m.z..d.z], BVec3::new(true, true, true)),
-    ]
-}
-
 /// Solvate a [`Structure`] with a template solvent box.
 pub fn solvate<'sol>(
     structure: &mut Structure,
@@ -124,8 +106,7 @@ pub fn solvate<'sol>(
             // The outer corner (xyz) we take care of with just making the adjustment for that
             // single box.
 
-            let outers = create_outers(dimensions);
-            for (ranges, axes) in outers {
+            for axes in OUTERS {
                 // FIXME: Turn this into a proper type or an extension on MutPlacement or something.
                 let mut rejected = Vec::new();
 
@@ -172,7 +153,7 @@ pub fn solvate<'sol>(
                 // Set the rejected beads to occupied in the placemap.
                 // FIXME: I don't like this. I don't like this. I don't like this. See above about
                 // `rejected`.
-                let [xrange, yrange, zrange] = ranges;
+                let [xrange, yrange, zrange] = ranges(dimensions, axes);
                 for z in zrange {
                     for y in yrange.clone() {
                         for x in xrange.clone() {
@@ -191,4 +172,24 @@ pub fn solvate<'sol>(
     }
 
     placemap
+}
+
+const OUTERS: [BVec3; 7] = [
+    // The planes (x, y, z).
+    BVec3::new(true, false, false),
+    BVec3::new(false, true, false),
+    BVec3::new(false, false, true),
+    // The edges (xy, xz, yz).
+    BVec3::new(true, true, false),
+    BVec3::new(true, false, true),
+    BVec3::new(false, true, true),
+    // The outer corner (xyz).
+    BVec3::new(true, true, true),
+];
+
+
+fn ranges(dimensions: UVec3, axes: BVec3) -> [std::ops::Range<u32>; 3] {
+    let m = (dimensions - 1).to_array(); // The maximum index.
+    let d = dimensions.to_array(); // A shorter alias.
+    [0, 1, 2].map(|i| if axes.test(i) { m[i]..d[i] } else { 0..m[i] })
 }
