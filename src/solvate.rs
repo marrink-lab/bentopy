@@ -51,17 +51,20 @@ pub fn solvate<'sol>(
         }
     }
 
-    let mut placemap = PlaceMap::new(solvent, dimensions);
-
     // Cut the input structure into cell-sized cookies that are ordered in the same manner as the
     // solvent placement map is.
     let cookies = Cookies::new(
         structure,
         solvent.boxvecs.as_vec3(),
         dimensions,
+        cutoff,
         periodic_mode,
     );
 
+    // For each location of a solvent box, go through each of the solvent bead positions and see
+    // whether it collides with a structure atom. If it does, we jot that down so we don't write
+    // that solvent bead out later.
+    let mut placemap = PlaceMap::new(solvent, dimensions);
     let cutoff2 = cutoff.powi(2); // Square to avoid taking the square root of the distances.
     for z_cell in 0..dimensions.z {
         for y_cell in 0..dimensions.y {
@@ -74,7 +77,6 @@ pub fn solvate<'sol>(
                     continue;
                 }
                 let translation = cookies.offset(cell_pos);
-                // FIXME: Par?
                 for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
                     let solvent_pos = solvent_bead.position + translation;
                     let mut collision = false;
@@ -98,6 +100,7 @@ pub fn solvate<'sol>(
         }
     }
 
+    // Deal with the boundary conditions.
     match boundary_mode {
         BoundaryMode::Cut => {
             // We will cut the boundaries as follows.
@@ -186,7 +189,6 @@ const OUTERS: [BVec3; 7] = [
     // The outer corner (xyz).
     BVec3::new(true, true, true),
 ];
-
 
 fn ranges(dimensions: UVec3, axes: BVec3) -> [std::ops::Range<u32>; 3] {
     let m = (dimensions - 1).to_array(); // The maximum index.

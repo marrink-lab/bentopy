@@ -1,4 +1,4 @@
-use glam::{UVec3, Vec3};
+use glam::{IVec3, UVec3, Vec3};
 
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::PeriodicMode;
@@ -262,6 +262,7 @@ impl Cookies {
         structure: &Structure,
         cookie_size: Vec3,
         dimensions: UVec3,
+        cutoff: f32,
         mode: PeriodicMode,
     ) -> Self {
         let n_cells = dimensions.x as usize * dimensions.y as usize * dimensions.z as usize;
@@ -292,6 +293,54 @@ impl Cookies {
             let cell_pos = (pos / cookie_size).floor().as_uvec3();
             let idx = index_3d(cell_pos, dimensions);
             cookies[idx].push(pos);
+
+            // We also push this position to any neigbors that are closer than the `cutoff` radius.
+            let neighbors = {
+                let mut neighbors = Vec::new();
+                for offset in NEIGHBORS {
+                    // First, we need to see if this position is close enough to this neighbor.
+                    let is_close = {
+                        // Teleport the position to its position relative to the cookie origin.
+                        let p = pos.rem_euclid(cookie_size).to_array();
+                        let o = offset.to_array();
+                        let c = cookie_size.to_array();
+                        (0..3).all(|i| match o[i] {
+                            0 => true,
+                            -1 => p[i] < cutoff,
+                            1 => p[i] > c[i] - cutoff,
+                            _ => unreachable!(),
+                        })
+                    };
+                    if !is_close {
+                        continue;
+                    }
+
+                    // If it is close enough, see if we can push it.
+                    let neighbor = cell_pos.as_ivec3() + offset;
+                    let neighbor = match mode {
+                        PeriodicMode::Periodic => {
+                            neighbor.rem_euclid(dimensions.as_ivec3()).as_uvec3()
+                        }
+                        PeriodicMode::Ignore => {
+                            if neighbor.is_negative_bitmask() != 0
+                                || neighbor.cmpge(dimensions.as_ivec3()).any()
+                            {
+                                // Skip out-of-bounds neigbors.
+                                continue;
+                            }
+                            neighbor.as_uvec3()
+                        }
+                        PeriodicMode::Deny => unreachable!(),
+                    };
+                    neighbors.push(neighbor);
+                }
+
+                neighbors
+            };
+            for cell_pos in neighbors {
+                let idx = index_3d(cell_pos, dimensions);
+                cookies[idx].push(pos);
+            }
         }
 
         Self {
@@ -314,6 +363,29 @@ impl Cookies {
         cell_pos.as_vec3() * self.cookie_size
     }
 }
+
+const NEIGHBORS: [IVec3; 26] = {
+    let mut neigbors = [IVec3::ZERO; 26];
+    let mut i = 0;
+    let mut z = -1;
+    while z <= 1 {
+        let mut y = -1;
+        while y <= 1 {
+            let mut x = -1;
+            while x <= 1 {
+                if !(z == 0 && y == 0 && z == 0) {
+                    neigbors[i] = IVec3::new(x, y, z);
+                    i += 1;
+                }
+                x += 1;
+            }
+            y += 1;
+        }
+        z += 1;
+    }
+
+    neigbors
+};
 
 #[cfg(test)]
 mod tests {
