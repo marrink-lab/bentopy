@@ -57,28 +57,7 @@ pub fn write_structure<const PAR: bool>(
     // structure at once, which would be tremendously memory intensive.
     let start = std::time::Instant::now();
     eprintln!("Writing solvent structure  ({natoms_solvent:>9}/{natoms} total atoms)...");
-    let offset = |cell_pos: UVec3| cell_pos.as_vec3() * template.boxvecs.as_vec3();
-    let dimensions = placemap.dimensions();
-    let mut sps = iter_3d(dimensions).map(|cell_pos| {
-        let translation = offset(cell_pos);
-        let placement = placemap.get(cell_pos).unwrap();
-        let solvent_positions =
-            placemap
-                .solvent
-                .atoms()
-                .zip(placement)
-                .filter_map(move |(&sb, occupied)| {
-                    if occupied {
-                        None
-                    } else {
-                        let mut sb = sb; // Copy the solvent bead.
-                        sb.position += translation;
-                        Some(sb)
-                    }
-                });
-        solvent_positions.collect::<Box<[_]>>()
-    });
-
+    let mut sps = placemap.iter_atoms_chunks();
     let mut buffer = Vec::new();
     let mut n = 0;
     'write_atoms: loop {

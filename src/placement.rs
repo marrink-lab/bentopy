@@ -1,3 +1,5 @@
+use eightyseven::structure::Atom;
+use eightyseven::writer::WriteGro;
 use glam::{IVec3, UVec3, Vec3};
 
 use crate::structure::{BoxVecsExtension, Structure};
@@ -10,6 +12,12 @@ fn index_3d(pos: UVec3, dimensions: UVec3) -> usize {
     pos.x as usize
         + pos.y as usize * dimensions.x as usize
         + pos.z as usize * dimensions.x as usize * dimensions.y as usize
+}
+
+/// Iterate over all positions between `(0, 0, 0)` and `dimensions`.
+fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
+    let [dx, dy, dz] = dimensions.to_array();
+    (0..dz).flat_map(move |z| (0..dy).flat_map(move |y| (0..dx).map(move |x| UVec3::new(x, y, z))))
 }
 
 pub struct PlaceMap<'s> {
@@ -47,6 +55,54 @@ impl<'s> PlaceMap<'s> {
 
     pub fn n_cells(&self) -> usize {
         self.dimensions.x as usize * self.dimensions.y as usize * self.dimensions.z as usize
+    }
+
+    pub fn iter_placements(&self) -> impl Iterator<Item = (Vec3, Placement)> {
+        iter_3d(self.dimensions).map(|cell_pos| {
+            let translation = cell_pos.as_vec3() * self.solvent.boxvecs.as_vec3();
+            let placement = self.get(cell_pos).unwrap();
+            (translation, placement)
+        })
+    }
+
+    pub fn iter_atoms_chunks(&self) -> impl Iterator<Item = Box<[Atom]>> + '_ {
+        self.iter_placements().map(|(translation, placement)| {
+            let solvent_positions =
+                self.solvent
+                    .atoms()
+                    .zip(placement)
+                    .filter_map(move |(&sb, occupied)| {
+                        if occupied {
+                            None
+                        } else {
+                            let mut sb = sb; // Copy the solvent bead.
+                            sb.position += translation;
+                            Some(sb)
+                        }
+                    });
+            solvent_positions.collect::<Box<[_]>>()
+        })
+    }
+
+    pub fn iter_atoms(&self) -> impl Iterator<Item = Atom> + '_ {
+        self.iter_placements().flat_map(|(translation, placement)| {
+            self.solvent
+                .atoms()
+                .zip(placement)
+                .filter_map(move |(&sb, occupied)| {
+                    if occupied {
+                        None
+                    } else {
+                        let mut sb = sb; // Copy the solvent bead.
+                        sb.position += translation;
+                        Some(sb)
+                    }
+                })
+        })
+    }
+
+    pub fn iter_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+        self.iter_atoms().map(|atom| atom.position)
     }
 
     pub fn get_mut(&mut self, pos: UVec3) -> Option<PlacementMut> {
