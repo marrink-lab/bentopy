@@ -91,13 +91,11 @@ fn main() -> io::Result<()> {
     eprint!("Loading template {:?}... ", config.template);
     let start = std::time::Instant::now();
     let template = Structure::open_gro(config.template)?;
-    let delta = std::time::Instant::now() - start;
-    eprintln!("Took {:.6} s", delta.as_secs_f32());
+    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
     let mut structure = Structure::open_gro(config.input)?;
-    let delta = std::time::Instant::now() - start;
-    eprintln!("Took {:.3} s", delta.as_secs_f32());
+    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
 
     eprint!("Solvating... ");
     let start = std::time::Instant::now();
@@ -109,8 +107,7 @@ fn main() -> io::Result<()> {
         config.boundary_mode,
         config.periodic_mode,
     );
-    let delta = std::time::Instant::now() - start;
-    eprintln!("Took {:.3} s", delta.as_secs_f32());
+    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
@@ -122,8 +119,7 @@ fn main() -> io::Result<()> {
     } else {
         write_structure::<true>(&mut writer, &structure, &template, &placemap, buffer_size)?;
     }
-    let delta = std::time::Instant::now() - start;
-    eprintln!("Took {:.3} s", delta.as_secs_f32());
+    eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
 
     Ok(())
 }
