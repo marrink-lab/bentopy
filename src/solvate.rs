@@ -27,6 +27,7 @@ pub fn solvate<'sol>(
     match boundary_mode {
         BoundaryMode::Cut => {}
         BoundaryMode::Grow => {
+            eprintln!("\tGrowing output structure box to fit solvent precisely.");
             // If the solvent box does not fit precisely (viz., the input box size is not an
             // integer multiple of the solvent box size), the size will be overshot. This means that in
             // many cases, the size of the output box may be greater than that of the input structure.
@@ -38,6 +39,8 @@ pub fn solvate<'sol>(
                 for bead in &mut structure.atoms {
                     bead.position += offset;
                 }
+
+                eprintln!("\tCentered structure in expanded box.");
             }
 
             match &mut structure.boxvecs {
@@ -53,6 +56,8 @@ pub fn solvate<'sol>(
 
     // Cut the input structure into cell-sized cookies that are ordered in the same manner as the
     // solvent placement map is.
+    eprint!("\tCutting cookies... ");
+    let start = std::time::Instant::now();
     let cookies = Cookies::new(
         structure,
         solvent.boxvecs.as_vec3(),
@@ -60,10 +65,13 @@ pub fn solvate<'sol>(
         cutoff,
         periodic_mode,
     );
+    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     // For each location of a solvent box, go through each of the solvent bead positions and see
     // whether it collides with a structure atom. If it does, we jot that down so we don't write
     // that solvent bead out later.
+    eprint!("\tChecking solvent collisions... ");
+    let start = std::time::Instant::now();
     let mut placemap = PlaceMap::new(solvent, dimensions);
     let cutoff2 = cutoff.powi(2); // Square to avoid taking the square root of the distances.
     for z_cell in 0..dimensions.z {
@@ -99,6 +107,7 @@ pub fn solvate<'sol>(
             }
         }
     }
+    eprintln!("Took {:.6} s.", start.elapsed().as_secs_f32());
 
     // Deal with the boundary conditions.
     match boundary_mode {
@@ -109,6 +118,8 @@ pub fn solvate<'sol>(
             // The outer corner (xyz) we take care of with just making the adjustment for that
             // single box.
 
+            eprint!("\tCutting solvent to fit box... ");
+            let start = std::time::Instant::now();
             for axes in OUTERS {
                 // FIXME: Turn this into a proper type or an extension on MutPlacement or something.
                 let mut rejected = Vec::new();
@@ -169,6 +180,7 @@ pub fn solvate<'sol>(
                     }
                 }
             }
+            eprintln!("Took {:.6} s.", start.elapsed().as_secs_f32());
         }
         // We already set the box size at the top. Nothing to do here.
         BoundaryMode::Grow => {}

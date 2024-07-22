@@ -91,13 +91,13 @@ fn main() -> io::Result<()> {
     eprint!("Loading template {:?}... ", config.template);
     let start = std::time::Instant::now();
     let template = Structure::open_gro(config.template)?;
-    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
+    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
     let mut structure = Structure::open_gro(config.input)?;
-    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
+    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
-    eprint!("Solvating... ");
+    eprintln!("Solvating...");
     let start = std::time::Instant::now();
     let placemap = solvate(
         &mut structure,
@@ -107,7 +107,7 @@ fn main() -> io::Result<()> {
         config.boundary_mode,
         config.periodic_mode,
     );
-    eprintln!("Took {:.3} s", start.elapsed().as_secs_f32());
+    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
