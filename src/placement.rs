@@ -271,8 +271,11 @@ impl Cookies {
         // Place the bead's position in the appropriate cookie.
         // Like raisins or pieces of chocolate. But in our case the cookies aren't round but
         // cuboid. Look, I don't even remember why I picked this name.
+        let mut cell_indices = Vec::with_capacity(3 * 3 * 3);
         let box_dimensions = structure.boxvecs.as_vec3();
         for (i, bead) in structure.atoms.iter().enumerate() {
+            cell_indices.clear();
+
             let mut pos = bead.position;
             match mode {
                 PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
@@ -290,55 +293,49 @@ impl Cookies {
                     }
                 }
             }
-            let cell_pos = (pos / cookie_size).floor().as_uvec3();
-            let idx = index_3d(cell_pos, dimensions);
-            cookies[idx].push(pos);
+            let self_cell_pos = (pos / cookie_size).floor().as_uvec3();
+            let self_idx = index_3d(self_cell_pos, dimensions);
+            cell_indices.push(self_idx);
 
             // We also push this position to any neigbors that are closer than the `cutoff` radius.
-            let neighbors = {
-                let mut neighbors = Vec::new();
-                for offset in NEIGHBORS {
-                    // First, we need to see if this position is close enough to this neighbor.
-                    let is_close = {
-                        // Teleport the position to its position relative to the cookie origin.
-                        let p = pos.rem_euclid(cookie_size).to_array();
-                        let o = offset.to_array();
-                        let c = cookie_size.to_array();
-                        (0..3).all(|i| match o[i] {
-                            0 => true,
-                            -1 => p[i] < cutoff,
-                            1 => p[i] > c[i] - cutoff,
-                            _ => unreachable!(),
-                        })
-                    };
-                    if !is_close {
-                        continue;
-                    }
-
-                    // If it is close enough, see if we can push it.
-                    let neighbor = cell_pos.as_ivec3() + offset;
-                    let neighbor = match mode {
-                        PeriodicMode::Periodic => {
-                            neighbor.rem_euclid(dimensions.as_ivec3()).as_uvec3()
-                        }
-                        PeriodicMode::Ignore => {
-                            if neighbor.is_negative_bitmask() != 0
-                                || neighbor.cmpge(dimensions.as_ivec3()).any()
-                            {
-                                // Skip out-of-bounds neigbors.
-                                continue;
-                            }
-                            neighbor.as_uvec3()
-                        }
-                        PeriodicMode::Deny => unreachable!(),
-                    };
-                    neighbors.push(neighbor);
+            for offset in NEIGHBORS {
+                // First, we need to see if this position is close enough to this neighbor.
+                let is_close = {
+                    // Teleport the position to its position relative to the cookie origin.
+                    let p = pos.rem_euclid(cookie_size).to_array();
+                    let o = offset.to_array();
+                    let c = cookie_size.to_array();
+                    (0..3).all(|i| match o[i] {
+                        0 => true,
+                        -1 => p[i] < cutoff,
+                        1 => p[i] > c[i] - cutoff,
+                        _ => unreachable!(),
+                    })
+                };
+                if !is_close {
+                    continue;
                 }
 
-                neighbors
-            };
-            for cell_pos in neighbors {
-                let idx = index_3d(cell_pos, dimensions);
+                // If it is close enough, see if we can push it.
+                let neighbor = self_cell_pos.as_ivec3() + offset;
+                let neighbor = match mode {
+                    PeriodicMode::Periodic => neighbor.rem_euclid(dimensions.as_ivec3()).as_uvec3(),
+                    PeriodicMode::Ignore => {
+                        if neighbor.is_negative_bitmask() != 0
+                            || neighbor.cmpge(dimensions.as_ivec3()).any()
+                        {
+                            // Skip out-of-bounds neigbors.
+                            continue;
+                        }
+                        neighbor.as_uvec3()
+                    }
+                    PeriodicMode::Deny => unreachable!(),
+                };
+
+                cell_indices.push(index_3d(neighbor, dimensions));
+            }
+
+            for &idx in &cell_indices {
                 cookies[idx].push(pos);
             }
         }
