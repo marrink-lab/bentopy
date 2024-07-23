@@ -10,3 +10,7 @@ eightyseven = "0.1.4"
 glam = "0.25.0"
 rand = "0.8.5"
 rayon = "1.9.0"
+
+[profile.release]
+strip = true
+lto = true
