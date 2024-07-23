@@ -13,8 +13,11 @@ pub struct Args {
     /// Output path.
     pub output: PathBuf,
 
-    /// Cutoff radius (nm).
-    #[arg(long, default_value_t = 0.21)]
+    /// Cutoff distance (nm).
+    ///
+    /// This is the minimum allowable center-to-center distance when checking for a collision
+    /// between a solvent bead and a structure bead.
+    #[arg(long, default_value_t = 0.43)]
     pub cutoff: f32,
 
     /// Center the structure in the new box.

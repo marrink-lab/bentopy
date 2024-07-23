@@ -33,7 +33,7 @@ fn main() -> io::Result<()> {
     let mut placemap = solvate(
         &mut structure,
         &template,
-        config.cutoff * 2.0,
+        config.cutoff,
         config.center,
         config.boundary_mode,
         config.periodic_mode,
