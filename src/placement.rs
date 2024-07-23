@@ -20,6 +20,7 @@ fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
     (0..dz).flat_map(move |z| (0..dy).flat_map(move |y| (0..dx).map(move |x| UVec3::new(x, y, z))))
 }
 
+#[derive(Clone)]
 pub struct PlaceMap<'s> {
     pub solvent: &'s Structure,
     dimensions: UVec3,
@@ -49,10 +50,6 @@ impl<'s> PlaceMap<'s> {
         }
     }
 
-    pub fn dimensions(&self) -> UVec3 {
-        self.dimensions
-    }
-
     pub fn n_cells(&self) -> usize {
         self.dimensions.x as usize * self.dimensions.y as usize * self.dimensions.z as usize
     }
@@ -63,6 +60,14 @@ impl<'s> PlaceMap<'s> {
             let placement = self.get(cell_pos).unwrap();
             (translation, placement)
         })
+    }
+
+    pub fn iter_placements_mut(&mut self) -> impl Iterator<Item = PlacementMut> {
+        let n_beads = self.solvent.natoms();
+        let n_bytes = n_beads.div_ceil(8);
+        self.placements
+            .chunks_exact_mut(n_bytes)
+            .map(move |bytes| PlacementMut::new(bytes, n_beads))
     }
 
     pub fn iter_atoms_chunks(&self) -> impl Iterator<Item = Box<[Atom]>> + '_ {
@@ -136,21 +141,18 @@ impl<'s> PlaceMap<'s> {
     }
 
     /// Return the count of the positions that are marked as occupied.
-    pub fn occupied_count(&self) -> usize {
+    pub fn occupied_count(&self) -> u64 {
         // Since a bit is marked as 1 iff the position it represents is occupied, we can just
         // perform a popcount over the whole bit array.
         // Note that we don't have to worry about the wasted bits, since these are always set to
         // zero.
-        self.placements
-            .iter()
-            .map(|b| b.count_ones() as usize)
-            .sum()
+        self.placements.iter().map(|b| b.count_ones() as u64).sum()
     }
 
     /// Return the count of unoccupied positions.
-    pub fn unoccupied_count(&self) -> usize {
+    pub fn unoccupied_count(&self) -> u64 {
         let total = self.solvent.natoms() * self.n_cells();
-        total - self.occupied_count()
+        total as u64 - self.occupied_count()
     }
 
     /// Repair all wasted bits in the type.
@@ -182,7 +184,7 @@ impl std::ops::BitOrAssign for PlaceMap<'_> {
 }
 
 impl std::ops::BitAndAssign for PlaceMap<'_> {
-    // Invariant: The or operation will not break the invariant as long as the two operands are
+    // Invariant: The and operation will not break the invariant as long as the two operands are
     // also valid.
     fn bitand_assign(&mut self, rhs: Self) {
         assert_eq!(self.dimensions, rhs.dimensions);
@@ -199,7 +201,7 @@ impl std::ops::BitAndAssign for PlaceMap<'_> {
 }
 
 impl std::ops::BitXorAssign for PlaceMap<'_> {
-    // Invariant: The or operation will not break the invariant as long as the two operands are
+    // Invariant: The xor operation will not break the invariant as long as the two operands are
     // also valid.
     fn bitxor_assign(&mut self, rhs: Self) {
         assert_eq!(self.dimensions, rhs.dimensions);
@@ -268,6 +270,10 @@ impl<'ps> PlacementMut<'ps> {
         Self { bytes, len }
     }
 
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
     /// Set the bit value for a solvent bead to represent that its spot is occupied.
     ///
     /// This communicates that a solvent particle cannot be rendered at this spot.
@@ -281,6 +287,23 @@ impl<'ps> PlacementMut<'ps> {
 
         let byte = &mut self.bytes[idx / 8];
         *byte |= 1 << (idx % 8);
+    }
+
+    /// Get the value of the bit at `idx`.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the provided `idx` exceeds the range represented by this value.
+    pub fn get(&self, idx: usize) -> bool {
+        if idx >= self.len {
+            panic!(
+                "index out of range (length was {} but index was {idx})",
+                self.len
+            )
+        }
+
+        let byte = self.bytes[idx / 8];
+        byte >> (idx % 8) & 1 > 0
     }
 
     /// Repair the wasted bits at the end of this [`PlacementMut`] by setting them to zero.
@@ -472,7 +495,7 @@ mod tests {
         let natoms = solvent.natoms();
         let size = UVec3::new(3, 5, 7);
         let mut placemap = PlaceMap::new(&solvent, size);
-        let natoms_total = natoms * placemap.n_cells();
+        let natoms_total = (natoms * placemap.n_cells()) as u64;
         let n_occupied = 0;
 
         // Set some atom to be occupied.

@@ -2,11 +2,10 @@ use std::io;
 
 use eightyseven::structure::BoxVecs;
 use eightyseven::writer::WriteGro;
-use glam::UVec3;
 use glam::Vec3;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::placement::PlaceMap;
+use crate::{placement::PlaceMap, substitute::Substitution};
 
 pub type Structure = eightyseven::structure::Structure;
 
@@ -23,22 +22,17 @@ impl BoxVecsExtension for BoxVecs {
     }
 }
 
-/// Iterate over all positions between `(0, 0, 0)` and `dimensions`.
-fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
-    let [dx, dy, dz] = dimensions.to_array();
-    (0..dz).flat_map(move |z| (0..dy).flat_map(move |y| (0..dx).map(move |x| UVec3::new(x, y, z))))
-}
-
 pub fn write_structure<const PAR: bool>(
     writer: &mut impl io::Write,
     structure: &Structure,
-    template: &Structure,
-    placemap: &PlaceMap,
+    solvent_placemap: &PlaceMap,
+    substitutions: &[Substitution],
     buffer_size: usize,
 ) -> io::Result<()> {
     let natoms_structure = structure.natoms();
-    let natoms_solvent = placemap.unoccupied_count();
-    let natoms = natoms_structure + natoms_solvent;
+    let natoms_solvent = solvent_placemap.unoccupied_count() as usize;
+    let natoms_substitutes = substitutions.iter().map(|s| s.natoms()).sum::<usize>();
+    let natoms = natoms_structure + natoms_solvent + natoms_substitutes;
 
     // Write the gro header.
     writeln!(writer, "solvated by {}", env!("CARGO_PKG_NAME"))?;
@@ -57,14 +51,14 @@ pub fn write_structure<const PAR: bool>(
     // structure at once, which would be tremendously memory intensive.
     let start = std::time::Instant::now();
     eprintln!("Writing solvent structure  ({natoms_solvent:>9}/{natoms} total atoms)...");
-    let mut sps = placemap.iter_atoms_chunks();
+    let mut placements = solvent_placemap.iter_atoms_chunks();
     let mut buffer = Vec::new();
     let mut n = 0;
     'write_atoms: loop {
         buffer.clear();
 
         'fill_buffer: while buffer.len() < buffer_size {
-            match sps.next() {
+            match placements.next() {
                 Some(sp) => buffer.extend(sp),
                 None if buffer.len() == 0 => break 'write_atoms,
                 None => break 'fill_buffer,
@@ -96,7 +90,41 @@ pub fn write_structure<const PAR: bool>(
         start.elapsed().as_secs_f32()
     );
 
-    // Eventually, this is where the ions would be written to the file. But we're not there yet.
+    if !substitutions.is_empty() {
+        // Write out the substitutes at the end of the structure.
+        let start = std::time::Instant::now();
+        eprintln!("Writing substitutes        ({natoms_substitutes:>9}/{natoms} total atoms)...");
+        for substitution in substitutions {
+            let name = substitution.name();
+            let number = substitution.natoms();
+            eprint!("\t{name}, {number} atoms... ");
+            let start = std::time::Instant::now();
+            let mut placements = substitution.iter_atoms();
+            loop {
+                buffer.clear();
+                buffer.extend(placements.by_ref().take(buffer_size));
+                if buffer.is_empty() {
+                    break;
+                }
+
+                let atoms = &buffer;
+                if PAR {
+                    let lines: String = atoms.par_iter().map(Structure::format_atom_line).collect();
+                    writer.write_all(lines.as_bytes())?;
+                } else {
+                    for atom in atoms {
+                        let line = Structure::format_atom_line(&atom);
+                        writer.write_all(line.as_bytes())?;
+                    }
+                }
+            }
+            eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
+        }
+        eprintln!(
+            "Done writing substitutes, took {:.3} s.",
+            start.elapsed().as_secs_f32()
+        );
+    }
 
     // Finally, we write the box vectors.
     writeln!(writer, "{}", structure.boxvecs())?;
