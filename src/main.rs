@@ -53,14 +53,19 @@ fn main() -> io::Result<()> {
         .map(|sc| sc.bake(volume, placemap.unoccupied_count() as u64))
         .collect::<Vec<_>>();
 
-    eprintln!("Placing ions...");
-    let start = std::time::Instant::now();
-    let mut rng = match config.seed {
-        Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
-        None => rand::rngs::StdRng::from_entropy(),
+    let substitutes = if !substitutes.is_empty() {
+        eprintln!("Making substitutes...");
+        let start = std::time::Instant::now();
+        let mut rng = match config.seed {
+            Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
+            None => rand::rngs::StdRng::from_entropy(),
+        };
+        let substitutes = substitute(&mut rng, &mut placemap, &substitutes);
+        eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
+        substitutes
+    } else {
+        Vec::new()
     };
-    let substitutes = substitute(&mut rng, &mut placemap, &substitutes);
-    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
