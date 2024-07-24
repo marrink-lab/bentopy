@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use eightyseven::reader::ReadGro;
@@ -61,7 +61,7 @@ impl Mask {
         Self::from_cells(dimensions, &cells)
     }
 
-    fn load_from_path(path: PathBuf) -> io::Result<Self> {
+    fn load_from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let mut npz = npyz::npz::NpzArchive::open(path)?;
         // FIXME: This error could be handled more gracefully.
         let first_name = npz
@@ -326,6 +326,11 @@ pub struct State {
     pub summary: bool,
 }
 
+/// Helper function for reporting clear errors when opening something at a path fails.
+fn report_opening<P: std::fmt::Debug>(err: impl std::error::Error, path: P) -> io::Error {
+    io::Error::other(format!("problem while opening {path:?}: {err}"))
+}
+
 impl State {
     pub fn new(args: Args, config: Configuration) -> io::Result<Self> {
         let verbose = args.verbose;
@@ -352,7 +357,7 @@ impl State {
                             if verbose {
                                 eprintln!("\tLoading mask from {path:?}...");
                             }
-                            Mask::load_from_path(path)?
+                            Mask::load_from_path(&path).map_err(|err| report_opening(err, path))?
                         }
                     },
                     distance_masks: Default::default(),
@@ -389,7 +394,7 @@ impl State {
                         Some(6.. ) => eprintln!("WARNING: The tag for segment '{name}' is longer than 5 characters, and may be truncated when the placement list is rendered."),
                         _ => {} // Nothing to warn about.
                     }
-                    let structure = load_molecule(&seg.path)?;
+                    let structure = load_molecule(&seg.path).map_err(|err| report_opening(err, &seg.path))?;
                     let rules = seg
                         .rules
                         .iter()
