@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 /// Pack a space.
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(version)]
 pub struct Args {
     // Configuration input file to define the run (json).
@@ -13,8 +13,8 @@ pub struct Args {
     pub output: PathBuf,
 
     /// Sort the input structures by approximate size to optimize packing.
-    #[arg(long, default_value_t = true)]
-    pub rearrange: bool,
+    #[arg(long, default_value = "moment-of-inertia")]
+    pub rearrange: Option<RearrangeMethod>,
 
     /// Random number generator seed.
     #[arg(long)]
@@ -31,4 +31,10 @@ pub struct Args {
     /// Display verbose output.
     #[arg(short, long)]
     pub verbose: bool,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum RearrangeMethod {
+    Volume,
+    MomentOfInertia,
 }
