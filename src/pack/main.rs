@@ -20,7 +20,7 @@ const CLEAR_LINE: &str = "\u{1b}[2K\r";
 type Location = usize;
 
 struct Summary {
-    entries: Vec<(String, usize, usize, usize, f64)>,
+    entries: Vec<(String, usize, usize, f64)>,
 }
 
 impl Summary {
@@ -30,27 +30,27 @@ impl Summary {
         }
     }
 
-    fn push(&mut self, name: String, nrots: usize, target: usize, placed: usize, time: f64) {
-        self.entries.push((name, nrots, target, placed, time))
+    fn push(&mut self, name: String, target: usize, placed: usize, time: f64) {
+        self.entries.push((name, target, placed, time))
     }
 
     fn present(&self, packing_duration: f64) {
-        println!("idx \tname      \tnrots\ttarget\tplaced\ttime (s)\tremark");
-        println!("----\t----------\t-----\t------\t------\t--------\t------");
-        let mut nrots_tot = 0;
+        println!("idx \tname      \t   ok%\ttarget\tplaced\ttime (s)\tremark");
+        println!("----\t----------\t------\t------\t------\t--------\t------");
         let mut target_tot = 0;
         let mut hits_tot = 0;
-        for (i, (name, nrots, target, hits, duration)) in self.entries.iter().enumerate() {
+        for (i, (name, target, hits, duration)) in self.entries.iter().enumerate() {
+            let perc = (*hits as f32 / *target as f32) * 100.0;
             let ok = if hits == target { " " } else { "<" };
             println!(
-                "{i:>4}\t{name:<10}\t{nrots:>5}\t{target:>6}\t{hits:>6}\t{duration:8.2}\t{ok}"
+                "{i:>4}\t{name:<10}\t{perc:>5.1}%\t{target:>6}\t{hits:>6}\t{duration:8.2}\t{ok}"
             );
-            nrots_tot += nrots;
             target_tot += target;
             hits_tot += hits;
         }
+        let perc = (hits_tot as f32 / target_tot as f32) * 100.0;
         let ok = if hits_tot == target_tot { " " } else { "<" };
-        println!( "    \t          \t{nrots_tot:>5}\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}")
+        println!( "    \t          \t{perc:>5.1}%\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}")
     }
 }
 
