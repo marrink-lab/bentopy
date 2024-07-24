@@ -9,7 +9,7 @@ use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
 use rand::{Rng as _, SeedableRng};
 
-use crate::args::Args;
+use crate::args::{Args, RearrangeMethod};
 use crate::config::{
     Configuration, Mask as ConfigMask, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
@@ -442,15 +442,27 @@ impl State {
                     })
                 })
                 .collect::<io::Result<_>>()?;
-            if args.rearrange {
-                eprint!("Rearranging segments... ");
-                segments
-                    .iter_mut()
-                    .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
-                segments
-                    .sort_by_cached_key(|seg| -> usize { seg.voxels().unwrap().count::<true>() });
-                // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
-                segments.reverse();
+            if let Some(method) = args.rearrange {
+                eprint!("Rearranging segments according to the {method:?} method... ");
+                match method {
+                    RearrangeMethod::Volume => {
+                        segments
+                            .iter_mut()
+                            .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
+                        segments.sort_by_cached_key(|seg| -> usize {
+                            seg.voxels().unwrap().count::<true>()
+                        });
+                        // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
+                        segments.reverse();
+                    }
+                    RearrangeMethod::MomentOfInertia => {
+                        segments.sort_by_cached_key(|seg| {
+                            (seg.structure.moment_of_inertia() * 1e6) as i64
+                        });
+                        // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
+                        segments.reverse();
+                    }
+                }
                 eprintln!("Done.");
             }
             segments
