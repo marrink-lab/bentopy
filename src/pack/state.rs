@@ -673,11 +673,6 @@ impl State {
                     if tries_per_rotation >= max_tries_per_rotation {
                         let rotation = Mat3::from_quat(state.rng.gen());
                         segment.set_rotation(rotation);
-
-                        if state.verbose {
-                            eprintln!("\tNew rotation. Exceeded the maximum number of tries per rotation ({tries_per_rotation} @ {tries} tries).")
-                        }
-
                         tries_per_rotation = 0; // Reset the counter.
                     }
                     continue 'placement; // Reject due to collision.
