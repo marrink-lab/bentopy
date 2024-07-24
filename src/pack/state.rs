@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
-use glam::{EulerRot, Mat3, Quat, Vec3};
+use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
 use rand::{Rng as _, SeedableRng};
 
 use crate::args::Args;
@@ -30,24 +30,33 @@ pub type Voxels = Mask;
 pub type Rng = rand::rngs::StdRng; // TODO: Is this the fastest out there?
 
 impl Mask {
-    pub(crate) fn create_from_shape(shape: ConfigShape, dimensions: Dimensions) -> Self {
+    /// All dimensions in terms of voxels.
+    pub(crate) fn create_from_shape(
+        shape: ConfigShape,
+        dimensions: Dimensions,
+        center: Option<UVec3>,
+        radius: Option<u32>,
+    ) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
-        let r = (dimensions.into_iter().min().unwrap() as usize) / 2;
-        let c = r as isize;
+        let min_dim = dimensions.into_iter().min().unwrap() as u32;
+        let r = radius.unwrap_or(min_dim / 2);
+        assert!(min_dim >= r);
+        let c = center.unwrap_or(UVec3::splat(r as u32)).as_ivec3();
+        assert!(U64Vec3::from_array(dimensions).cmpge(c.as_u64vec3()).all());
         let r2 = r.pow(2);
 
         // TODO: We can use some nice iterator tricks to avoid allocating a big Vec<bool> here.
         // TODO: Profile to see whether we can help the inlining along.
         let mut cells = Vec::with_capacity(w * h * d);
-        for z in 0..d as isize {
-            for y in 0..h as isize {
-                for x in 0..w as isize {
+        for z in 0..d as i32 {
+            for y in 0..h as i32 {
+                for x in 0..w as i32 {
                     let cell = match shape {
                         ConfigShape::Spherical => {
                             // TODO: Profile and inspect asm to see whether this inlines well.
-                            ((x - c).pow(2) as usize)
-                                + ((y - c).pow(2) as usize)
-                                + ((z - c).pow(2) as usize)
+                            ((x - c.x).pow(2) as u32)
+                                + ((y - c.y).pow(2) as u32)
+                                + ((z - c.z).pow(2) as u32)
                                 >= r2
                         }
                         ConfigShape::Cuboid | ConfigShape::None => false,
@@ -338,6 +347,7 @@ impl State {
             .space
             .size
             .map(|d| (d / config.space.resolution) as u64);
+        let resolution = config.space.resolution;
         eprintln!("Setting up compartments...");
         let compartments = config
             .space
@@ -351,7 +361,20 @@ impl State {
                             if verbose {
                                 eprintln!("\tConstructing a {shape} mask...");
                             }
-                            Mask::create_from_shape(shape, dimensions)
+                            Mask::create_from_shape(shape, dimensions, None, None)
+                        }
+                        ConfigMask::Analytical {
+                            shape,
+                            center,
+                            radius,
+                        } => {
+                            if verbose {
+                                eprintln!("\tConstructing a {shape} mask...");
+                            }
+                            let center =
+                                center.map(|c| (Vec3::from_array(c) / resolution).as_uvec3());
+                            let radius = radius.map(|r| (r / resolution) as u32);
+                            Mask::create_from_shape(shape, dimensions, center, radius)
                         }
                         ConfigMask::Voxels { path } => {
                             if verbose {
@@ -367,7 +390,7 @@ impl State {
         let space = Space {
             size: config.space.size,
             dimensions,
-            resolution: config.space.resolution,
+            resolution,
             compartments,
             periodic: config.space.periodic,
 
