@@ -107,7 +107,7 @@ pub fn solvate<'sol>(
             }
         }
     }
-    eprintln!("Took {:.6} s.", start.elapsed().as_secs_f32());
+    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     // Deal with the boundary conditions.
     match boundary_mode {
