@@ -37,4 +37,5 @@ pub struct Args {
 pub enum RearrangeMethod {
     Volume,
     MomentOfInertia,
+    BoundingSphere,
 }
