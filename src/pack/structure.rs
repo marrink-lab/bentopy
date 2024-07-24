@@ -7,6 +7,9 @@ use glam::Vec3;
 
 pub type Atom = Vec3;
 
+/// A structure type that stores its atoms as simple positions.
+///
+/// Invariant: A structure is always centered, such that its geometric center lies at the origin.
 pub struct Structure {
     atoms: Vec<Atom>,
 }
@@ -37,7 +40,9 @@ impl ReadGro<Atom> for Structure {
         atoms: Vec<Atom>,
         _boxvecs: eightyseven::structure::BoxVecs,
     ) -> Self {
-        Self { atoms }
+        let mut structure = Self { atoms };
+        structure.translate_to_center();
+        structure
     }
 }
 
@@ -59,7 +64,26 @@ impl Structure {
             }
         }
 
-        Ok(Self { atoms })
+        let mut structure = Self { atoms };
+        structure.translate_to_center();
+        Ok(structure)
+    }
+
+    /// Translate this [`Structure`] such that it's geometric center lies at the origin.
+    fn translate_to_center(&mut self) {
+        let center = self.atoms().sum::<Atom>() / self.natoms() as f32;
+        for pos in &mut self.atoms {
+            *pos -= center;
+        }
+    }
+
+    /// Calculate the moment of inertia for this [`Structure`].
+    ///
+    /// Assumes that the invariant that the structure has been centered holds.
+    ///
+    ///     I = Σ(m_i * r_i²)
+    pub fn moment_of_inertia(&self) -> f32 {
+        self.atoms().map(|atom| atom.length_squared()).sum()
     }
 }
 
