@@ -372,6 +372,9 @@ impl Cookies {
                     }
                 }
             }
+            // Note that we can safely cast to a UVec3 here, since beads that fall outside the box
+            // dimensions have already been translated inside or skipped.
+            debug_assert!(pos.is_negative_bitmask() == 0);
             let self_cell_pos = (pos / cookie_size).floor().as_uvec3();
             let self_idx = index_3d(self_cell_pos, dimensions);
             cell_indices.push(self_idx);
