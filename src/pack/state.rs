@@ -701,13 +701,7 @@ impl State {
             }
 
             // Save the batches.
-            summary.push(
-                segment.name.clone(),
-                placement.n_batches(),
-                segment.target,
-                hits,
-                duration,
-            );
+            summary.push(segment.name.clone(), segment.target, hits, duration);
             placements.push(placement);
         }
 
