@@ -440,28 +440,34 @@ impl Cookies {
     }
 }
 
-const NEIGHBORS: [IVec3; 26] = {
-    let mut neigbors = [IVec3::ZERO; 26];
-    let mut i = 0;
-    let mut z = -1;
-    while z <= 1 {
-        let mut y = -1;
-        while y <= 1 {
-            let mut x = -1;
-            while x <= 1 {
-                if !(z == 0 && y == 0 && z == 0) {
-                    neigbors[i] = IVec3::new(x, y, z);
-                    i += 1;
-                }
-                x += 1;
-            }
-            y += 1;
-        }
-        z += 1;
-    }
-
-    neigbors
-};
+const NEIGHBORS: [IVec3; 26] = [
+    IVec3::new(-1, -1, -1),
+    IVec3::new(0, -1, -1),
+    IVec3::new(1, -1, -1),
+    IVec3::new(-1, 0, -1),
+    IVec3::new(0, 0, -1),
+    IVec3::new(1, 0, -1),
+    IVec3::new(-1, 1, -1),
+    IVec3::new(0, 1, -1),
+    IVec3::new(1, 1, -1),
+    IVec3::new(-1, -1, 0),
+    IVec3::new(0, -1, 0),
+    IVec3::new(1, -1, 0),
+    IVec3::new(-1, 0, 0),
+    IVec3::new(1, 0, 0),
+    IVec3::new(-1, 1, 0),
+    IVec3::new(0, 1, 0),
+    IVec3::new(1, 1, 0),
+    IVec3::new(-1, -1, 1),
+    IVec3::new(0, -1, 1),
+    IVec3::new(1, -1, 1),
+    IVec3::new(-1, 0, 1),
+    IVec3::new(0, 0, 1),
+    IVec3::new(1, 0, 1),
+    IVec3::new(-1, 1, 1),
+    IVec3::new(0, 1, 1),
+    IVec3::new(1, 1, 1),
+];
 
 #[cfg(test)]
 mod tests {
