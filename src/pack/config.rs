@@ -27,7 +27,14 @@ impl std::fmt::Display for Shape {
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Mask {
     Shape(Shape),
-    Voxels { path: PathBuf },
+    Analytical {
+        shape: Shape,
+        center: Option<[f32; 3]>,
+        radius: Option<f32>,
+    },
+    Voxels {
+        path: PathBuf,
+    },
 }
 
 #[derive(Deserialize)]
