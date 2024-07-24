@@ -499,6 +499,21 @@ impl State {
         let mut placements = Vec::new();
         let mut summary = Summary::new();
 
+        let max_tries_multiplier = std::env::var("BENTOPY_TRIES")
+            .map(|s| {
+                s.parse()
+                    .expect("max tries multiplier should be a valid unsigned integer")
+            })
+            .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))
+            .unwrap_or(1000);
+        let max_tries_per_rotation_divisor = std::env::var("BENTOPY_ROT_DIV")
+            .map(|s| {
+                s.parse()
+                    .expect("divisor should be a valid unsigned integer")
+            })
+            .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))
+            .unwrap_or(100);
+
         let state = self;
         let n_segments = state.segments.len();
         for (i, segment) in state.segments.iter_mut().enumerate() {
@@ -544,8 +559,8 @@ impl State {
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.
             let mut tries_per_rotation = 0;
-            let max_tries = 1000 * segment.target; // The number of unsuccessful tries.
-            let max_tries_per_rotation = max_tries / 100;
+            let max_tries = max_tries_multiplier * segment.target; // The number of unsuccessful tries.
+            let max_tries_per_rotation = max_tries / max_tries_per_rotation_divisor;
             let mut batch_positions = Vec::new();
             'placement: while hits < segment.target {
                 if tries >= max_tries {
@@ -576,6 +591,9 @@ impl State {
                     let rotation = Mat3::from_quat(state.rng.gen());
                     segment.set_rotation(rotation);
                     tries_per_rotation = 0; // Reset the counter.
+                    if state.verbose {
+                        eprintln!("\tNew rotation. The previous rotation would never have fit.")
+                    }
 
                     continue 'placement; // Segment voxels size exceeds the size of the background.
                 }
@@ -620,6 +638,11 @@ impl State {
                     if tries_per_rotation >= max_tries_per_rotation {
                         let rotation = Mat3::from_quat(state.rng.gen());
                         segment.set_rotation(rotation);
+
+                        if state.verbose {
+                            eprintln!("\tNew rotation. Exceeded the maximum number of tries per rotation ({tries_per_rotation} @ {tries} tries).")
+                        }
+
                         tries_per_rotation = 0; // Reset the counter.
                     }
                     continue 'placement; // Reject due to collision.
