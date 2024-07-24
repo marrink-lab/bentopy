@@ -543,7 +543,9 @@ impl State {
 
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.
+            let mut tries_per_rotation = 0;
             let max_tries = 1000 * segment.target; // The number of unsuccessful tries.
+            let max_tries_per_rotation = max_tries / 100;
             let mut batch_positions = Vec::new();
             'placement: while hits < segment.target {
                 if tries >= max_tries {
@@ -569,6 +571,12 @@ impl State {
                 let [sx, sy, sz] = voxels.dimensions();
                 if sx > bx || sy > by || sz > bz {
                     tries += 1;
+
+                    // What about another rotation?
+                    let rotation = Mat3::from_quat(state.rng.gen());
+                    segment.set_rotation(rotation);
+                    tries_per_rotation = 0; // Reset the counter.
+
                     continue 'placement; // Segment voxels size exceeds the size of the background.
                 }
                 let [maxx, maxy, maxz] = [bx - sx, by - sy, bz - sz];
@@ -608,6 +616,12 @@ impl State {
                 // Reject if it would cause a collision.
                 if !session.check_collisions(voxels, position) {
                     tries += 1;
+                    tries_per_rotation += 1;
+                    if tries_per_rotation >= max_tries_per_rotation {
+                        let rotation = Mat3::from_quat(state.rng.gen());
+                        segment.set_rotation(rotation);
+                        tries_per_rotation = 0; // Reset the counter.
+                    }
                     continue 'placement; // Reject due to collision.
                 }
 
@@ -624,6 +638,7 @@ impl State {
 
                 let rotation = Mat3::from_quat(state.rng.gen());
                 segment.set_rotation(rotation);
+                tries_per_rotation = 0; // Reset the counter.
 
                 hits += 1;
             }
