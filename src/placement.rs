@@ -172,7 +172,7 @@ impl std::ops::BitOrAssign for PlaceMap<'_> {
     fn bitor_assign(&mut self, rhs: Self) {
         assert_eq!(self.dimensions, rhs.dimensions);
         assert_eq!(self.n_cells(), rhs.n_cells());
-        assert_eq!(self.solvent, rhs.solvent); // FIXME: Possible remove?
+        assert_eq!(self.solvent, rhs.solvent);
 
         self.placements
             .iter_mut()
@@ -189,7 +189,7 @@ impl std::ops::BitAndAssign for PlaceMap<'_> {
     fn bitand_assign(&mut self, rhs: Self) {
         assert_eq!(self.dimensions, rhs.dimensions);
         assert_eq!(self.n_cells(), rhs.n_cells());
-        assert_eq!(self.solvent, rhs.solvent); // FIXME: Possible remove?
+        assert_eq!(self.solvent, rhs.solvent);
 
         self.placements
             .iter_mut()
@@ -206,7 +206,7 @@ impl std::ops::BitXorAssign for PlaceMap<'_> {
     fn bitxor_assign(&mut self, rhs: Self) {
         assert_eq!(self.dimensions, rhs.dimensions);
         assert_eq!(self.n_cells(), rhs.n_cells());
-        assert_eq!(self.solvent, rhs.solvent); // FIXME: Possible remove?
+        assert_eq!(self.solvent, rhs.solvent);
 
         self.placements
             .iter_mut()
