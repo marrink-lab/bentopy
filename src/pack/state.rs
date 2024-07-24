@@ -462,6 +462,15 @@ impl State {
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                         segments.reverse();
                     }
+
+                    RearrangeMethod::BoundingSphere => {
+                        segments.sort_by_cached_key(|seg| {
+                            (seg.structure.bounding_sphere() * 1e6) as i64
+                        });
+                        // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
+                        segments.reverse();
+
+                    }
                 }
                 eprintln!("Done.");
             }

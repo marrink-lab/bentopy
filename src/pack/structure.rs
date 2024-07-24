@@ -85,6 +85,16 @@ impl Structure {
     pub fn moment_of_inertia(&self) -> f32 {
         self.atoms().map(|atom| atom.length_squared()).sum()
     }
+
+    /// Returns the radius of the point that is farthest from the structure geometric center.
+    ///
+    /// Assumes that the invariant that the structure has been centered holds.
+    pub fn bounding_sphere(&self) -> f32 {
+        self.atoms()
+            .map(|atom| atom.length())
+            .max_by(f32::total_cmp)
+            .unwrap()
+    }
 }
 
 impl<'atoms> WriteGro<'atoms, Atom> for Structure {
