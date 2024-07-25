@@ -127,12 +127,12 @@ pub fn solvate<'sol>(
                 let uaxes = UVec3::new(axes.x as u32, axes.y as u32, axes.z as u32);
                 let vaxes = uaxes.as_vec3();
 
-                let boxvecs = structure.boxvecs.as_vec3();
+                let box_dimensions = structure.boxvecs.as_vec3();
                 let max = dimensions - 1;
                 let cell_pos = max * uaxes;
                 let translation = cookies.offset(cell_pos);
                 // The periodic neigbours.
-                let periodic_translation = translation + boxvecs * vaxes;
+                let periodic_translation = box_dimensions * vaxes;
                 let other_side: Box<[_]> = placemap
                     .solvent
                     .atoms()
@@ -146,7 +146,7 @@ pub fn solvate<'sol>(
                     let solvent_pos = solvent_bead.position + translation;
 
                     // Reject the bead if it lies outside the box.
-                    let outside = (solvent_pos.cmpgt(boxvecs) & axes).any();
+                    let outside = (solvent_pos.cmpgt(box_dimensions) & axes).any();
 
                     // Check for collisions with the periodic image.
                     let mut collision = false;
