@@ -1,13 +1,10 @@
 use eightyseven::writer::WriteGro;
-use glam::BVec3;
-use glam::UVec3;
-use glam::Vec3;
+use glam::{UVec3, Vec3};
 
 use crate::placement::Cookies;
 use crate::placement::PlaceMap;
 use crate::structure::{BoxVecsExtension, Structure};
-use crate::BoundaryMode;
-use crate::PeriodicMode;
+use crate::{BoundaryMode, PeriodicMode};
 
 /// Solvate a [`Structure`] with a template solvent box.
 pub fn solvate<'sol>(
@@ -112,70 +109,72 @@ pub fn solvate<'sol>(
     // Deal with the boundary conditions.
     match boundary_mode {
         BoundaryMode::Cut => {
-            // We will cut the boundaries as follows.
-            // For the three outward planes (x, y, z), and for the three outward edges (xy, xz, yz),
-            // we can determine the adjustment once and copy it over the entire side or edge.
-            // The outer corner (xyz) we take care of with just making the adjustment for that
-            // single box.
+            let scutoff = cutoff;
+            let scutoff2 = scutoff.powi(2);
 
             eprint!("\tCutting solvent to fit box... ");
             let start = std::time::Instant::now();
-            for axes in OUTERS {
-                // FIXME: Turn this into a proper type or an extension on MutPlacement or something.
-                let mut rejected = Vec::new();
-
-                let uaxes = UVec3::new(axes.x as u32, axes.y as u32, axes.z as u32);
-                let vaxes = uaxes.as_vec3();
-
-                let box_dimensions = structure.boxvecs.as_vec3();
+            for axis in [Axis::X, Axis::Y, Axis::Z] {
                 let max = dimensions - 1;
-                let cell_pos = max * uaxes;
-                let translation = cookies.offset(cell_pos);
-                // The periodic neigbours.
-                let periodic_translation = box_dimensions * vaxes;
-                let other_side: Box<[_]> = placemap
+                let box_dimensions = structure.boxvecs.as_vec3();
+                let (main, asz, bsz) = match axis {
+                    Axis::X => (Vec3::X, dimensions.y, dimensions.z),
+                    Axis::Y => (Vec3::Y, dimensions.x, dimensions.z),
+                    Axis::Z => (Vec3::Z, dimensions.x, dimensions.y),
+                };
+
+                // Set up a 3×3 layer of atoms as a crown on the box dimensions at the `this` box.
+                let limit = axis.select(box_dimensions);
+                let crown: Box<[Vec3]> = axis
+                    .crown(box_dimensions)
+                    .map(|translation| {
+                        placemap
+                            .solvent
+                            .atoms()
+                            .map(move |a| a.position + translation)
+                            // We are only interested in positions that lie at the periodic
+                            // interface. Anything beyond the solvent cutoff distance from that
+                            // interface is out of reach.
+                            .filter(|&position| axis.select(position) <= limit + scutoff)
+                    })
+                    .into_iter()
+                    .flatten()
+                    .collect();
+
+                let translation = cookies.offset(main.as_uvec3() * max);
+                let this = placemap
                     .solvent
                     .atoms()
-                    .map(|atom| atom.position)
-                    // We filter the beads to make sure that we're not needlessly checking against
-                    // beads that are not at the edge of the periodic boundaries.
-                    .filter(|&p| (p * vaxes).to_array().into_iter().all(|v| v <= cutoff))
-                    .map(|p| p + periodic_translation)
-                    .collect();
-                for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
-                    let solvent_pos = solvent_bead.position + translation;
+                    .map(|a| a.position)
+                    .map(|position| position + translation);
 
-                    // Reject the bead if it lies outside the box.
-                    let outside = (solvent_pos.cmpgt(box_dimensions) & axes).any();
-
-                    // Check for collisions with the periodic image.
-                    let mut collision = false;
-                    for &periodic_bead in &other_side {
-                        if solvent_pos.distance_squared(periodic_bead) < cutoff2 {
-                            collision = true;
-                            break;
+                // We'll make a list of solvent atoms we need to reject by index.
+                let rejected: Box<[_]> = this
+                    .enumerate()
+                    .filter_map(|(idx, bead)| {
+                        let outside = axis.select(bead) > limit;
+                        let too_close = crown
+                            .iter()
+                            .any(|&crown_bead| bead.distance_squared(crown_bead) < scutoff2);
+                        if outside || too_close {
+                            Some(idx)
+                        } else {
+                            None
                         }
-                    }
+                    })
+                    .collect();
 
-                    // FIXME: Check whether this is compiled as expected, that is, when outside is
-                    // true, it is an early out into this branch. In other words, collision is lazy.
-                    if outside || collision {
-                        rejected.push(idx)
-                    }
-                }
-
-                // Set the rejected beads to occupied in the placemap.
-                // FIXME: I don't like this. I don't like this. I don't like this. See above about
-                // `rejected`.
-                let [xrange, yrange, zrange] = ranges(dimensions, axes);
-                for z in zrange {
-                    for y in yrange.clone() {
-                        for x in xrange.clone() {
-                            let cell_pos = UVec3::new(x, y, z);
-                            let mut pm = placemap.get_mut(cell_pos).unwrap();
-                            for &idx in &rejected {
-                                pm.set_occupied(idx)
-                            }
+                // Apply the rejections to all solvent boxes on this face.
+                for b in 0..bsz {
+                    for a in 0..asz {
+                        let pos = match axis {
+                            Axis::X => UVec3::new(max.x, a, b),
+                            Axis::Y => UVec3::new(a, max.y, b),
+                            Axis::Z => UVec3::new(a, b, max.z),
+                        };
+                        let mut pm = placemap.get_mut(pos).unwrap();
+                        for &idx in &rejected {
+                            pm.set_occupied(idx)
                         }
                     }
                 }
@@ -189,21 +188,49 @@ pub fn solvate<'sol>(
     placemap
 }
 
-const OUTERS: [BVec3; 7] = [
-    // The planes (x, y, z).
-    BVec3::new(true, false, false),
-    BVec3::new(false, true, false),
-    BVec3::new(false, false, true),
-    // The edges (xy, xz, yz).
-    BVec3::new(true, true, false),
-    BVec3::new(true, false, true),
-    BVec3::new(false, true, true),
-    // The outer corner (xyz).
-    BVec3::new(true, true, true),
-];
+#[derive(Clone, Copy)]
+enum Axis {
+    X,
+    Y,
+    Z,
+}
 
-fn ranges(dimensions: UVec3, axes: BVec3) -> [std::ops::Range<u32>; 3] {
-    let m = (dimensions - 1).to_array(); // The maximum index.
-    let d = dimensions.to_array(); // A shorter alias.
-    [0, 1, 2].map(|i| if axes.test(i) { m[i]..d[i] } else { 0..m[i] })
+impl Axis {
+    const fn select(&self, v: Vec3) -> f32 {
+        v.to_array()[*self as usize]
+    }
+
+    const fn roll(&self, mut v: Vec3) -> Vec3 {
+        let mut n = 0;
+        while n < *self as usize {
+            v = Vec3 {
+                x: v.z,
+                y: v.x,
+                z: v.y,
+            };
+            n += 1;
+        }
+        v
+    }
+
+    const fn crown(&self, box_dimensions: Vec3) -> [Vec3; 9] {
+        let d = self.select(box_dimensions);
+        let mut crown = [
+            Vec3::new(d, -1.0, -1.0),
+            Vec3::new(d, 0.0, -1.0),
+            Vec3::new(d, 1.0, -1.0),
+            Vec3::new(d, -1.0, 0.0),
+            Vec3::new(d, 0.0, 0.0),
+            Vec3::new(d, 1.0, 0.0),
+            Vec3::new(d, -1.0, 1.0),
+            Vec3::new(d, 0.0, 1.0),
+            Vec3::new(d, 1.0, 1.0),
+        ];
+        let mut i = 0;
+        while i < crown.len() {
+            crown[i] = self.roll(crown[i]);
+            i += 1;
+        }
+        crown
+    }
 }

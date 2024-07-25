@@ -439,7 +439,11 @@ impl Cookies {
 
     /// Calculate the offset of a cookie at some position from the system origin.
     pub fn offset(&self, cell_pos: UVec3) -> Vec3 {
-        cell_pos.as_vec3() * self.cookie_size
+        cell_pos.as_vec3() * self.cookie_size()
+    }
+
+    pub fn cookie_size(&self) -> Vec3 {
+        self.cookie_size
     }
 }
 
