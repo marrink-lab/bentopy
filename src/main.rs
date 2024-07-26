@@ -35,6 +35,7 @@ fn main() -> io::Result<()> {
         &mut structure,
         &template,
         config.cutoff,
+        config.solvent_cutoff,
         config.center,
         config.boundary_mode,
         config.periodic_mode,

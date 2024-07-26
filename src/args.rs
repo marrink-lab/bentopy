@@ -13,12 +13,21 @@ pub struct Args {
     /// Output path.
     pub output: PathBuf,
 
-    /// Cutoff distance (nm).
+    /// Lowest allowable distance between solvent and structure beads (nm).
     ///
     /// This is the minimum allowable center-to-center distance when checking for a collision
     /// between a solvent bead and a structure bead.
     #[arg(long, default_value_t = 0.43)]
     pub cutoff: f32,
+
+    /// Lowest allowable distance between solvent beads (nm).
+    ///
+    /// This is the minimum allowable center-to-center distance between solvent beads when cutting
+    /// the sides to fit in the specified output structure box.
+    ///
+    /// For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
+    #[arg(long, default_value_t = 0.21)]
+    pub solvent_cutoff: f32,
 
     /// Center the structure in the new box.
     ///

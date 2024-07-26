@@ -12,6 +12,7 @@ pub fn solvate<'sol>(
     structure: &mut Structure,
     solvent: &'sol Structure,
     cutoff: f32,
+    solvent_cutoff: f32,
     center: bool,
     boundary_mode: BoundaryMode,
     periodic_mode: PeriodicMode,
@@ -105,8 +106,7 @@ pub fn solvate<'sol>(
     // Deal with the boundary conditions.
     match boundary_mode {
         BoundaryMode::Cut => {
-            let scutoff = cutoff;
-            let scutoff2 = scutoff.powi(2);
+            let solvent_cutoff2 = solvent_cutoff.powi(2);
 
             eprint!("\tCutting solvent to fit box... ");
             let start = std::time::Instant::now();
@@ -131,7 +131,7 @@ pub fn solvate<'sol>(
                             // We are only interested in positions that lie at the periodic
                             // interface. Anything beyond the solvent cutoff distance from that
                             // interface is out of reach.
-                            .filter(|&position| axis.select(position) <= limit + scutoff)
+                            .filter(|&position| axis.select(position) <= limit + solvent_cutoff)
                     })
                     .into_iter()
                     .flatten()
@@ -151,7 +151,7 @@ pub fn solvate<'sol>(
                         let outside = axis.select(bead) > limit;
                         let too_close = crown
                             .iter()
-                            .any(|&crown_bead| bead.distance_squared(crown_bead) < scutoff2);
+                            .any(|&crown_bead| bead.distance_squared(crown_bead) < solvent_cutoff2);
                         if outside || too_close {
                             Some(idx)
                         } else {
