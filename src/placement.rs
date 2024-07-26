@@ -386,7 +386,15 @@ impl Cookies {
         // there are ways of removing this clone.
         let mut convolved_cookies = cookies.clone();
         for cell_pos in iter_3d(dimensions) {
+            // This closure returns true if the provided position is in cutoff-range of the present
+            // cookie.
+            let is_in_range = {
+                let start = cookie_size * cell_pos.as_vec3() - cutoff;
+                let end = cookie_size * (cell_pos + 1).as_vec3() + cutoff;
+                move |v: &Vec3| v.cmpge(start).all() && v.cmple(end).all()
+            };
             let idx = index_3d(cell_pos, dimensions);
+
             for offset in NEIGHBORS {
                 let neighbor_pos = cell_pos.as_ivec3() + offset;
                 // Note that these jumps are mutually exclusive.
@@ -401,7 +409,8 @@ impl Cookies {
                     // central cell.
                     let neighbor_pos = neighbor_pos.as_uvec3();
                     let neighbor_idx = index_3d(neighbor_pos, dimensions);
-                    let neighbor_content = cookies[neighbor_idx].iter().copied();
+                    let neighbor_content =
+                        cookies[neighbor_idx].iter().copied().filter(is_in_range);
                     convolved_cookies[idx].extend(neighbor_content);
                 } else {
                     fn apply(b: BVec3, v: Vec3) -> Vec3 {
@@ -411,11 +420,14 @@ impl Cookies {
                     let wrapped_neighbor_pos = neighbor_pos.rem_euclid(idimensions).as_uvec3();
                     let wrapped_neighbor_idx = index_3d(wrapped_neighbor_pos, dimensions);
                     assert_ne!(idx, wrapped_neighbor_idx);
-                    let wrapped_neighbor_content = cookies[wrapped_neighbor_idx].iter().map(|&v| {
-                        let translation = apply(backward_jumps, -box_dimensions)
-                            + apply(forward_jumps, box_dimensions);
-                        v + translation
-                    });
+                    let wrapped_neighbor_content = cookies[wrapped_neighbor_idx]
+                        .iter()
+                        .map(|&v| {
+                            let translation = apply(backward_jumps, -box_dimensions)
+                                + apply(forward_jumps, box_dimensions);
+                            v + translation
+                        })
+                        .filter(is_in_range);
                     convolved_cookies[idx].extend(wrapped_neighbor_content);
                 }
             }
