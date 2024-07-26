@@ -1,6 +1,6 @@
 use eightyseven::structure::Atom;
 use eightyseven::writer::WriteGro;
-use glam::{BVec3, IVec3, UVec3, Vec3};
+use glam::{BVec3, IVec3, UVec3, Vec3, Vec3A};
 
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::PeriodicMode;
@@ -381,6 +381,7 @@ impl Cookies {
         // neighboring bead may be too close to some solvent bead but go unnoticed in the collision
         // check.
         let idimensions = dimensions.as_ivec3();
+        let da = Vec3A::from(box_dimensions);
         // NOTE: If we are ever _really_ pressed for memory, we can win quite a bit here. Cloning
         // the cookies here saves some time gluing the neighbors onto the original positions. But,
         // there are ways of removing this clone.
@@ -389,9 +390,9 @@ impl Cookies {
             // This closure returns true if the provided position is in cutoff-range of the present
             // cookie.
             let is_in_range = {
-                let start = cookie_size * cell_pos.as_vec3() - cutoff;
-                let end = cookie_size * (cell_pos + 1).as_vec3() + cutoff;
-                move |v: &Vec3| v.cmpge(start).all() && v.cmple(end).all()
+                let start = Vec3A::from(cookie_size * cell_pos.as_vec3() - cutoff);
+                let end = Vec3A::from(cookie_size * (cell_pos + 1).as_vec3() + cutoff);
+                move |v: &Vec3A| v.cmpge(start).all() && v.cmple(end).all()
             };
             let idx = index_3d(cell_pos, dimensions);
 
@@ -409,12 +410,15 @@ impl Cookies {
                     // central cell.
                     let neighbor_pos = neighbor_pos.as_uvec3();
                     let neighbor_idx = index_3d(neighbor_pos, dimensions);
-                    let neighbor_content =
-                        cookies[neighbor_idx].iter().copied().filter(is_in_range);
+                    let neighbor_content = cookies[neighbor_idx]
+                        .iter()
+                        .map(|&v| Vec3A::from(v))
+                        .filter(is_in_range)
+                        .map(|v| Vec3::from(v));
                     convolved_cookies[idx].extend(neighbor_content);
                 } else {
-                    fn apply(b: BVec3, v: Vec3) -> Vec3 {
-                        UVec3::new(b.x as u32, b.y as u32, b.z as u32).as_vec3() * v
+                    fn apply(b: BVec3, v: Vec3A) -> Vec3A {
+                        UVec3::new(b.x as u32, b.y as u32, b.z as u32).as_vec3a() * v
                     }
 
                     let wrapped_neighbor_pos = neighbor_pos.rem_euclid(idimensions).as_uvec3();
@@ -423,11 +427,11 @@ impl Cookies {
                     let wrapped_neighbor_content = cookies[wrapped_neighbor_idx]
                         .iter()
                         .map(|&v| {
-                            let translation = apply(backward_jumps, -box_dimensions)
-                                + apply(forward_jumps, box_dimensions);
-                            v + translation
+                            let translation = apply(backward_jumps, -da) + apply(forward_jumps, da);
+                            Vec3A::from(v) + translation
                         })
-                        .filter(is_in_range);
+                        .filter(is_in_range)
+                        .map(|v| Vec3::from(v));
                     convolved_cookies[idx].extend(wrapped_neighbor_content);
                 }
             }
