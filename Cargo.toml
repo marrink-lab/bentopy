@@ -2,6 +2,12 @@
 name = "hose"
 version = "0.1.0"
 edition = "2021"
+authors = ["Marieke Westendorp <ma3ke.cyber@gmail.com>"]
+repository = "https://git.sr.ht/~ma3ke/hose"
+keywords = ["molecular-dynamics", "gromacs", "gro"]
+license = "MIT"
+categories = ["science"]
+description = "Solvate molecules for simulations, quickly"
 
 [dependencies]
 arraystring = "0.3.0"
