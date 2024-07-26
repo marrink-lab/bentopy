@@ -1,6 +1,6 @@
 use eightyseven::structure::Atom;
 use eightyseven::writer::WriteGro;
-use glam::{IVec3, UVec3, Vec3};
+use glam::{BVec3, IVec3, UVec3, Vec3};
 
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::PeriodicMode;
@@ -15,7 +15,7 @@ fn index_3d(pos: UVec3, dimensions: UVec3) -> usize {
 }
 
 /// Iterate over all positions between `(0, 0, 0)` and `dimensions`.
-fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
+pub fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
     let [dx, dy, dz] = dimensions.to_array();
     (0..dz).flat_map(move |z| (0..dy).flat_map(move |y| (0..dx).map(move |x| UVec3::new(x, y, z))))
 }
@@ -350,11 +350,8 @@ impl Cookies {
         // Place the bead's position in the appropriate cookie.
         // Like raisins or pieces of chocolate. But in our case the cookies aren't round but
         // cuboid. Look, I don't even remember why I picked this name.
-        let mut cell_indices = Vec::with_capacity(3 * 3 * 3);
         let box_dimensions = structure.boxvecs.as_vec3();
         for (i, bead) in structure.atoms.iter().enumerate() {
-            cell_indices.clear();
-
             let mut pos = bead.position;
             match mode {
                 PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
@@ -374,58 +371,60 @@ impl Cookies {
             }
             // Note that we can safely cast to a UVec3 here, since beads that fall outside the box
             // dimensions have already been translated inside or skipped.
-            debug_assert!(pos.is_negative_bitmask() == 0);
-            let self_cell_pos = (pos / cookie_size).floor().as_uvec3();
-            let self_idx = index_3d(self_cell_pos, dimensions);
-            cell_indices.push(self_idx);
+            assert!(pos.is_negative_bitmask() == 0);
+            let cell_pos = (pos / cookie_size).floor().as_uvec3();
+            let idx = index_3d(cell_pos, dimensions);
+            cookies[idx].push(pos);
+        }
 
-            // We also push this position to any neigbors that are closer than the `cutoff` radius.
+        // Now, we have to convolve the contents of the cookies to their neighbors. Otherwise, a
+        // neighboring bead may be too close to some solvent bead but go unnoticed in the collision
+        // check.
+        let idimensions = dimensions.as_ivec3();
+        // NOTE: If we are ever _really_ pressed for memory, we can win quite a bit here. Cloning
+        // the cookies here saves some time gluing the neighbors onto the original positions. But,
+        // there are ways of removing this clone.
+        let mut convolved_cookies = cookies.clone();
+        for cell_pos in iter_3d(dimensions) {
+            let idx = index_3d(cell_pos, dimensions);
             for offset in NEIGHBORS {
-                // First, we need to see if this position is close enough to this neighbor.
-                let is_close = {
-                    // Teleport the position to its position relative to the cookie origin.
-                    let p = pos.rem_euclid(cookie_size).to_array();
-                    let o = offset.to_array();
-                    let c = cookie_size.to_array();
-                    (0..3).all(|i| match o[i] {
-                        0 => true,
-                        -1 => p[i] < cutoff,
-                        1 => p[i] > c[i] - cutoff,
-                        _ => unreachable!(),
-                    })
-                };
-                if !is_close {
-                    continue;
-                }
+                let neighbor_pos = cell_pos.as_ivec3() + offset;
+                // Note that these jumps are mutually exclusive.
+                let backward_jumps = neighbor_pos.cmplt(IVec3::ZERO);
+                let forward_jumps = neighbor_pos.cmpge(idimensions);
+                // Sanity check of their mutual exclusivity.
+                assert_eq!(backward_jumps & forward_jumps, BVec3::FALSE);
 
-                // If it is close enough, see if we can push it.
-                let neighbor = self_cell_pos.as_ivec3() + offset;
-                let neighbor = match mode {
-                    PeriodicMode::Periodic => neighbor.rem_euclid(dimensions.as_ivec3()).as_uvec3(),
-                    PeriodicMode::Ignore => {
-                        if neighbor.is_negative_bitmask() != 0
-                            || neighbor.cmpge(dimensions.as_ivec3()).any()
-                        {
-                            // Skip out-of-bounds neigbors.
-                            continue;
-                        }
-                        neighbor.as_uvec3()
+                if !(backward_jumps | forward_jumps).any() {
+                    // Default case, no complicated stuff with periodicity to consider.
+                    // TODO: Take only the positions that are closer than `cutoff` to the
+                    // central cell.
+                    let neighbor_pos = neighbor_pos.as_uvec3();
+                    let neighbor_idx = index_3d(neighbor_pos, dimensions);
+                    let neighbor_content = cookies[neighbor_idx].iter().copied();
+                    convolved_cookies[idx].extend(neighbor_content);
+                } else {
+                    fn apply(b: BVec3, v: Vec3) -> Vec3 {
+                        UVec3::new(b.x as u32, b.y as u32, b.z as u32).as_vec3() * v
                     }
-                    PeriodicMode::Deny => unreachable!(),
-                };
 
-                cell_indices.push(index_3d(neighbor, dimensions));
-            }
-
-            for &idx in &cell_indices {
-                cookies[idx].push(pos);
+                    let wrapped_neighbor_pos = neighbor_pos.rem_euclid(idimensions).as_uvec3();
+                    let wrapped_neighbor_idx = index_3d(wrapped_neighbor_pos, dimensions);
+                    assert_ne!(idx, wrapped_neighbor_idx);
+                    let wrapped_neighbor_content = cookies[wrapped_neighbor_idx].iter().map(|&v| {
+                        let translation = apply(backward_jumps, -box_dimensions)
+                            + apply(forward_jumps, box_dimensions);
+                        v + translation
+                    });
+                    convolved_cookies[idx].extend(wrapped_neighbor_content);
+                }
             }
         }
 
         Self {
             dimensions,
             cookie_size,
-            cookies: cookies
+            cookies: convolved_cookies
                 .into_iter()
                 .map(|cookie| cookie.into_boxed_slice())
                 .collect(),
