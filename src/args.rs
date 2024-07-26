@@ -62,7 +62,7 @@ pub struct Args {
 #[derive(Debug, Default, Clone, ValueEnum, PartialEq, Eq)]
 pub enum BoundaryMode {
     /// Cut at the structure box size and remove solvent residues that overlap with the periodic
-    /// neigbors.
+    /// neighbors.
     #[default]
     Cut,
     /// If necessary, grow the box of the output structure to fit a whole number of template boxes.
