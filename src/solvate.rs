@@ -1,8 +1,8 @@
 use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
+use crate::cookies::Cookies;
 use crate::placement::iter_3d;
-use crate::placement::Cookies;
 use crate::placement::PlaceMap;
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::{BoundaryMode, PeriodicMode};
