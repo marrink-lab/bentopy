@@ -1,6 +1,7 @@
 use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
+use crate::placement::iter_3d;
 use crate::placement::Cookies;
 use crate::placement::PlaceMap;
 use crate::structure::{BoxVecsExtension, Structure};
@@ -71,36 +72,31 @@ pub fn solvate<'sol>(
     let start = std::time::Instant::now();
     let mut placemap = PlaceMap::new(solvent, dimensions);
     let cutoff2 = cutoff.powi(2); // Square to avoid taking the square root of the distances.
-    for z_cell in 0..dimensions.z {
-        for y_cell in 0..dimensions.y {
-            for x_cell in 0..dimensions.x {
-                let cell_pos = UVec3::new(x_cell, y_cell, z_cell);
-                let cookie = cookies.get(cell_pos).unwrap(); // We are sure there is a cookie here.
-                if cookie.is_empty() {
-                    // If the cookie does not contain any structure beads, we can just skip
-                    // measuring any distances.
-                    continue;
+    for cell_pos in iter_3d(dimensions) {
+        let cookie = cookies.get(cell_pos).unwrap(); // We are sure there is a cookie here.
+        if cookie.is_empty() {
+            // If the cookie does not contain any structure beads, we can just skip
+            // measuring any distances.
+            continue;
+        }
+        let translation = cookies.offset(cell_pos);
+        for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
+            let solvent_pos = solvent_bead.position + translation;
+            let mut collision = false;
+            for &cookie_bead in cookie {
+                // TODO: Consider applying this translation as a map before the iter over
+                // the solvent beads?
+                // Translate the unit cell solvent bead position to the reference frame of
+                // the bead from the cookie.
+                if solvent_pos.distance_squared(cookie_bead) < cutoff2 {
+                    collision = true;
+                    break;
                 }
-                let translation = cookies.offset(cell_pos);
-                for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
-                    let solvent_pos = solvent_bead.position + translation;
-                    let mut collision = false;
-                    for &cookie_bead in cookie {
-                        // TODO: Consider applying this translation as a map before the iter over
-                        // the solvent beads?
-                        // Translate the unit cell solvent bead position to the reference frame of
-                        // the bead from the cookie.
-                        if solvent_pos.distance_squared(cookie_bead) < cutoff2 {
-                            collision = true;
-                            break;
-                        }
-                    }
-                    if collision {
-                        // This unwrap is safe, since we are sure there is a cell here.
-                        let placement = &mut placemap.get_mut(cell_pos).unwrap();
-                        placement.set_occupied(idx)
-                    }
-                }
+            }
+            if collision {
+                // This unwrap is safe, since we are sure there is a cell here.
+                let placement = &mut placemap.get_mut(cell_pos).unwrap();
+                placement.set_occupied(idx)
             }
         }
     }
