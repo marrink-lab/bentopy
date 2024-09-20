@@ -49,21 +49,22 @@ _bentopy_ currently features four subcommands,
 You can learn about the available options through the help information.
 
 ```console
-bentopy --help
-bentopy pack --help
+bentopy-pack --help
+bentopy-mask --help
+...
 ```
 
 > [!NOTE] For the moment, the bentopy subcommands can be accessed through the
 > `bentopy-<subcommand>` pattern. For example, `bentopy-pack`.
 > Shortly, a `bentopy` root command will be introduced, which provides access
 > through a `bentopy <subcommand>` pattern, e.g., `bentopy pack`.
-> Throughout this document, the latter usage is shown.
-> But for now, a dash between the words is necessary.
+> Throughout this document, the former usage is shown.
+> For now, a dash between the words is necessary.
 
 A typical _bentopy_ workflow may look like this.
 
 ```
-bentopy grocat -> bentopy mask -> bentopy pack -> bentopy render -> bentopy grocat
+bentopy-grocat -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-grocat
 ```
 
 What follows is a brief explanation and example invocation of these
@@ -77,7 +78,7 @@ configuration file, a packing of the input structures within the specified
 space is created.
 
 ```console
-bentopy pack --rearrange --seed 5172 input.json placements.json
+bentopy-pack --rearrange --seed 5172 input.json placements.json
 ```
 
 _Pack a system defined in `input.json` and write the output placement list to
@@ -93,7 +94,7 @@ to create a structure file (and topology file) from this placement list, the
 _render_ subcommand can be used.
 
 ```console
-bentopy render placements.json structure.gro -t topol.top
+bentopy-render placements.json structure.gro -t topol.top
 ```
 
 _Render `placements.json` created by _pack_ to a `gro` file at `structure.gro`
@@ -114,7 +115,7 @@ _mask_ can be used to automatically or manually select different compartments
 as determined by [mdvcontainment][mdvc].
 
 ```console
-bentopy mask chrom_mem.gro mask.npz --autofill
+bentopy-mask chrom_mem.gro mask.npz --autofill
 ```
 
 _Determine the compartments in `chrom_mem.gro` and automatically select the
@@ -130,7 +131,7 @@ residue name for a whole file in the argument list by appending
 `:<residue name>` to a file path.
 
 ```console
-bentopy grocat chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
+bentopy-grocat chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
 ```
 
 _Concatenate `chromosome.gro` and `membrane.gro` into `chrom_mem.gro`, setting
@@ -194,7 +195,7 @@ a **resolution** of 0.5 nm. The mask&mdash;the volume that defines where
 structures can be placed&mdash;is set to be derived from a **spherical**
 analytical function.
 
-In case you want to use a custom mask like you may set up with _bentopy mask_,
+In case you want to use a custom mask like you may set up with _bentopy-mask_,
 you could specify the space in the following manner.
 
 ```diff
@@ -232,7 +233,7 @@ the structure file for this segment can be found.
 
 > [!IMPORTANT]
 > The **name** record must be selected carefully. If you want to write out a
-> valid topology file using _bentopy render_, the value of **name** must
+> valid topology file using _bentopy-render_, the value of **name** must
 > correspond to the names in the `itp` files.
 
 <details>
@@ -281,7 +282,7 @@ rotating over the axis that is perpendicular to that plane (_x_-axis).
 Now, we are ready to pack the system. We could simply do this as follows.
 
 ```console
-bentopy pack 3lyz_input.json 3lyz_placements.json
+bentopy-pack 3lyz_input.json 3lyz_placements.json
 ```
 
 In order to make the procedure deterministic, the `--seed` parameter can be
@@ -289,7 +290,7 @@ set. This means that the same command will produce the same output between
 runs.
 
 ```console
-bentopy pack --seed 1312 3lyz_input.json 3lyz_placements.json
+bentopy-pack --seed 1312 3lyz_input.json 3lyz_placements.json
 ```
 
 In case we want to pack multiple structures, we may want to pass the
@@ -373,7 +374,7 @@ called `3lyz_sphere.gro`. Additionally, we would like to produce topology file
 up.
 
 ```console
-bentopy render 3lyz_placements.json 3lyz_sphere.gro -t topol.top
+bentopy-render 3lyz_placements.json 3lyz_sphere.gro -t topol.top
 ```
 
 You can now inspect the `3lyz_sphere.gro` structure in a molecular
@@ -384,7 +385,7 @@ time keeping up.
 
 <details>
 <summary>
-Luckily, _bentopy render_ has some additional tricks up its sleeve to ease this
+Luckily, _bentopy-render_ has some additional tricks up its sleeve to ease this
 load.
 </summary>
 
@@ -400,14 +401,14 @@ For example, to only render a 10&times;10&times;10 nm cube extending
 from the point (40, 40, 40) to (50, 50, 50), we can pass the following limits.
 
 ```console
-bentopy render 3lyz_placements.json 3lyz_small_cube.gro --limits 40,50,40,50,40,50
+bentopy-render 3lyz_placements.json 3lyz_small_cube.gro --limits 40,50,40,50,40,50
 ```
 
 Perhaps we would like to see a pancake instead! To do this, we can define the
 limits only for the _z_-direction.
 
 ```console
-bentopy render 3lyz_placements.json 3lyz_pancake.gro --limits none,none,none,none,45,55
+bentopy-render 3lyz_placements.json 3lyz_pancake.gro --limits none,none,none,none,45,55
 ```
 
 Using `--limits`, we can cut out a part of the packed structure, but perhaps
@@ -419,7 +420,7 @@ each `residue`, or even only one per structure `instance`). By default, the
 mode is `full`, and we have just seen its output. Let's try `alpha`, now.
 
 ```console
-bentopy render output/3lyz_placements.json 3lyz_alpha.gro --mode alpha
+bentopy-render output/3lyz_placements.json 3lyz_alpha.gro --mode alpha
 ```
 
 Now, we can compare the sizes of the files.
