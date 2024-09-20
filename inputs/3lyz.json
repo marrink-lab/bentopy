@@ -5,7 +5,11 @@
 		"compartments": [
 			{
 				"id": "main",
-				"shape": "spherical"
+				"analytical": {
+					"shape": "spherical",
+					"radius": 40,
+					"center": [10.0, 10.0, 10.0]
+				}
 			}
 		]
 	},
@@ -16,7 +20,7 @@
 	"segments": [
 		{
 			"name": "3lyz",
-			"number": 100000,
+			"number": 10000,
 			"path": "structures/3lyz.pdb",
 			"compartments": ["main"]
 		}
