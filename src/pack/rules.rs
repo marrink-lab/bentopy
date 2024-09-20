@@ -194,7 +194,7 @@ impl FromStr for Rule {
                 let poscon = match kind {
                     "less_than" => PositionConstraint::LessThan(axis, value),
                     "greater_than" => PositionConstraint::GreaterThan(axis, value),
-                    _ => unreachable!(), // By virtue of this branche's pattern.
+                    _ => unreachable!(), // By virtue of this branch's pattern.
                 };
                 Ok(Rule::Position(poscon))
             }
