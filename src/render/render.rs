@@ -99,7 +99,7 @@ impl FromStr for ResnumMode {
 ///
 /// See the Gromacs manual entry on the [gro file][gro_manual].
 ///
-/// Note that each [`Placement`] (read, kind of structure) is given a different `resnum`, such that
+/// Note that each [`Placement`] (i.e., kind of structure) is given a different `resnum`, such that
 /// the different kinds of structures can be targeted individually in programmes that use this
 /// `gro` file output. For example, each kind of molecule may be drawn in a different color in a
 /// molecular visualization program.
