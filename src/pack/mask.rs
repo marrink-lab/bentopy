@@ -236,6 +236,7 @@ impl Mask {
     /// Apply some `mask` onto this [`Mask`].
     ///
     /// This is essentially an `or-assign` operation between the `self` and the provided `mask`.
+    ///
     /// # Panics
     ///
     /// If the dimensions of the stamped and stamping mask are different, this function will panic.
