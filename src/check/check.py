@@ -50,7 +50,7 @@ def check(args):
                     "(new smallest distance)" if new_low else "",
                 )
                 if collisions is not None:
-                    collisions.append((a.position + b.position) / 2)
+                    collisions.append(a.position )
                 if args.exit_early:
                     break
         log("Done.")
