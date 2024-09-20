@@ -278,7 +278,7 @@ impl Mask {
 
     // TODO: Periodicity?
     /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
-    pub fn grow_old(&mut self) {
+    pub fn grow_analytical(&mut self) {
         const OFFSETS: [I64Vec3; 6] = [
             I64Vec3::X,
             I64Vec3::NEG_X,
@@ -314,7 +314,7 @@ impl Mask {
 
     // TODO: Periodicity?
     /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
-    pub fn grow(&mut self) {
+    pub fn grow_approx(&mut self) {
         const OFFSETS: [I64Vec3; 6] = [
             I64Vec3::X,
             I64Vec3::NEG_X,
@@ -620,7 +620,7 @@ pub fn distance_mask_grow(thing: &Mask, radius: u64) -> Mask {
 
     let start = std::time::Instant::now();
     for _ in 0..radius {
-        mask.grow()
+        mask.grow_approx()
     }
 
     eprintln!(
@@ -967,7 +967,7 @@ mod tests {
         assert_eq!(mask.count::<true>(), 1);
 
         // After this, we should have a 3d cross.
-        mask.grow();
+        mask.grow_approx();
 
         assert_eq!(mask.count::<true>(), 1 + 6);
         assert_eq!(mask.get([0, 0, 0]), Some(false));
@@ -983,7 +983,7 @@ mod tests {
         assert_eq!(mask.get([2, 2, 2]), Some(false));
 
         // Finally, this will fill up the whole mask.
-        mask.grow();
+        mask.grow_approx();
 
         assert_eq!(mask.count::<true>(), mask.n_cells());
     }
