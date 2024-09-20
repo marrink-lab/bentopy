@@ -59,18 +59,21 @@ def check(args):
 
     # If desired, write out a structure with beads at the collision sites.
     if args.output_collisions is not None:
-        log(f"Writing collision coordinates to {args.output_collisions}... ", end="")
-        start = time()
         natoms = len(collisions)
-        positions = np.array(collisions)
-        assert positions.shape == (natoms, 3)
-        # Create a new Universe. We need to set trajectory to True in order to add positions.
-        cu = mda.Universe.empty(natoms, trajectory=True)
-        cu.atoms.positions = positions
-        cu.dimensions = u.dimensions
-        cu.atoms.write(args.output_collisions)
-        duration = time() - start
-        log(f"Done in {duration:.3} s")
+        if natoms > 0:
+            log(f"Writing {natoms} collision coordinates to {args.output_collisions}... ", end="")
+            start = time()
+            positions = np.array(collisions)
+            assert positions.shape == (natoms, 3)
+            # Create a new Universe. We need to set trajectory to True in order to add positions.
+            cu = mda.Universe.empty(natoms, trajectory=True)
+            cu.atoms.positions = positions
+            cu.dimensions = u.dimensions
+            cu.atoms.write(args.output_collisions)
+            duration = time() - start
+            log(f"Done in {duration:.3} s.")
+        else:
+            log("No collisions were found, so no need to write out coordinates.")
 
     # Report whether we found any collisions through the error number.
     return 1 if collision else 0
