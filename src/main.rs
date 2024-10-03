@@ -11,8 +11,8 @@ use crate::structure::{write_structure, BoxVecsExtension, Structure};
 use crate::substitute::substitute;
 
 mod args;
-mod placement;
 mod cookies;
+mod placement;
 mod solvate;
 mod structure;
 mod substitute;
