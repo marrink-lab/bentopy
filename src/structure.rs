@@ -35,7 +35,12 @@ pub fn write_structure<const PAR: bool>(
     let natoms = natoms_structure + natoms_solvent + natoms_substitutes;
 
     // Write the gro header.
-    writeln!(writer, "solvated by {}", env!("CARGO_PKG_NAME"))?;
+    writeln!(
+        writer,
+        "solvated by {} (v{})",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+    )?;
     writeln!(writer, "{natoms}")?;
 
     // First, we write the original structure.
