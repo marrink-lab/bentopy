@@ -24,6 +24,10 @@ fn main() -> io::Result<()> {
     let start = std::time::Instant::now();
     let template = Structure::open_gro(config.template)?;
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
+    if template.natoms() == 0 {
+        eprintln!("ERROR: Template contains no atoms, so solvation cannot proceed.");
+        std::process::exit(1);
+    }
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
     let mut structure = Structure::open_gro(config.input)?;
