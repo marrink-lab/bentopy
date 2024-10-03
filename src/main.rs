@@ -1,7 +1,8 @@
-use std::io;
+use std::io::{self, Write};
 
 use clap::Parser;
 use eightyseven::reader::ReadGro;
+use eightyseven::writer::WriteGro;
 use rand::SeedableRng;
 
 use crate::args::Args;
@@ -96,6 +97,52 @@ fn main() -> io::Result<()> {
         )?;
     }
     eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
+
+    let solvent_name = placemap
+        .solvent
+        .atoms()
+        .next()
+        .expect("there is at least one solvent bead")
+        .resname
+        .as_str();
+
+    // To print out a proper topology, we assume that all solvent beads share the same resname.
+    // If these assumptions do not hold, no topology can be printed.
+    if !placemap
+        .solvent
+        .atoms()
+        .all(|a| a.resname.as_str() == solvent_name)
+    {
+        eprintln!(
+            "WARNING: Cannot output topology information, since not all beads in the \
+            template have the same name (expected {solvent_name:?})."
+        );
+        std::process::exit(0);
+    }
+
+    let mut topology = vec![(solvent_name, placemap.unoccupied_count() as usize)];
+    topology.extend(substitutes.iter().map(|s| (s.name(), s.natoms())));
+    let mut stdout = io::stdout();
+    match &config.append_topol {
+        Some(path) => eprintln!("Appending solvent topology lines to {path:?} and stdout:"),
+        None => eprintln!("Printing Solvent topology lines to stdout:"),
+    }
+    let mut topol = config
+        .append_topol
+        .map(|path| {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+        })
+        .transpose()?;
+    for (name, natoms) in topology {
+        let s = format!("{name}\t{natoms}\n");
+        stdout.write_all(s.as_bytes())?;
+        if let Some(topol) = &mut topol {
+            topol.write_all(s.as_bytes())?;
+        }
+    }
 
     Ok(())
 }

@@ -54,6 +54,10 @@ pub struct Args {
     #[arg(long)]
     pub seed: Option<u64>,
 
+    /// Append solvation topology lines to a path.
+    #[arg(short = 't', long)]
+    pub append_topol: Option<PathBuf>,
+
     #[arg(long)]
     pub no_write_parallel: bool,
     /// The suggested number of atoms to format at once.
