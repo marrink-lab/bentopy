@@ -106,7 +106,6 @@ impl Cookies {
 
                     let wrapped_neighbor_pos = neighbor_pos.rem_euclid(idimensions).as_uvec3();
                     let wrapped_neighbor_idx = index_3d(wrapped_neighbor_pos, dimensions);
-                    assert_ne!(idx, wrapped_neighbor_idx);
                     let wrapped_neighbor_content = cookies[wrapped_neighbor_idx]
                         .iter()
                         .map(|&v| {
