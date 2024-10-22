@@ -11,7 +11,8 @@ use rand::{Rng as _, SeedableRng};
 
 use crate::args::{Args, RearrangeMethod};
 use crate::config::{
-    Configuration, Mask as ConfigMask, RuleExpression, Shape as ConfigShape, TopolIncludes,
+    Configuration, Mask as ConfigMask, Quantity, RuleExpression, Shape as ConfigShape,
+    TopolIncludes,
 };
 use crate::mask::{distance_mask, distance_mask_grow, Dimensions, Mask};
 use crate::placement::{Batch, Placement};
@@ -173,10 +174,14 @@ impl Space {
         compartment_ids: impl IntoIterator<Item = CompartmentID>,
         rules: impl IntoIterator<Item = Rule>,
         locations: &'s mut Locations,
-        target: usize,
+        quantity: Quantity,
     ) -> Session {
         let compartment_ids = HashSet::from_iter(compartment_ids);
         let rules = Vec::from_iter(rules);
+
+        // TODO: Consider caching this volume like we do for the same compartments below.
+        //       The volume can just be associated with a set of previous compartments.
+        let target = quantity.bake(|| self.volume(&compartment_ids));
 
         // Set up a new session background if necessary.
         // Otherwise, leave the session background and locations alone. The session background
@@ -215,6 +220,24 @@ impl Space {
         }
 
         Session::new(self, locations, target)
+    }
+
+    /// Determine the free voxel volume for the specified compartments.
+    fn volume(&self, compartment_ids: &HashSet<CompartmentID>) -> f64 {
+        let free_voxels = self
+            .compartments
+            .iter()
+            .filter(|comp| compartment_ids.contains(&comp.id))
+            .map(|comp| comp.mask.clone())
+            .reduce(|mut acc, mask| {
+                acc.apply_mask(&mask);
+                acc
+            })
+            .map(|mask| mask.count::<false>())
+            .unwrap_or(0);
+
+        let voxel_volume = (self.resolution as f64).powi(3);
+        free_voxels as f64 * voxel_volume
     }
 }
 
@@ -256,7 +279,7 @@ impl FromStr for Axes {
 pub struct Segment {
     pub name: String,
     pub tag: Option<String>,
-    pub target: usize,
+    pub quantity: Quantity,
     pub compartments: Vec<CompartmentID>,
     pub rules: Vec<Rule>,
     pub path: PathBuf,
@@ -430,7 +453,7 @@ impl State {
                     Ok(Segment {
                         name,
                         tag,
-                        target: seg.number,
+                        quantity: seg.quantity,
                         compartments: seg.compartments,
                         rules,
                         path: seg.path,
@@ -469,7 +492,6 @@ impl State {
                         });
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                         segments.reverse();
-
                     }
                 }
                 eprintln!("Done.");
@@ -561,7 +583,7 @@ impl State {
         let state = self;
         let n_segments = state.segments.len();
         for (i, segment) in state.segments.iter_mut().enumerate() {
-            if segment.target == 0 {
+            if segment.quantity.is_zero() {
                 write!(
                     log,
                     "{prefix}({i:>3}/{n_segments}) Skipping attempt to pack 0 instances of segment '{name}'.{suffix}",
@@ -578,7 +600,7 @@ impl State {
                 "{prefix}({i:>3}/{n_segments}) Attempting to pack {target:>5} instances of segment '{name}'.{suffix}",
                 prefix = if state.verbose { "" } else { CLEAR_LINE },
                 i = i + 1,
-                target = segment.target,
+                target = segment.quantity,
                 name = segment.name,
                 suffix = if state.verbose { "\n" } else { "" }
             )?;
@@ -590,7 +612,7 @@ impl State {
                 segment.compartments.iter().cloned(),
                 segment.rules.iter().cloned(),
                 &mut locations,
-                segment.target,
+                segment.quantity,
             );
 
             // Set up the placement record for this segment.
@@ -603,10 +625,10 @@ impl State {
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.
             let mut tries_per_rotation = 0;
-            let max_tries = max_tries_multiplier * segment.target; // The number of unsuccessful tries.
+            let max_tries = max_tries_multiplier * session.target(); // The number of unsuccessful tries.
             let max_tries_per_rotation = max_tries / max_tries_per_rotation_divisor;
             let mut batch_positions = Vec::new();
-            'placement: while hits < segment.target {
+            'placement: while hits < session.target() {
                 if tries >= max_tries {
                     if state.verbose {
                         writeln!(log, "Exiting after {tries} unsuccessful tries.")?;
@@ -712,12 +734,12 @@ impl State {
                     log,
                     "                      Packed {hits:>5} instances in {duration:6.3} s. [{total} s] <{:.4} of max_tries, {:.4} of target>",
                     tries as f32 / max_tries as f32,
-                    tries as f32 / segment.target as f32
+                    tries as f32 / session.target() as f32
                 )?;
             }
 
             // Save the batches.
-            summary.push(segment.name.clone(), segment.target, hits, duration);
+            summary.push(segment.name.clone(), session.target(), hits, duration);
             placements.push(placement);
         }
 

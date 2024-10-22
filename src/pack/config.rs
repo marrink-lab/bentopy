@@ -4,6 +4,9 @@ use serde::Deserialize;
 
 use crate::state::{Axes, CompartmentID, Size};
 
+/// Avogadro's number (per mol).
+const N_A: f64 = 6.0221415e23;
+
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Shape {
@@ -77,7 +80,8 @@ where
 pub struct Segment {
     pub name: String,
     pub tag: Option<String>,
-    pub number: usize,
+    #[serde(flatten)]
+    pub quantity: Quantity,
     pub path: PathBuf,
     pub compartments: Vec<CompartmentID>,
     #[serde(default)]
@@ -87,6 +91,59 @@ pub struct Segment {
     #[serde(default)]
     pub initial_rotation: [f32; 3],
     // TODO: center?
+}
+
+#[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+pub enum Quantity {
+    Number(usize),
+    /// Concentration in mol/L.
+    Concentration(f64),
+}
+
+impl Quantity {
+    /// Determine the number of segments that is implied by this [`Quantity`].
+    ///
+    /// In case this `Quantity` is a [`Quantity::Concentration`], the number of segments is
+    /// lazily determined from the provided `volume`, and rounded.
+    ///
+    /// The value returned by `volume` must be in cubic nanometers (nm³).
+    pub fn bake<F: Fn() -> f64>(&self, volume: F) -> usize {
+        match *self {
+            Quantity::Number(n) => n,
+            Quantity::Concentration(c) => {
+                // n = N_A * c * V
+                let v = volume() * 1e-24; // From nm³ to L.
+                let n = N_A * c * v;
+                f64::round(n) as usize
+            }
+        }
+    }
+
+    /// Returns whether the contained value can be interpreted as resulting in zero placements.
+    ///
+    /// When the quantity is a `Number(0)` or `Concentration(0.0)`, the baked number is certainly
+    /// zero. When `Number(n)` for `n > 0`, the baked number is certainly not zero.
+    ///
+    /// But, in case of a positive concentration, whether the final number is zero or not depends
+    /// on the associated volume.
+    ///
+    /// If the concentration is smaller than zero, it is treated as a zero.
+    pub fn is_zero(&self) -> bool {
+        match *self {
+            Quantity::Number(n) => n == 0,
+            Quantity::Concentration(c) => c <= 0.0,
+        }
+    }
+}
+
+impl std::fmt::Display for Quantity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Quantity::Number(n) => write!(f, "{n} instances"),
+            Quantity::Concentration(c) => write!(f, "{c} mol/L"),
+        }
+    }
 }
 
 pub type TopolIncludes = Vec<String>;

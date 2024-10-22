@@ -19,6 +19,10 @@ impl<'s> Session<'s> {
             target,
         }
     }
+
+    pub fn target(&self) -> usize {
+        self.target
+    }
 }
 
 impl Session<'_> {

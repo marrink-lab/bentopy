@@ -228,8 +228,11 @@ topology file ([`.top`][gromacs-top]).
 
 Finally, in the **segments** section, we define a list of structures to place.
 In our case that is only one: which we give the **name** "3lyz", and we set the
-**number** of segments to place to 6500. The **path** points _pack_ to where
-the structure file for this segment can be found.
+**number** of segments to place to 6500. Instead of a number, a
+**concentration** in mol/L for can be provided as well. The volume over which
+that concentration applies is that of the segment's associated compartments.
+The **path** points _pack_ to where the structure file for this segment can be
+found.
 
 > [!IMPORTANT]
 > The **name** record must be selected carefully. If you want to write out a
