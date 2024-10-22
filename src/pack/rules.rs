@@ -246,8 +246,8 @@ impl std::error::Error for ParseRuleError {}
 pub fn split<'r>(
     rules: &'r [Rule],
 ) -> (
-    impl Iterator<Item = &Rule> + 'r,
-    impl Iterator<Item = &Rule> + 'r,
+    impl Iterator<Item = &'r Rule>,
+    impl Iterator<Item = &'r Rule>,
 ) {
     fn criterion(rule: &Rule) -> bool {
         rule.is_lightweight()

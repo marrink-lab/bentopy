@@ -175,7 +175,7 @@ impl Space {
         rules: impl IntoIterator<Item = Rule>,
         locations: &'s mut Locations,
         quantity: Quantity,
-    ) -> Session {
+    ) -> Session<'s> {
         let compartment_ids = HashSet::from_iter(compartment_ids);
         let rules = Vec::from_iter(rules);
 
