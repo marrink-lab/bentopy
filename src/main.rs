@@ -61,7 +61,7 @@ fn main() -> io::Result<()> {
         .collect::<Vec<_>>();
 
     let substitutes = if !substitutes.is_empty() {
-        eprintln!("Making substitutes...");
+        eprintln!("Making substitutions...");
         let start = std::time::Instant::now();
         let mut rng = match config.seed {
             Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
