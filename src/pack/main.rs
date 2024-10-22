@@ -35,12 +35,19 @@ impl Summary {
     }
 
     fn present(&self, packing_duration: f64) {
+        fn percentage(hits: usize, target: usize) -> f32 {
+            match target {
+                0 => 0.0,
+                _ => (hits as f32 / target as f32) * 100.0,
+            }
+        }
+
         println!("idx \tname      \t   ok%\ttarget\tplaced\ttime (s)\tremark");
         println!("----\t----------\t------\t------\t------\t--------\t------");
         let mut target_tot = 0;
         let mut hits_tot = 0;
         for (i, (name, target, hits, duration)) in self.entries.iter().enumerate() {
-            let perc = (*hits as f32 / *target as f32) * 100.0;
+            let perc = percentage(*hits, *target);
             let ok = if hits == target { " " } else { "<" };
             println!(
                 "{i:>4}\t{name:<10}\t{perc:>5.1}%\t{target:>6}\t{hits:>6}\t{duration:8.2}\t{ok}"
@@ -48,7 +55,7 @@ impl Summary {
             target_tot += target;
             hits_tot += hits;
         }
-        let perc = (hits_tot as f32 / target_tot as f32) * 100.0;
+        let perc = percentage(hits_tot, target_tot);
         let ok = if hits_tot == target_tot { " " } else { "<" };
         println!( "    \t          \t{perc:>5.1}%\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}")
     }
