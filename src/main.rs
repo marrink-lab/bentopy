@@ -1,5 +1,7 @@
+use std::cmp::Reverse;
 use std::io::{self, Write};
 
+use args::SortBehavior;
 use clap::Parser;
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
@@ -54,22 +56,54 @@ fn main() -> io::Result<()> {
         .to_array()
         .iter()
         .product();
+    let neutralizing_ions = config.charge.map(|c| c.bake()).flatten();
     let substitutes = config
         .substitutes
         .into_iter()
         .map(|sc| sc.bake(volume, placemap.unoccupied_count() as u64))
+        .chain(neutralizing_ions)
         .collect::<Vec<_>>();
 
-    let substitutes = if !substitutes.is_empty() {
+    let substitutions = if !substitutes.is_empty() {
         eprintln!("Making substitutions...");
         let start = std::time::Instant::now();
         let mut rng = match config.seed {
             Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
             None => rand::rngs::StdRng::from_entropy(),
         };
-        let substitutes = substitute(&mut rng, &mut placemap, &substitutes);
+
+        let mut subs = substitute(&mut rng, &mut placemap, &substitutes);
+
+        // If desired, glue the substitutes with identical names together.
+        // NOTE: Sorry for the double negative here ;)
+        if !config.no_combine_substitutes {
+            let mut piles: Vec<substitute::Substitution<'_>> = Vec::new();
+            for substitution in subs {
+                if let Some(pile) = piles
+                    .iter_mut()
+                    .find(|pile| pile.name() == substitution.name())
+                {
+                    // Tack this substitution's replacements onto the existing pile.
+                    pile.glue(&substitution)
+                } else {
+                    piles.push(substitution);
+                }
+            }
+
+            subs = piles;
+        }
+
+        // Order them.
+        match config.sort_substitutes {
+            SortBehavior::Size => subs.sort_by_cached_key(|s| Reverse(s.natoms())),
+            SortBehavior::RevSize => subs.sort_by_cached_key(|s| s.natoms()),
+            SortBehavior::Alphabetical => subs.sort_by_key(|s| s.name().to_string()),
+            SortBehavior::RevAlphabetical => subs.sort_by_key(|s| Reverse(s.name().to_string())),
+            SortBehavior::No => {} // Nothing to do.
+        }
+
         eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
-        substitutes
+        subs
     } else {
         Vec::new()
     };
@@ -84,7 +118,7 @@ fn main() -> io::Result<()> {
             &mut writer,
             &structure,
             &placemap,
-            &substitutes,
+            &substitutions,
             buffer_size,
         )?;
     } else {
@@ -92,7 +126,7 @@ fn main() -> io::Result<()> {
             &mut writer,
             &structure,
             &placemap,
-            &substitutes,
+            &substitutions,
             buffer_size,
         )?;
     }
@@ -121,7 +155,7 @@ fn main() -> io::Result<()> {
     }
 
     let mut topology = vec![(solvent_name, placemap.unoccupied_count() as usize)];
-    topology.extend(substitutes.iter().map(|s| (s.name(), s.natoms())));
+    topology.extend(substitutions.iter().map(|s| (s.name(), s.natoms())));
     let mut stdout = io::stdout();
     match &config.append_topol {
         Some(path) => eprintln!("Appending solvent topology lines to {path:?} and stdout:"),

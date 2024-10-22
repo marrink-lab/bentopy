@@ -50,6 +50,31 @@ pub struct Args {
     #[arg(short, long = "substitute")]
     pub substitutes: Vec<SubstituteConfig>,
 
+    /// Set the charge to neutralize with additional ions.
+    ///
+    /// In essence, this is a shorthand for explicitly providing ions to compensate the charge as
+    /// substitutes. This can be helpful for automation purposes.
+    ///
+    /// By default, NA (positive) and CL (negative) ions are used, but a different
+    /// positive-negative substitution pair can be specified by prepending a colon followed by the
+    /// positive and negative substitute name separated by one comma.
+    ///
+    ///     <charge>:<positive ion name>,<negative ion name>
+    ///
+    /// So, by default, some `<charge>` is interpreted as
+    ///
+    ///     <charge>:NA,CL
+    #[arg(long, allow_hyphen_values = true)]
+    pub charge: Option<ChargeConfig>,
+
+    /// Combine substitutes with identical names into one block.
+    #[arg(long, default_value_t)]
+    pub no_combine_substitutes: bool,
+
+    /// Set whether and in what way substitutes are sorted.
+    #[arg(long, value_enum, default_value_t)]
+    pub sort_substitutes: SortBehavior,
+
     /// Random number generator seed for solvent substitution, such as ion placement.
     #[arg(long)]
     pub seed: Option<u64>,
@@ -129,6 +154,58 @@ impl FromStr for SubstituteConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct ChargeConfig {
+    charge: i64,
+    positive: String,
+    negative: String,
+}
+
+impl FromStr for ChargeConfig {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut words = s.split(':');
+        let charge = words
+            .next()
+            .ok_or("expected a charge")?
+            .parse::<i64>()
+            .map_err(|err| err.to_string())?;
+        let (positive, negative) = if let Some(names) = words.next() {
+            names
+                .split_once(',')
+                .ok_or("expected two substitute names separated by a comma")?
+        } else {
+            ("NA", "CL")
+        };
+        Ok(Self {
+            charge,
+            positive: positive.to_string(),
+            negative: negative.to_string(),
+        })
+    }
+}
+
+impl ChargeConfig {
+    /// Bake the [`ChargeConfig`] into a [`Substitute`] if applicable.
+    ///
+    /// If the charge is 0, no `Substitute` is returned since there is no charge to neutralize.
+    pub fn bake(self) -> Option<Substitute> {
+        // Choose the name of the ion to neutralize with. If the charge to compensate is negative,
+        // we compensate with the positive ion substitute, and vice versa.
+        let name = match self.charge {
+            ..0 => self.positive,
+            0 => return None,
+            1.. => self.negative,
+        };
+
+        Some(Substitute {
+            name,
+            number: self.charge.abs() as u64,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 enum Quantity {
     /// A fixed number.
     Number(u64),
@@ -189,4 +266,14 @@ impl Quantity {
 pub struct Substitute {
     pub name: String,
     pub number: u64,
+}
+
+#[derive(ValueEnum, Default, Clone, Debug)]
+pub enum SortBehavior {
+    #[default]
+    Size,
+    RevSize,
+    Alphabetical,
+    RevAlphabetical,
+    No,
 }

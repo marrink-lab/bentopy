@@ -37,6 +37,11 @@ impl<'sol> Substitution<'sol> {
             }
         })
     }
+
+    /// Fuse the contents of two [`Substitution`] maps.
+    pub fn glue(&mut self, substitution: &Substitution<'sol>) {
+        self.placemap &= substitution.placemap.clone();
+    }
 }
 
 pub fn substitute<'sol>(
