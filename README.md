@@ -1,7 +1,8 @@
 # _hose_&mdash;solvate molecular systems
 
-> **WARNING:** This software is in active development and cannot be considered
-> to be reliable or finished. Do not use it expecting usable results.
+> **NOTE:** This software is under development, but has been used successfully
+> and appears to be reliable in the hands of users. Please take care and check
+> for issues in the final output.
 
 Solvate systems for molecular dynamics simulations very quickly, including ion
 placement and charge neutralization.
