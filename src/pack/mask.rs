@@ -255,6 +255,22 @@ impl Mask {
             .for_each(|(s, &m)| *s |= m);
     }
 
+    pub fn merge_mask(&mut self, mask: &Mask) {
+        assert_eq!(
+            self.dimensions(),
+            mask.dimensions(),
+            "the dimensions of both masks must be identical"
+        );
+        // For good measure, so the compiler gets it.
+        assert_eq!(self.n_backings(), mask.n_backings()); // FIXME: Is this one necessary?
+
+        self.backings
+            .iter_mut()
+            .zip(mask.backings.iter())
+            .for_each(|(s, &m)| *s &= m);
+
+    }
+
     pub fn apply_function(&mut self, f: impl Fn(Position) -> bool) {
         let [w, h, d] = self.dimensions();
         let mut lin_idx = 0;
@@ -956,6 +972,29 @@ mod tests {
         // And now base should have that same bit set and be identical aside from that.
         assert!(base.query_linear_unchecked::<false>(0));
         assert!(base.query_linear_unchecked::<true>(1));
+    }
+
+    #[test]
+    fn merge_mask() {
+        let cells = [
+            false, false, false, true, true, true, false, false, false, false, true, false, true,
+            true, true, false, false, true, false, false, false, true, true, true, true, true,
+            true,
+        ];
+        let mut base = Mask::from_cells([3, 3, 3], &cells);
+        assert!(base.query_linear_unchecked::<false>(0));
+        assert!(base.query_linear_unchecked::<false>(1));
+
+        let mut mask = base.clone();
+        mask.set([1, 0, 0], true);
+        assert!(mask.query_linear_unchecked::<false>(0));
+        assert!(mask.query_linear_unchecked::<true>(1));
+
+        // Mask the base.
+        base.merge_mask(&mask);
+        // And now base and mask should be identical again.
+        assert!(base.query_linear_unchecked::<false>(0));
+        assert!(base.query_linear_unchecked::<false>(1));
     }
 
     #[test]

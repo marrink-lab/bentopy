@@ -200,12 +200,17 @@ impl Space {
             self.session_background = self.global_background.clone();
 
             // Apply the compartments to the background.
-            for compartment in self
+            if let Some(merge) = self
                 .compartments
                 .iter()
                 .filter(|comp| compartment_ids.contains(&comp.id))
+                .map(|comp| comp.mask.clone())
+                .reduce(|mut acc, mask| {
+                    acc.merge_mask(&mask);
+                    acc
+                })
             {
-                self.session_background.apply_mask(&compartment.mask)
+                self.session_background.apply_mask(&merge);
             }
             self.previous_compartments = Some(compartment_ids);
 
@@ -230,7 +235,7 @@ impl Space {
             .filter(|comp| compartment_ids.contains(&comp.id))
             .map(|comp| comp.mask.clone())
             .reduce(|mut acc, mask| {
-                acc.apply_mask(&mask);
+                acc.merge_mask(&mask);
                 acc
             })
             .map(|mask| mask.count::<false>())
