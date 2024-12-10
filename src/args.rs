@@ -7,11 +7,14 @@ use clap::{Parser, ValueEnum};
 #[derive(Debug, Parser)]
 pub struct Args {
     /// Structure input path.
+    #[arg(short, long)]
     pub input: PathBuf,
-    /// Solvent template path.
-    pub template: PathBuf,
     /// Output path.
+    #[arg(short, long)]
     pub output: PathBuf,
+    /// Solvent template path.
+    #[arg(short = 'w', long = "water-box")]
+    pub template: PathBuf,
 
     /// Lowest allowable distance between solvent and structure beads (nm).
     ///

@@ -34,27 +34,26 @@ $ cargo install --path .
 ## Usage
 
 ```console
-$ hose structure.gro water.gro structure_solvated.gro
+$ hose -i structure.gro -w water.gro -o structure_solvated.gro
 ```
 
-Learn about the many options through `$ hose --help`.
+Learn about the available options through `$ hose --help`.
 
 ```
 Solvate
 
-Usage: hose [OPTIONS] <INPUT> <TEMPLATE> <OUTPUT>
-
-Arguments:
-  <INPUT>
-          Structure input path
-
-  <TEMPLATE>
-          Solvent template path
-
-  <OUTPUT>
-          Output path
+Usage: hose [OPTIONS] --input <INPUT> --output <OUTPUT> --water-box <TEMPLATE>
 
 Options:
+  -i, --input <INPUT>
+          Structure input path
+
+  -o, --output <OUTPUT>
+          Output path
+
+  -w, --water-box <TEMPLATE>
+          Solvent template path
+
       --cutoff <CUTOFF>
           Lowest allowable distance between solvent and structure beads (nm).
 
@@ -168,7 +167,7 @@ systems. By substituting solvent residues with ions or other residues in this
 solvation process, a great speed-up is possible over other methods.
 
 ```console
-$ hose structure.gro water.gro solvated.gro -s NA:0.15M -s CL:0.15M
+$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
 ```
 
 To specify a substitution, provide a name and a quantifier, separated by a
@@ -187,7 +186,7 @@ The `--charge` option can be used as a convenient short-hand for adding
 neutralizing ions. This may be especially useful in automated pipelines.
 
 ```console
-$ hose structure.gro water.gro solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
+$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
 ```
 
 `NA` and `CL` substitutes are made by default, but custom neutralizing
@@ -195,7 +194,7 @@ substitutes can be set after the charge:
 `--charge <charge>:<positive name>,<negative name>`.
 
 ```console
-$ hose structure.gro water.gro solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
+$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
 ```
 
 #### Combining, sorting
