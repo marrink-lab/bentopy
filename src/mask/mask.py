@@ -1,4 +1,5 @@
 import warnings
+import pickle
 from time import time
 from pathlib import Path
 
@@ -39,11 +40,33 @@ def mask(args):
             log("In non-interactive mode, at least one label must be provided.")
             return 1
 
-    # Read in structures.
+    # Read in structures from a structure file or from a cache..
+    u = None
+    caching = not args.no_cache  # Whether caching is enabled.
     structure_path = args.input
-    log(f"Reading in structure from {structure_path}... ", end="")
-    u = mda.Universe(structure_path)
-    log(f"done. (Read {u.atoms.n_atoms} atoms.)")
+    if caching:
+        cached_path = resolve_cache_path(structure_path)
+
+        # Try to find a cached equivalent to the structure.
+        cache_exists = cached_path.is_file()
+        if cache_exists:
+            log(f"Reading in cached structure from {cached_path}...")
+            log("You can reload a changed structure by removing the cached file.")
+            log("Caching can be disabled with --no-cache.")
+            with open(cached_path, "rb") as cache_file:
+                u = pickle.load(cache_file)
+
+    # If the file was not cached, we read it from the structure file.
+    if u is None:
+        # Read the structure file.
+        log(f"Reading in structure from {structure_path}... ", end="")
+        u = mda.Universe(structure_path)
+        log(f"done. (Read {u.atoms.n_atoms} atoms.)")
+
+        # Cache the universe if desired and necessary.
+        if caching and not cache_exists:
+            with open(cached_path, "wb") as cache_file:
+                pickle.dump(u, cache_file)
 
     # Apply the selection before we hand it to mdvcontainment.
     selection = u.select_atoms(args.selection)
@@ -199,6 +222,15 @@ def mask(args):
     log(f"Writing the voxel mask to {args.output}... ", end="")
     np.savez(args.output, zoomed)
     log("done.")
+
+
+def resolve_cache_path(structure_path):
+    """
+    Determine what the cache path for the provided structure path is.
+    """
+    structure_name = structure_path.name
+    cached_name = f".cached_{structure_name}.pickle"
+    return structure_path.with_name(cached_name)
 
 
 def main():

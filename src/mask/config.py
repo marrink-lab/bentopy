@@ -106,6 +106,20 @@ def setup_parser(parser=None):
         This can be useful when you want to verify the voxel mask that is produced for some selection of labels.""",
     )
     parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="""Do not cache structure files.
+
+        Caching can improve structure load times a lot, because it can load a
+        previously stored cache of a MDA Universe. Since loading structure
+        files with MDA can be very slow and loading the pickled object is
+        relatively quick, this is fantastic for making multiple different
+        masks of the same structure.
+
+        This option allows you to *switch off* the caching, if you want that.
+        """,
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
