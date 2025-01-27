@@ -54,14 +54,21 @@ def mask(args):
             log("You can reload a changed structure by removing the cached file.")
             log("Caching can be disabled with --no-cache.")
             with open(cached_path, "rb") as cache_file:
+                start = time()
                 u = pickle.load(cache_file)
+                dur = time() - start
+                log(
+                    f"Done reading the cached file. (Read {u.atoms.n_atoms} atoms in {dur:.1f} s.)"
+                )
 
     # If the file was not cached, we read it from the structure file.
     if u is None:
         # Read the structure file.
         log(f"Reading in structure from {structure_path}... ", end="")
+        start = time()
         u = mda.Universe(structure_path)
-        log(f"done. (Read {u.atoms.n_atoms} atoms.)")
+        dur = time() - start
+        log(f"done. (Read {u.atoms.n_atoms} atoms in {dur:.1f} s.)")
 
         # Cache the universe if desired and necessary.
         if caching and not cache_exists:
