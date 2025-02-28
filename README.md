@@ -42,11 +42,12 @@ pip3 install .
 
 ## Usage
 
-_bentopy_ currently features four subcommands,
+_bentopy_ currently features five subcommands,
 [_pack_](#pack),
 [_render_](#render),
-[_mask_](#mask), and
-[_grocat_](#grocat).
+[_mask_](#mask),
+[_grocat_](#grocat), and
+[_solvate_](#solvate).
 
 You can learn about the available options through the help information.
 
@@ -66,7 +67,7 @@ bentopy-mask --help
 A typical _bentopy_ workflow may look like this.
 
 ```
-bentopy-grocat -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-grocat
+bentopy-grocat -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-grocat -> bentopy-solvate
 ```
 
 What follows is a brief explanation and example invocation of these
@@ -139,6 +140,14 @@ bentopy-grocat chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
 _Concatenate `chromosome.gro` and `membrane.gro` into `chrom_mem.gro`, setting
 the residue names of the chromosome atoms to `CHROM` and those of the membrane
 to `MEM` in the concatenated structure._
+
+### _solvate_
+
+With _solvate_, large structures can be placed in a water box quickly and
+conveniently.
+
+A thorough description of the command is [provided in the `bentopy-solvate`
+README](src/solvate/README.md).
 
 ## Example
 
