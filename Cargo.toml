@@ -11,6 +11,10 @@ path = "src/pack/main.rs"
 name = "bentopy-render"
 path = "src/render/main.rs"
 
+[[bin]]
+name = "bentopy-solvate"
+path = "src/solvate/main.rs"
+
 [dependencies]
 glam = { version = "0.28.0", features = ["rand"] }
 rand = "0.8.5"
@@ -18,5 +22,6 @@ clap = { version = "4.5.7", features = ["derive"] }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
 eightyseven = "0.1.5"
+arraystring = "0.3.0"
 npyz = { version = "0.8.3", features = ["npz"] }
 rayon = "1.10.0"
