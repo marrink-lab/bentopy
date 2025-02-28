@@ -1,8 +1,7 @@
-# _hose_&mdash;solvate molecular systems
+# _bentopy solvate_&mdash;solvate molecular systems
 
-> **NOTE:** This software is under development, but has been used successfully
-> and appears to be reliable in the hands of users. Please take care and check
-> for issues in the final output.
+> Previously, _bentopy solvate_ was known as _hose_. It used to be developed at
+> [git.sr.ht/~ma3ke/hose][hose].
 
 Solvate systems for molecular dynamics simulations very quickly, including ion
 placement and charge neutralization.
@@ -14,35 +13,21 @@ Reads from and writes to [gro files][gro].
 
 ## Installation
 
-Make sure you have [`rust`][rust] installed on your system. This is very easy.
-The best method is to use [`rustup`][rustup].
-
-### Directly through cargo
-
-```console
-$ cargo install --git https://git.sr.ht/~ma3ke/hose
-```
-
-### Or clone this repo, then build
-
-```console
-$ git clone https://git.sr.ht/~ma3ke/hose
-$ cd hose
-$ cargo install --path .
-```
+This is a subcommand of _bentopy_, and is installed along with it. Please refer
+to this project's [installation instructions][install].
 
 ## Usage
 
 ```console
-$ hose -i structure.gro -w water.gro -o structure_solvated.gro
+$ bentopy-solvate -i structure.gro -w water.gro -o structure_solvated.gro
 ```
 
-Learn about the available options through `$ hose --help`.
+Learn about the available options through `$ bentopy-solvate --help`.
 
 ```
 Solvate
 
-Usage: hose [OPTIONS] --input <INPUT> --output <OUTPUT> --water-box <TEMPLATE>
+Usage: bentopy-solvate [OPTIONS] --input <INPUT> --output <OUTPUT> --water-box <TEMPLATE>
 
 Options:
   -i, --input <INPUT>
@@ -167,7 +152,7 @@ systems. By substituting solvent residues with ions or other residues in this
 solvation process, a great speed-up is possible over other methods.
 
 ```console
-$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
+$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
 ```
 
 To specify a substitution, provide a name and a quantifier, separated by a
@@ -186,7 +171,7 @@ The `--charge` option can be used as a convenient short-hand for adding
 neutralizing ions. This may be especially useful in automated pipelines.
 
 ```console
-$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
+$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
 ```
 
 `NA` and `CL` substitutes are made by default, but custom neutralizing
@@ -194,7 +179,7 @@ substitutes can be set after the charge:
 `--charge <charge>:<positive name>,<negative name>`.
 
 ```console
-$ hose -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
+$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
 ```
 
 #### Combining, sorting
@@ -229,6 +214,8 @@ the input structure exceeds the final boundaries, the boundary mode can
 be set to `deny`. This will exit the process with error code 2 if such
 an escaped atom is found.
 
+[hose]: https://git.sr.ht/~ma3ke/hose
+[install]: /README.md
 [gro]: https://manual.gromacs.org/archive/5.0.3/online/gro.html
 [rust]: https://www.rust-lang.org/
 [rustup]: https://www.rust-lang.org/tools/install
