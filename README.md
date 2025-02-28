@@ -46,7 +46,7 @@ _bentopy_ currently features five subcommands,
 [_pack_](#pack),
 [_render_](#render),
 [_mask_](#mask),
-[_grocat_](#grocat), and
+[_merge_](#merge), and
 [_solvate_](#solvate).
 
 You can learn about the available options through the help information.
@@ -67,7 +67,7 @@ bentopy-mask --help
 A typical _bentopy_ workflow may look like this.
 
 ```
-bentopy-grocat -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-grocat -> bentopy-solvate
+bentopy-merge -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-merge -> bentopy-solvate
 ```
 
 What follows is a brief explanation and example invocation of these
@@ -125,16 +125,21 @@ _Determine the compartments in `chrom_mem.gro` and automatically select the
 innermost compartment (`--autofill`). From that selected compartment, write a
 mask to `mask.npz`._
 
-### _grocat_
+### _merge_
 
-As the name suggests, _grocat_ is a tool for concatenating `gro` files. Though
-this is a relatively simple operation, _grocat_ provides a convenient way of
+> [!NOTE] This command used to be called _bentopy grocat_, but has now been
+> renamed to _bentopy merge_, which better reflects what it does while leaving
+> open the possibility of supporting the merging of structure files beyond
+> `gro`.
+
+As the name suggests, _merge_ is a tool for concatenating `gro` files. Though
+this is a relatively simple operation, _merge_ provides a convenient way of
 telling apart different sections of large models by optionally specifying a new
 residue name for a whole file in the argument list by appending
 `:<residue name>` to a file path.
 
 ```console
-bentopy-grocat chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
+bentopy-merge chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
 ```
 
 _Concatenate `chromosome.gro` and `membrane.gro` into `chrom_mem.gro`, setting

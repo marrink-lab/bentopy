@@ -32,7 +32,7 @@ Issues = "https://github.com/marrink-lab/bentopy/issues"
 [project.scripts]
 bentopy-check = "check:check.main"
 bentopy-mask = "mask:mask.main"
-bentopy-grocat = "grocat:grocat.main"
+bentopy-merge = "merge:merge.main"
 
 [[tool.setuptools-rust.bins]]
 target = "bentopy-pack"
