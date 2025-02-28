@@ -1,5 +1,7 @@
 # _bentopy_&mdash;packs stuff in boxes
 
+![Bentopy](figures/logo_header.png)
+
 ## State
 
 This project is under development and solely for internal use. Many parts are
