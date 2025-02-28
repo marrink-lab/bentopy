@@ -2,7 +2,10 @@ use eightyseven::structure::Atom;
 use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
-use crate::structure::{BoxVecsExtension, Structure};
+use crate::{
+    convert::Convert,
+    structure::{BoxVecsExtension, Structure},
+};
 
 /// Return an index into a linear array that represents items on a 3-dimensional grid in a z-major
 /// ordering.
@@ -80,7 +83,7 @@ impl<'s> PlaceMap<'s> {
                             None
                         } else {
                             let mut sb = sb; // Copy the solvent bead.
-                            sb.position += translation;
+                            sb.position += translation.convert();
                             Some(sb)
                         }
                     });
@@ -98,14 +101,14 @@ impl<'s> PlaceMap<'s> {
                         None
                     } else {
                         let mut sb = sb; // Copy the solvent bead.
-                        sb.position += translation;
+                        sb.position += translation.convert();
                         Some(sb)
                     }
                 })
         })
     }
 
-    pub fn iter_positions(&self) -> impl Iterator<Item = Vec3> + '_ {
+    pub fn iter_positions(&self) -> impl Iterator<Item = eightyseven::structure::Vec3> + '_ {
         self.iter_atoms().map(|atom| atom.position)
     }
 

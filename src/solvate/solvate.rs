@@ -1,6 +1,7 @@
 use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
+use crate::convert::Convert;
 use crate::cookies::Cookies;
 use crate::placement::iter_3d;
 use crate::placement::PlaceMap;
@@ -36,7 +37,7 @@ pub fn solvate<'sol>(
                 // the final box.
                 let offset = remainder * 0.5;
                 for bead in &mut structure.atoms {
-                    bead.position += offset;
+                    bead.position += offset.convert();
                 }
 
                 eprintln!("\tCentered structure in expanded box.");
@@ -82,7 +83,7 @@ pub fn solvate<'sol>(
         }
         let translation = cookies.offset(cell_pos);
         for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
-            let solvent_pos = solvent_bead.position + translation;
+            let solvent_pos = solvent_bead.position.convert() + translation;
             let mut collision = false;
             for &cookie_bead in cookie {
                 // TODO: Consider applying this translation as a map before the iter over
@@ -127,7 +128,7 @@ pub fn solvate<'sol>(
                         placemap
                             .solvent
                             .atoms()
-                            .map(move |a| a.position + translation)
+                            .map(move |a| a.position.convert() + translation)
                             // We are only interested in positions that lie at the periodic
                             // interface. Anything beyond the solvent cutoff distance from that
                             // interface is out of reach.
@@ -142,7 +143,7 @@ pub fn solvate<'sol>(
                     .solvent
                     .atoms()
                     .map(|a| a.position)
-                    .map(|position| position + translation);
+                    .map(|position| position.convert() + translation);
 
                 // We'll make a list of solvent atoms we need to reject by index.
                 let rejected: Box<[_]> = this

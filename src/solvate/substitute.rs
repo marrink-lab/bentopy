@@ -1,5 +1,4 @@
 use eightyseven::structure::{Atom, AtomName};
-use glam::Vec3;
 
 use crate::{args::Substitute, placement::PlaceMap};
 
@@ -33,7 +32,7 @@ impl<'sol> Substitution<'sol> {
                 atomname: self.name,
                 atomnum: num,
                 position: pos,
-                velocity: Vec3::ZERO,
+                velocity: Default::default(),
             }
         })
     }

@@ -1,5 +1,6 @@
 use glam::{BVec3, IVec3, UVec3, Vec3, Vec3A};
 
+use crate::convert::Convert;
 use crate::placement::{index_3d, iter_3d};
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::PeriodicMode;
@@ -35,7 +36,7 @@ impl Cookies {
         // cuboid. Look, I don't even remember why I picked this name.
         let box_dimensions = structure.boxvecs.as_vec3();
         for (i, bead) in structure.atoms.iter().enumerate() {
-            let mut pos = bead.position;
+            let mut pos = bead.position.convert();
             match mode {
                 PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
                 PeriodicMode::Ignore => {
