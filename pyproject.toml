@@ -39,3 +39,6 @@ target = "bentopy-pack"
 
 [[tool.setuptools-rust.bins]]
 target = "bentopy-render"
+
+[[tool.setuptools-rust.bins]]
+target = "bentopy-solvate"
