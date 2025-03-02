@@ -38,7 +38,7 @@ pub fn write_structure<const PAR: bool>(
     writeln!(
         writer,
         "solvated by {} (v{})",
-        env!("CARGO_PKG_NAME"),
+        env!("CARGO_BIN_NAME"),
         env!("CARGO_PKG_VERSION")
     )?;
     writeln!(writer, "{natoms}")?;
