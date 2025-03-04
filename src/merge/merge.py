@@ -56,7 +56,7 @@ def parse_boxvec(s: str) -> tuple[float]:
     )
 
 
-def grocat(args):
+def merge(args):
     output = args.output
     if not output.seekable():
         eprint("ERROR: Output into non-seekable files is currently not supported.")
@@ -129,7 +129,7 @@ def grocat(args):
 def main():
     parser = argparse.ArgumentParser(
         description="Concatenate gro files.",
-        prog="bentopy-grocat",
+        prog="bentopy-merge",
     )
 
     parser.add_argument(
@@ -156,7 +156,7 @@ def main():
         "-t",
         "--title",
         type=str,
-        default="bentopy grocat",
+        default="bentopy merge",
         help="Set the final title. (default: %(default)s)",
     )
     parser.add_argument(
@@ -169,7 +169,7 @@ def main():
     )
 
     args = parser.parse_args()
-    grocat(args)
+    merge(args)
 
 
 if __name__ == "__main__":
