@@ -4,6 +4,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use anyhow::{bail, Context};
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
@@ -363,13 +364,8 @@ pub struct State {
     pub summary: bool,
 }
 
-/// Helper function for reporting clear errors when opening something at a path fails.
-fn report_opening<P: std::fmt::Debug>(err: impl std::error::Error, path: P) -> io::Error {
-    io::Error::other(format!("problem while opening {path:?}: {err}"))
-}
-
 impl State {
-    pub fn new(args: Args, config: Configuration) -> io::Result<Self> {
+    pub fn new(args: Args, config: Configuration) -> anyhow::Result<Self> {
         let verbose = args.verbose;
         let dimensions = config
             .space
@@ -381,7 +377,7 @@ impl State {
             .space
             .compartments
             .into_iter()
-            .map(|comp| -> io::Result<_> {
+            .map(|comp| -> Result<_, _> {
                 Ok(Compartment {
                     id: comp.id,
                     mask: match comp.mask {
@@ -408,13 +404,14 @@ impl State {
                             if verbose {
                                 eprintln!("\tLoading mask from {path:?}...");
                             }
-                            Mask::load_from_path(&path).map_err(|err| report_opening(err, path))?
+                            Mask::load_from_path(&path)
+                                .with_context(|| format!("Failed to load mask {path:?}"))?
                         }
                     },
                     distance_masks: Default::default(),
                 })
             })
-            .collect::<io::Result<_>>()?;
+            .collect::<anyhow::Result<_>>()?;
         let space = Space {
             size: config.space.size,
             dimensions,
@@ -434,7 +431,7 @@ impl State {
             let mut segments: Vec<_> = config
                 .segments
                 .into_iter()
-                .map(|seg| -> io::Result<_> {
+                .map(|seg| -> Result<_, _> {
                     if verbose {
                         eprintln!("\tLoading {:?}...", &seg.path);
                     }
@@ -445,7 +442,8 @@ impl State {
                         Some(6.. ) => eprintln!("WARNING: The tag for segment '{name}' is longer than 5 characters, and may be truncated when the placement list is rendered."),
                         _ => {} // Nothing to warn about.
                     }
-                    let structure = load_molecule(&seg.path).map_err(|err| report_opening(err, &seg.path))?;
+                    let path = seg.path;
+                    let structure = load_molecule(&path).with_context(|| format!("Failed to open the structure file for segment '{name}' at {path:?}") )?;
                     let rules = seg
                         .rules
                         .iter()
@@ -461,7 +459,7 @@ impl State {
                         quantity: seg.quantity,
                         compartments: seg.compartments,
                         rules,
-                        path: seg.path,
+                        path,
                         rotation_axes: seg.rotation_axes,
                         structure,
                         initial_rotation,
@@ -469,7 +467,7 @@ impl State {
                         voxels: None,
                     })
                 })
-                .collect::<io::Result<_>>()?;
+                .collect::<anyhow::Result<_>>()?;
             if let Some(method) = args.rearrange {
                 eprint!("Rearranging segments according to the {method:?} method... ");
                 match method {
@@ -528,7 +526,7 @@ impl State {
         })
     }
 
-    pub fn check_rules(&self) -> Result<(), String> {
+    pub fn check_rules(&self) -> anyhow::Result<()> {
         let mut checked = Vec::new(); // FIXME: BTreeMap?
         for segment in &self.segments {
             let rules = &segment.rules;
@@ -550,9 +548,7 @@ impl State {
             );
             if !distilled.any::<true>() {
                 let name = &segment.name;
-                return Err(format!(
-                    "the rules {rules:?} preclude any placement of segment '{name}'"
-                ));
+                bail!("the rules {rules:?} preclude any placement of segment '{name}'");
             }
 
             checked.push(rules.clone())
@@ -766,17 +762,29 @@ fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
 }
 
 /// Load a [`Structure`] from a structure file.
-fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(path: P) -> io::Result<Structure> {
+///
+/// This function will return an error if the structure is empty. Downstream functions may assume
+/// that a [`Structure`] has at least one atom.
+fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
+    path: P,
+) -> anyhow::Result<Structure> {
     let file = std::fs::File::open(&path)?;
 
     let structure = match path.as_ref().extension().and_then(|s| s.to_str()) {
-        Some("gro") => Structure::read_from_file(file)?,
-        Some("pdb") => Structure::read_from_pdb_file(file)?,
+        Some("gro") => Structure::read_from_file(file)
+            .with_context(|| format!("Failed to parse gro file {path:?}"))?,
+        Some("pdb") => Structure::read_from_pdb_file(file)
+            .with_context(|| format!("Failed to parse pdb file {path:?}"))?,
         None | Some(_) => {
             eprintln!("WARNING: Assuming {path:?} is a pdb file.");
-            Structure::read_from_pdb_file(file)?
+            Structure::read_from_pdb_file(file)
+                .with_context(|| format!("Failed to parse the file {path:?} as pdb"))?
         }
     };
+
+    if structure.natoms() == 0 {
+        bail!("Structure from {path:?} contains no atoms")
+    }
 
     Ok(structure)
 }
