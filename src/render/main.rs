@@ -61,7 +61,7 @@ struct Args {
     ignore_tags: bool,
 }
 
-fn main() -> io::Result<()> {
+fn main() -> anyhow::Result<()> {
     let Args {
         input,
         output,
