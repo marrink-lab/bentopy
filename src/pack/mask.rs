@@ -268,7 +268,6 @@ impl Mask {
             .iter_mut()
             .zip(mask.backings.iter())
             .for_each(|(s, &m)| *s &= m);
-
     }
 
     pub fn apply_function(&mut self, f: impl Fn(Position) -> bool) {

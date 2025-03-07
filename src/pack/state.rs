@@ -443,7 +443,7 @@ impl State {
                         _ => {} // Nothing to warn about.
                     }
                     let path = seg.path;
-                    let structure = load_molecule(&path).with_context(|| format!("Failed to open the structure file for segment '{name}' at {path:?}") )?;
+                    let structure = load_molecule(&path).with_context(|| format!("Failed to open the structure file for segment '{name}' at {path:?}"))?;
                     let rules = seg
                         .rules
                         .iter()
