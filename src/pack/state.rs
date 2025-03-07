@@ -97,12 +97,15 @@ impl Mask {
                 // We need to re-order the cells to get them into the expected Fortran ordering.
                 let mut reordered = Vec::with_capacity(cells.len());
                 reordered.resize(cells.len(), false);
-                let mut cells = cells.iter().copied();
+                let mut cells = IntoIterator::into_iter(cells);
                 let mut reordered = reordered.into_boxed_slice();
                 let [w, h, d] = size;
+                assert_eq!(cells.len() as u64, w * h * d);
                 for x in 0..w {
                     for y in 0..h {
                         for z in 0..d {
+                            // We know that cells and reordered have the same size, and we have
+                            // asserted that `size` corresponds to the same length.
                             reordered[(x + y * w + z * w * h) as usize] = cells.next().unwrap();
                         }
                     }
