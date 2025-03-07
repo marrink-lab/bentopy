@@ -557,26 +557,30 @@ impl State {
         Ok(())
     }
 
-    pub fn pack(&mut self, log: &mut impl io::Write) -> io::Result<(Vec<Placement>, Summary)> {
+    pub fn pack(&mut self, log: &mut impl io::Write) -> anyhow::Result<(Vec<Placement>, Summary)> {
         let start = std::time::Instant::now();
         let mut locations = Locations::new();
         let mut placements = Vec::new();
         let mut summary = Summary::new();
 
-        let max_tries_multiplier = std::env::var("BENTOPY_TRIES")
-            .map(|s| {
-                s.parse()
-                    .expect("max tries multiplier should be a valid unsigned integer")
-            })
-            .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))
-            .unwrap_or(1000);
-        let max_tries_per_rotation_divisor = std::env::var("BENTOPY_ROT_DIV")
-            .map(|s| {
-                s.parse()
-                    .expect("divisor should be a valid unsigned integer")
-            })
-            .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))
-            .unwrap_or(100);
+        let max_tries_multiplier = match std::env::var("BENTOPY_TRIES") {
+            Ok(s) => s
+                .parse()
+                .with_context(|| {
+                    format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
+                })
+                .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))?,
+            Err(_) => 1000,
+        };
+        let max_tries_per_rotation_divisor = match std::env::var("BENTOPY_ROT_DIV") {
+            Ok(s) => s
+                .parse()
+                .with_context(|| {
+                    format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
+                })
+                .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))?,
+            Err(_) => 100,
+        };
 
         let state = self;
         let n_segments = state.segments.len();
