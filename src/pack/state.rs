@@ -775,11 +775,11 @@ fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
         Some("gro") => Structure::read_from_file(file)
             .with_context(|| format!("Failed to parse gro file {path:?}"))?,
         Some("pdb") => Structure::read_from_pdb_file(file)
-            .with_context(|| format!("Failed to parse pdb file {path:?}"))?,
+            .with_context(|| format!("Failed to parse PDB file {path:?}"))?,
         None | Some(_) => {
-            eprintln!("WARNING: Assuming {path:?} is a pdb file.");
+            eprintln!("WARNING: Assuming {path:?} is a PDB file.");
             Structure::read_from_pdb_file(file)
-                .with_context(|| format!("Failed to parse the file {path:?} as pdb"))?
+                .with_context(|| format!("Failed to parse the file {path:?} as PDB"))?
         }
     };
 
