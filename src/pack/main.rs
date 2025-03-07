@@ -79,7 +79,9 @@ fn main() -> anyhow::Result<()> {
 
     // Packing.
     let packing_start = std::time::Instant::now();
-    let (placements, summary) = state.pack(&mut io::stderr()).context("Encountered a problem while packing")?;
+    let (placements, summary) = state
+        .pack(&mut io::stderr())
+        .context("Encountered a problem while packing")?;
     let packing_duration = packing_start.elapsed().as_secs_f64();
     eprintln!("Packing process took {packing_duration:.3} s.");
 
@@ -92,9 +94,11 @@ fn main() -> anyhow::Result<()> {
     let placement_list_path = &state.output.path;
     eprint!("Writing placement list to {placement_list_path:?}... ");
     let start_output = std::time::Instant::now();
-    let placement_list_file = std::fs::File::create(&placement_list_path)?;
+    let placement_list_file = std::fs::File::create(&placement_list_path)
+        .with_context(|| format!("Failed to create placement list file {placement_list_path:?}"))?;
     let placement_list = PlacementList::new(placements, &state);
-    serde_json::to_writer(placement_list_file, &placement_list)?;
+    serde_json::to_writer(placement_list_file, &placement_list)
+        .context("Encountered a problem while writing the placement list")?;
     eprintln!("Done in {:.3} s.", start_output.elapsed().as_secs_f64());
 
     Ok(())
