@@ -130,7 +130,7 @@ pub struct Compartment {
 }
 
 impl Compartment {
-    /// Get or create and return a reference to a distance mask for some voxel distance.
+    /// Get or create and return a cloned distance mask for some voxel distance.
     ///
     /// Note that the distance is in terms of voxels, not in nm.
     pub fn get_distance_mask(&self, distance: f32) -> Mask {
@@ -143,6 +143,7 @@ impl Compartment {
                 .entry(key)
                 .or_insert_with(|| distance_mask_grow(&self.mask, distance as u64));
         }
+        // We can safely get at the `key` because if it was empty, we have inserted it above.
         // We clone here because we can't guarantee that the value is not moved by a resize of
         // the HashMap.
         self.distance_masks.borrow().get(&key).unwrap().clone()
