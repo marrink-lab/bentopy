@@ -40,7 +40,7 @@ impl Mask {
         radius: Option<u32>,
     ) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
-        let min_dim = dimensions.into_iter().min().unwrap() as u32;
+        let min_dim = dimensions.into_iter().min().unwrap() as u32; // Has non-zero length.
         let r = radius.unwrap_or(min_dim / 2);
         assert!(min_dim >= r);
         let c = center.unwrap_or(UVec3::splat(r as u32)).as_ivec3();
@@ -72,21 +72,22 @@ impl Mask {
         Self::from_cells(dimensions, &cells)
     }
 
-    fn load_from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    fn load_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut npz = npyz::npz::NpzArchive::open(path)?;
         // FIXME: This error could be handled more gracefully.
         let first_name = npz
             .array_names()
             .next()
-            .expect("there should be at least one array in the mask voxel map")
+            .context("There should be at least one array in the mask voxel map")?
             .to_string();
         let array = npz.by_name(&first_name)?.unwrap(); // We just asserted the name exists.
-        assert_eq!(
-            array.shape().len(),
-            3,
-            "a voxel map must have three dimensions"
-        );
-        let size: [u64; 3] = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
+        let Ok(size): Result<[u64; 3], _> = array.shape().to_vec().try_into() else {
+            let shape = array.shape();
+            bail!("a voxel map must have three dimensions, found {shape:?}");
+        };
+        if size.iter().any(|d| d == &0) {
+            bail!("a voxel map must have non-zero sized dimensions, found {size:?}")
+        }
 
         let order = array.order();
         let mut cells: Box<[bool]> = array.into_vec()?.into_boxed_slice();
