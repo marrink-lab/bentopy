@@ -9,7 +9,9 @@ pub type Atom = Vec3;
 
 /// A structure type that stores its atoms as simple positions.
 ///
-/// Invariant: A structure is always centered, such that its geometric center lies at the origin.
+/// Invariant: A `Structure` is always centered, such that its geometric center lies at the origin.
+///
+/// Invariant: A `Structure` has at least one atom.
 pub struct Structure {
     atoms: Vec<Atom>,
 }
@@ -32,6 +34,7 @@ impl ReadGro<Atom> for Structure {
         position: Option<[f32; 3]>,
         _velocity: Option<[f32; 3]>,
     ) -> Atom {
+        // We can safely unwrap because this is the only value we expect.
         Atom::from_array(position.unwrap())
     }
 
@@ -71,6 +74,7 @@ impl Structure {
 
     /// Translate this [`Structure`] such that it's geometric center lies at the origin.
     fn translate_to_center(&mut self) {
+        // Invariant: A Structure has at least one atom.
         let center = self.atoms().sum::<Atom>() / self.natoms() as f32;
         for pos in &mut self.atoms {
             *pos -= center;
@@ -79,7 +83,7 @@ impl Structure {
 
     /// Calculate the moment of inertia for this [`Structure`].
     ///
-    /// Assumes that the invariant that the structure has been centered holds.
+    /// Invariant: Assumes that the structure is centered.
     ///
     ///     I = Σ(m_i * r_i²)
     pub fn moment_of_inertia(&self) -> f32 {
@@ -88,12 +92,12 @@ impl Structure {
 
     /// Returns the radius of the point that is farthest from the structure geometric center.
     ///
-    /// Assumes that the invariant that the structure has been centered holds.
+    /// Invariant: Assumes that the structure is centered.
     pub fn bounding_sphere(&self) -> f32 {
         self.atoms()
             .map(|atom| atom.length())
             .max_by(f32::total_cmp)
-            .unwrap()
+            .unwrap() // Invariant: A structure has at least one atom.
     }
 }
 
