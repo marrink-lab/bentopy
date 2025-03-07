@@ -831,6 +831,9 @@ fn neigbors(radius: f32) -> [Vec3; 26] {
     ]
 }
 
+/// Voxelize a [`Structure`].
+///
+/// Invariant: A [`Structure`] has at least one atom.
 fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: f32) -> Voxels {
     // TODO: Consider whether this rotations system is correct. I tend to flip things around.
     // Extract and rotate the points from the structure.
@@ -838,12 +841,15 @@ fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: 
         .atoms()
         .map(|&position| rotation.mul_vec3(position))
         .collect();
+    // Invariant: A Structure has at least one atom.
     let npoints = points.len();
+    assert!(npoints >= 1, "a Structure has at least one atom");
     // FIXME: Think about the implications of total_cmp for our case here.
     let min = points
         .iter()
         .copied()
         .reduce(|a, b| a.min(b))
+        // Invariant: A Structure has at least one atom.
         .expect("there is at least one point");
     // Subtract one bead radius such that the lower bounds are treated correctly.
     let min = min - radius;
@@ -868,6 +874,7 @@ fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: 
         .iter()
         .copied()
         .reduce(|a, b| a.max(b))
+        // Invariant: A Structure has at least one atom.
         .expect("there is at least one point")
         .to_array()
         .map(|v| v + 1);
