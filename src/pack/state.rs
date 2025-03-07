@@ -119,12 +119,6 @@ impl Mask {
     }
 }
 
-impl From<ParseRuleError> for io::Error {
-    fn from(value: ParseRuleError) -> Self {
-        io::Error::other(value)
-    }
-}
-
 type DistanceMasksKey = u64;
 
 pub struct Compartment {
