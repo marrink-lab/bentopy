@@ -7,6 +7,9 @@ pub type Position = Dimensions;
 type Backing = u8;
 const BACKING_BITS: usize = Backing::BITS as usize;
 
+/// A 3-dimensional bitmap-backed `Mask` type that is used to represent voxelized spaces.
+///
+/// Invariant: A `Mask` has non-zero dimensions.
 #[derive(Debug, Clone)]
 pub struct Mask {
     dimensions: [usize; 3],
@@ -20,6 +23,7 @@ impl Mask {
 
     pub fn fill<const VALUE: bool>(dimensions: Dimensions) -> Self {
         let dimensions = dimensions.map(|v| v as usize);
+        // Invariant: A `Mask` has non-zero dimensions.
         assert!(
             dimensions.iter().all(|&v| v > 0),
             "a mask must have non-zero dimensions"

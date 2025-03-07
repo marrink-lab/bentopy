@@ -403,8 +403,19 @@ impl State {
                             if verbose {
                                 eprintln!("\tLoading mask from {path:?}...");
                             }
-                            Mask::load_from_path(&path)
-                                .with_context(|| format!("Failed to load mask {path:?}"))?
+                            let mask = Mask::load_from_path(&path)
+                                .with_context(|| format!("Failed to load mask {path:?}"))?;
+                            // Check whether this mask has the correct dimensions.
+                            if mask.dimensions() != dimensions {
+                                let unexpected = mask.dimensions();
+                                let size = config.space.size;
+                                bail!(
+                                    "The mask from {path:?} has unexpected dimensions \
+                                    {unexpected:?} voxels,\nexpected {dimensions:?} voxels \
+                                    ({size:?} nm at a {resolution} nm resolution)"
+                                );
+                            }
+                            mask
                         }
                     },
                     distance_masks: Default::default(),
