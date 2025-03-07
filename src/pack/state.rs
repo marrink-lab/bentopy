@@ -475,6 +475,7 @@ impl State {
                             .iter_mut()
                             .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
                         segments.sort_by_cached_key(|seg| -> usize {
+                            // We can safely unwrap because we just voxelized all segments.
                             seg.voxels().unwrap().count::<true>()
                         });
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
@@ -640,7 +641,7 @@ impl State {
                     Some(voxels) => voxels,
                     None => {
                         segment.voxelize(resolution, state.bead_radius);
-                        segment.voxels().unwrap()
+                        segment.voxels().unwrap() // We just voxelized.
                     }
                 };
 
