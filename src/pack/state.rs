@@ -557,10 +557,7 @@ impl State {
         Ok(())
     }
 
-    pub fn pack(
-        &mut self,
-        log: &mut impl io::Write,
-    ) -> Result<(Vec<Placement>, Summary), io::Error> {
+    pub fn pack(&mut self, log: &mut impl io::Write) -> io::Result<(Vec<Placement>, Summary)> {
         let start = std::time::Instant::now();
         let mut locations = Locations::new();
         let mut placements = Vec::new();
