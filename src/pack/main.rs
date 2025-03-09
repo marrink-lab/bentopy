@@ -15,6 +15,7 @@ mod rules;
 mod session;
 mod state;
 mod structure;
+mod voxelize;
 
 const CLEAR_LINE: &str = "\u{1b}[2K\r";
 
