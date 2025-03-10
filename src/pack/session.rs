@@ -2,7 +2,7 @@ use glam::U64Vec3;
 use rand::seq::SliceRandom;
 
 use crate::mask::{Dimensions, Position};
-use crate::state::{Compartment, Rng, Space, Voxels};
+use crate::state::{Rng, Space, Voxels};
 use crate::Location;
 
 pub struct Session<'s> {
@@ -32,10 +32,6 @@ impl Session<'_> {
 
     pub fn dimensions(&self) -> Dimensions {
         self.inner.dimensions
-    }
-
-    pub fn compartments(&self) -> &[Compartment] {
-        &self.inner.compartments
     }
 
     pub fn periodic(&self) -> bool {
