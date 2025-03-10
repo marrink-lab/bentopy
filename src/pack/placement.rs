@@ -54,10 +54,6 @@ impl Placement {
     pub fn push(&mut self, batch: Batch) {
         self.batches.push(batch)
     }
-
-    pub fn n_batches(&self) -> usize {
-        self.batches.len()
-    }
 }
 
 // TODO: These types are prime targets for moving into some `core` crate so that both render and
