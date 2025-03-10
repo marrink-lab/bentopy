@@ -170,7 +170,15 @@ pub enum ParseRuleError {
 
 impl std::fmt::Display for ParseRuleError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}") // FIXME: This can made much more pretty and clear.
+        match self {
+            ParseRuleError::Empty => write!(f, "no rule keyword was provided"),
+            ParseRuleError::UnknownKeyword(unknown) => {
+                write!(f, "encountered an unknown keyword: {unknown:?}")
+            }
+            ParseRuleError::SyntaxError(err) => write!(f, "syntax error: {err}"),
+            ParseRuleError::ParseScalarError(err) => write!(f, "could not parse float: {err}"),
+            ParseRuleError::ParseAxisError(err) => write!(f, "could not parse axis: {err}"),
+        }
     }
 }
 
