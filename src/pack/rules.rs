@@ -1,5 +1,4 @@
 use std::num::ParseFloatError;
-use std::ops::{BitAndAssign, BitOrAssign, Not};
 use std::str::FromStr;
 
 use crate::mask::{Dimensions, Mask};
@@ -60,50 +59,6 @@ impl Rule {
                 mask
             }
         }
-    }
-}
-
-impl BitOrAssign for Mask {
-    fn bitor_assign(&mut self, rhs: Self) {
-        assert_eq!(
-            self.dimensions(),
-            rhs.dimensions(),
-            "the dimensions of both masks must be identical"
-        );
-        // For good measure, so the compiler gets it.
-        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
-
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s |= m);
-    }
-}
-
-impl BitAndAssign for Mask {
-    // TODO: Perhaps introduce a macro to set up functions like this?
-    fn bitand_assign(&mut self, rhs: Self) {
-        assert_eq!(
-            self.dimensions(),
-            rhs.dimensions(),
-            "the dimensions of both masks must be identical"
-        );
-        // For good measure, so the compiler gets it.
-        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
-
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s &= m);
-    }
-}
-
-impl Not for Mask {
-    type Output = Self;
-
-    fn not(mut self) -> Self::Output {
-        self.backings.iter_mut().for_each(|b| *b = !*b);
-        self
     }
 }
 

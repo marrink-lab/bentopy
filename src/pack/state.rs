@@ -15,7 +15,7 @@ use crate::config::{
     Configuration, Mask as ConfigMask, Quantity, RuleExpression, Shape as ConfigShape,
     TopolIncludes,
 };
-use crate::mask::{distance_mask, distance_mask_grow, Dimensions, Mask};
+use crate::mask::{distance_mask_grow, Dimensions, Mask};
 use crate::placement::{Batch, Placement};
 use crate::rules::{self, ParseRuleError, Rule};
 use crate::session::{Locations, Session};
