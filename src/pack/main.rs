@@ -1,5 +1,6 @@
 use std::io;
 
+use anyhow::Context;
 use args::Args;
 use clap::Parser;
 use config::Configuration;
@@ -14,6 +15,7 @@ mod rules;
 mod session;
 mod state;
 mod structure;
+mod voxelize;
 
 const CLEAR_LINE: &str = "\u{1b}[2K\r";
 
@@ -61,31 +63,26 @@ impl Summary {
     }
 }
 
-fn main() -> io::Result<()> {
+fn main() -> anyhow::Result<()> {
     // Preparation.
     let args = Args::parse();
-    let config: Configuration = serde_json::from_reader(std::fs::File::open(&args.config)?)
-        .unwrap_or_else(|err| {
-            eprintln!(
-                "ERROR: Failed to process configuration from {:?}: {err}",
-                &args.config
-            );
-            std::process::exit(1)
-        });
-    let mut state = State::new(args, config).unwrap_or_else(|err| {
-        eprintln!("ERROR: Failed to set up program state: {err}");
-        std::process::exit(1)
-    });
+    let config_path = &args.config;
+    let file = std::fs::File::open(config_path)
+        .with_context(|| format!("Failed to open the configuration file {config_path:?}"))?;
+    let config: Configuration = serde_json::from_reader(file)
+        .with_context(|| format!("Failed to process configuration from {config_path:?}"))?;
+    let mut state = State::new(args, config).context("Failed to set up program state")?;
 
     // Check whether the rules make any sense.
-    state.check_rules().unwrap_or_else(|err| {
-        eprintln!("ERROR: Encountered a problem while checking the rules: {err}");
-        std::process::exit(1)
-    });
+    state
+        .check_rules()
+        .with_context(|| format!("Encountered a problem while checking the rules"))?;
 
     // Packing.
     let packing_start = std::time::Instant::now();
-    let (placements, summary) = state.pack(&mut io::stderr())?;
+    let (placements, summary) = state
+        .pack(&mut io::stderr())
+        .context("Encountered a problem while packing")?;
     let packing_duration = packing_start.elapsed().as_secs_f64();
     eprintln!("Packing process took {packing_duration:.3} s.");
 
@@ -98,9 +95,11 @@ fn main() -> io::Result<()> {
     let placement_list_path = &state.output.path;
     eprint!("Writing placement list to {placement_list_path:?}... ");
     let start_output = std::time::Instant::now();
-    let placement_list_file = std::fs::File::create(&placement_list_path)?;
+    let placement_list_file = std::fs::File::create(&placement_list_path)
+        .with_context(|| format!("Failed to create placement list file {placement_list_path:?}"))?;
     let placement_list = PlacementList::new(placements, &state);
-    serde_json::to_writer(placement_list_file, &placement_list)?;
+    serde_json::to_writer(placement_list_file, &placement_list)
+        .context("Encountered a problem while writing the placement list")?;
     eprintln!("Done in {:.3} s.", start_output.elapsed().as_secs_f64());
 
     Ok(())

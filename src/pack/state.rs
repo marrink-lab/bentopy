@@ -4,6 +4,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use anyhow::{bail, Context};
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
@@ -14,11 +15,12 @@ use crate::config::{
     CombinationExpression, Compartment as ConfigCompartment, Configuration, Mask as ConfigMask,
     Quantity, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
-use crate::mask::{distance_mask, distance_mask_grow, Dimensions, Mask};
+use crate::mask::{distance_mask_grow, Dimensions, Mask};
 use crate::placement::{Batch, Placement};
 use crate::rules::{self, ParseRuleError, Rule};
 use crate::session::{Locations, Session};
 use crate::structure::Structure;
+use crate::voxelize::voxelize;
 use crate::{Summary, CLEAR_LINE};
 
 const ORDER: EulerRot = EulerRot::XYZ;
@@ -39,7 +41,7 @@ impl Mask {
         radius: Option<u32>,
     ) -> Self {
         let [w, h, d] = dimensions.map(|v| v as usize);
-        let min_dim = dimensions.into_iter().min().unwrap() as u32;
+        let min_dim = dimensions.into_iter().min().unwrap() as u32; // Has non-zero length.
         let r = radius.unwrap_or(min_dim / 2);
         assert!(min_dim >= r);
         let c = center.unwrap_or(UVec3::splat(r as u32)).as_ivec3();
@@ -71,21 +73,22 @@ impl Mask {
         Self::from_cells(dimensions, &cells)
     }
 
-    fn load_from_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    fn load_from_path<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let mut npz = npyz::npz::NpzArchive::open(path)?;
         // FIXME: This error could be handled more gracefully.
         let first_name = npz
             .array_names()
             .next()
-            .expect("there should be at least one array in the mask voxel map")
+            .context("There should be at least one array in the mask voxel map")?
             .to_string();
         let array = npz.by_name(&first_name)?.unwrap(); // We just asserted the name exists.
-        assert_eq!(
-            array.shape().len(),
-            3,
-            "a voxel map must have three dimensions"
-        );
-        let size: [u64; 3] = array.shape().to_vec().try_into().unwrap(); // We just asserted there are three items.
+        let Ok(size): Result<[u64; 3], _> = array.shape().to_vec().try_into() else {
+            let shape = array.shape();
+            bail!("a voxel map must have three dimensions, found {shape:?}");
+        };
+        if size.iter().any(|d| d == &0) {
+            bail!("a voxel map must have non-zero sized dimensions, found {size:?}")
+        }
 
         let order = array.order();
         let mut cells: Box<[bool]> = array.into_vec()?.into_boxed_slice();
@@ -95,12 +98,15 @@ impl Mask {
                 // We need to re-order the cells to get them into the expected Fortran ordering.
                 let mut reordered = Vec::with_capacity(cells.len());
                 reordered.resize(cells.len(), false);
-                let mut cells = cells.iter().copied();
+                let mut cells = IntoIterator::into_iter(cells);
                 let mut reordered = reordered.into_boxed_slice();
                 let [w, h, d] = size;
+                assert_eq!(cells.len() as u64, w * h * d);
                 for x in 0..w {
                     for y in 0..h {
                         for z in 0..d {
+                            // We know that cells and reordered have the same size, and we have
+                            // asserted that `size` corresponds to the same length.
                             reordered[(x + y * w + z * w * h) as usize] = cells.next().unwrap();
                         }
                     }
@@ -111,12 +117,6 @@ impl Mask {
         };
 
         Ok(Self::from_cells(size, &cells))
-    }
-}
-
-impl From<ParseRuleError> for io::Error {
-    fn from(value: ParseRuleError) -> Self {
-        io::Error::other(value)
     }
 }
 
@@ -131,7 +131,7 @@ pub struct Compartment {
 }
 
 impl Compartment {
-    /// Get or create and return a reference to a distance mask for some voxel distance.
+    /// Get or create and return a cloned distance mask for some voxel distance.
     ///
     /// Note that the distance is in terms of voxels, not in nm.
     pub fn get_distance_mask(&self, distance: f32) -> Mask {
@@ -144,6 +144,7 @@ impl Compartment {
                 .entry(key)
                 .or_insert_with(|| distance_mask_grow(&self.mask, distance as u64));
         }
+        // We can safely get at the `key` because if it was empty, we have inserted it above.
         // We clone here because we can't guarantee that the value is not moved by a resize of
         // the HashMap.
         self.distance_masks.borrow().get(&key).unwrap().clone()
@@ -363,13 +364,8 @@ pub struct State {
     pub summary: bool,
 }
 
-/// Helper function for reporting clear errors when opening something at a path fails.
-fn report_opening<P: std::fmt::Debug>(err: impl std::error::Error, path: P) -> io::Error {
-    io::Error::other(format!("problem while opening {path:?}: {err}"))
-}
-
 impl State {
-    pub fn new(args: Args, config: Configuration) -> io::Result<Self> {
+    pub fn new(args: Args, config: Configuration) -> anyhow::Result<Self> {
         let verbose = args.verbose;
         let dimensions = config
             .space
@@ -384,7 +380,7 @@ impl State {
             .partition(ConfigCompartment::is_predefined);
         let mut compartments: Vec<Compartment> = predefined
             .into_iter()
-            .map(|comp| -> io::Result<_> {
+            .map(|comp| -> anyhow::Result<_> {
                 let mask = match comp.mask {
                     ConfigMask::Shape(shape) => {
                         if verbose {
@@ -408,7 +404,8 @@ impl State {
                         if verbose {
                             eprintln!("\tLoading mask from {path:?}...");
                         }
-                        Mask::load_from_path(&path).map_err(|err| report_opening(err, path))?
+                        Mask::load_from_path(&path)
+                            .with_context(|| format!("Failed to load mask {path:?}"))?
                     }
                     ConfigMask::Combination(_) => {
                         unreachable!() // We partitioned the list above.
@@ -421,7 +418,7 @@ impl State {
                 };
                 Ok(c)
             })
-            .collect::<io::Result<_>>()?;
+            .collect::<anyhow::Result<_>>()?;
         for combination in combinations {
             let ConfigMask::Combination(ces) = combination.mask else {
                 unreachable!() // We partitioned the list above.
@@ -543,7 +540,7 @@ impl State {
             let mut segments: Vec<_> = config
                 .segments
                 .into_iter()
-                .map(|seg| -> io::Result<_> {
+                .map(|seg| -> Result<_, _> {
                     if verbose {
                         eprintln!("\tLoading {:?}...", &seg.path);
                     }
@@ -554,7 +551,8 @@ impl State {
                         Some(6.. ) => eprintln!("WARNING: The tag for segment '{name}' is longer than 5 characters, and may be truncated when the placement list is rendered."),
                         _ => {} // Nothing to warn about.
                     }
-                    let structure = load_molecule(&seg.path).map_err(|err| report_opening(err, &seg.path))?;
+                    let path = seg.path;
+                    let structure = load_molecule(&path).with_context(|| format!("Failed to open the structure file for segment '{name}' at {path:?}"))?;
                     let rules = seg
                         .rules
                         .iter()
@@ -570,7 +568,7 @@ impl State {
                         quantity: seg.quantity,
                         compartments: seg.compartments,
                         rules,
-                        path: seg.path,
+                        path,
                         rotation_axes: seg.rotation_axes,
                         structure,
                         initial_rotation,
@@ -578,7 +576,7 @@ impl State {
                         voxels: None,
                     })
                 })
-                .collect::<io::Result<_>>()?;
+                .collect::<anyhow::Result<_>>()?;
             if let Some(method) = args.rearrange {
                 eprint!("Rearranging segments according to the {method:?} method... ");
                 match method {
@@ -587,6 +585,7 @@ impl State {
                             .iter_mut()
                             .for_each(|seg| seg.voxelize(space.resolution, bead_radius));
                         segments.sort_by_cached_key(|seg| -> usize {
+                            // We can safely unwrap because we just voxelized all segments.
                             seg.voxels().unwrap().count::<true>()
                         });
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
@@ -637,7 +636,7 @@ impl State {
         })
     }
 
-    pub fn check_rules(&self) -> Result<(), String> {
+    pub fn check_rules(&self) -> anyhow::Result<()> {
         let mut checked = Vec::new(); // FIXME: BTreeMap?
         for segment in &self.segments {
             let rules = &segment.rules;
@@ -659,9 +658,7 @@ impl State {
             );
             if !distilled.any::<true>() {
                 let name = &segment.name;
-                return Err(format!(
-                    "the rules {rules:?} preclude any placement of segment '{name}'"
-                ));
+                bail!("the rules {rules:?} preclude any placement of segment '{name}'");
             }
 
             checked.push(rules.clone())
@@ -670,29 +667,30 @@ impl State {
         Ok(())
     }
 
-    pub fn pack(
-        &mut self,
-        log: &mut impl io::Write,
-    ) -> Result<(Vec<Placement>, Summary), io::Error> {
+    pub fn pack(&mut self, log: &mut impl io::Write) -> anyhow::Result<(Vec<Placement>, Summary)> {
         let start = std::time::Instant::now();
         let mut locations = Locations::new();
         let mut placements = Vec::new();
         let mut summary = Summary::new();
 
-        let max_tries_multiplier = std::env::var("BENTOPY_TRIES")
-            .map(|s| {
-                s.parse()
-                    .expect("max tries multiplier should be a valid unsigned integer")
-            })
-            .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))
-            .unwrap_or(1000);
-        let max_tries_per_rotation_divisor = std::env::var("BENTOPY_ROT_DIV")
-            .map(|s| {
-                s.parse()
-                    .expect("divisor should be a valid unsigned integer")
-            })
-            .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))
-            .unwrap_or(100);
+        let max_tries_multiplier = match std::env::var("BENTOPY_TRIES") {
+            Ok(s) => s
+                .parse()
+                .with_context(|| {
+                    format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
+                })
+                .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))?,
+            Err(_) => 1000,
+        };
+        let max_tries_per_rotation_divisor = match std::env::var("BENTOPY_ROT_DIV") {
+            Ok(s) => s
+                .parse()
+                .with_context(|| {
+                    format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
+                })
+                .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))?,
+            Err(_) => 100,
+        };
 
         let state = self;
         let n_segments = state.segments.len();
@@ -757,7 +755,7 @@ impl State {
                     Some(voxels) => voxels,
                     None => {
                         segment.voxelize(resolution, state.bead_radius);
-                        segment.voxels().unwrap()
+                        segment.voxels().unwrap() // We just voxelized.
                     }
                 };
 
@@ -875,110 +873,29 @@ fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
 }
 
 /// Load a [`Structure`] from a structure file.
-fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(path: P) -> io::Result<Structure> {
+///
+/// This function will return an error if the structure is empty. Downstream functions may assume
+/// that a [`Structure`] has at least one atom.
+fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
+    path: P,
+) -> anyhow::Result<Structure> {
     let file = std::fs::File::open(&path)?;
 
     let structure = match path.as_ref().extension().and_then(|s| s.to_str()) {
-        Some("gro") => Structure::read_from_file(file)?,
-        Some("pdb") => Structure::read_from_pdb_file(file)?,
+        Some("gro") => Structure::read_from_file(file)
+            .with_context(|| format!("Failed to parse gro file {path:?}"))?,
+        Some("pdb") => Structure::read_from_pdb_file(file)
+            .with_context(|| format!("Failed to parse PDB file {path:?}"))?,
         None | Some(_) => {
-            eprintln!("WARNING: Assuming {path:?} is a pdb file.");
-            Structure::read_from_pdb_file(file)?
+            eprintln!("WARNING: Assuming {path:?} is a PDB file.");
+            Structure::read_from_pdb_file(file)
+                .with_context(|| format!("Failed to parse the file {path:?} as PDB"))?
         }
     };
 
+    if structure.natoms() == 0 {
+        bail!("Structure from {path:?} contains no atoms")
+    }
+
     Ok(structure)
-}
-
-/// Calculate the translations to check whether a bead would partially occupy a neigboring voxel
-/// for a given `radius`.
-///
-/// This does not include the identity translation.
-fn neigbors(radius: f32) -> [Vec3; 26] {
-    // Calculate the distance for which the magnitude of the vector is equal to `radius`.
-    let t2d = f32::sqrt((1.0 / 2.0) * radius.powi(2));
-    let t3d = f32::sqrt((1.0 / 3.0) * radius.powi(2));
-
-    [
-        // The six sides.
-        Vec3::X * radius,
-        Vec3::Y * radius,
-        Vec3::Z * radius,
-        Vec3::NEG_X * radius,
-        Vec3::NEG_Y * radius,
-        Vec3::NEG_Z * radius,
-        // The eight diagonal corners.
-        Vec3::new(-t3d, -t3d, -t3d),
-        Vec3::new(t3d, -t3d, -t3d),
-        Vec3::new(-t3d, t3d, -t3d),
-        Vec3::new(t3d, t3d, -t3d),
-        Vec3::new(-t3d, -t3d, t3d),
-        Vec3::new(t3d, -t3d, t3d),
-        Vec3::new(-t3d, t3d, t3d),
-        Vec3::new(t3d, t3d, t3d),
-        // The twelve edge neigbors.
-        // xy plane.
-        Vec3::new(t2d, t2d, 0.0),
-        Vec3::new(-t2d, t2d, 0.0),
-        Vec3::new(t2d, -t2d, 0.0),
-        Vec3::new(-t2d, -t2d, 0.0),
-        // xz plane.
-        Vec3::new(t2d, 0.0, t2d),
-        Vec3::new(-t2d, 0.0, t2d),
-        Vec3::new(t2d, 0.0, -t2d),
-        Vec3::new(-t2d, 0.0, -t2d),
-        // yz plane.
-        Vec3::new(0.0, t2d, t2d),
-        Vec3::new(0.0, -t2d, t2d),
-        Vec3::new(0.0, t2d, -t2d),
-        Vec3::new(0.0, -t2d, -t2d),
-    ]
-}
-
-fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: f32) -> Voxels {
-    // TODO: Consider whether this rotations system is correct. I tend to flip things around.
-    // Extract and rotate the points from the structure.
-    let mut points: Box<[_]> = structure
-        .atoms()
-        .map(|&position| rotation.mul_vec3(position))
-        .collect();
-    let npoints = points.len();
-    // FIXME: Think about the implications of total_cmp for our case here.
-    let min = points
-        .iter()
-        .copied()
-        .reduce(|a, b| a.min(b))
-        .expect("there is at least one point");
-    // Subtract one bead radius such that the lower bounds are treated correctly.
-    let min = min - radius;
-    // Translate the points such that they are all above (0, 0, 0).
-    points.iter_mut().for_each(|p| *p -= min);
-
-    // Transform points according to the resolution.
-    let scaled_points = points.iter().map(|p| *p / resolution);
-    // Scale the radius for the resolution along with the points.
-    let scaled_radius = radius / resolution;
-
-    let ns = neigbors(scaled_radius);
-    let mut filled_indices = Vec::with_capacity(npoints * (1 + ns.len()));
-    for point in scaled_points {
-        // TODO: This as_u64vec3() suddenly seems suspect to me. Investigate whether this actually
-        // makes sense and does not produce overly eager voxelizations at the box edges.
-        filled_indices.push(point.as_u64vec3()); // Push the point itself.
-        filled_indices.extend(ns.map(|d| (point + d).as_u64vec3())); // And the neighbors.
-    }
-
-    let voxels_shape = filled_indices
-        .iter()
-        .copied()
-        .reduce(|a, b| a.max(b))
-        .expect("there is at least one point")
-        .to_array()
-        .map(|v| v + 1);
-    let mut voxels = Voxels::new(voxels_shape);
-    for idx in filled_indices {
-        voxels.set(idx.to_array(), true);
-    }
-
-    voxels
 }

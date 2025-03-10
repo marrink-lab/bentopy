@@ -27,3 +27,4 @@ eightyseven = "0.1.5"
 arraystring = "0.3.0"
 npyz = { version = "0.8.3", features = ["npz"] }
 rayon = "1.10.0"
+anyhow = "1.0.97"

@@ -1,3 +1,5 @@
+use std::ops::{BitAndAssign, BitOrAssign, Not};
+
 use glam::{I64Vec3, IVec3, U64Vec3};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -7,6 +9,9 @@ pub type Position = Dimensions;
 type Backing = u8;
 const BACKING_BITS: usize = Backing::BITS as usize;
 
+/// A 3-dimensional bitmap-backed `Mask` type that is used to represent voxelized spaces.
+///
+/// Invariant: A `Mask` has non-zero dimensions.
 #[derive(Debug, Clone)]
 pub struct Mask {
     dimensions: [usize; 3],
@@ -20,6 +25,7 @@ impl Mask {
 
     pub fn fill<const VALUE: bool>(dimensions: Dimensions) -> Self {
         let dimensions = dimensions.map(|v| v as usize);
+        // Invariant: A `Mask` has non-zero dimensions.
         assert!(
             dimensions.iter().all(|&v| v > 0),
             "a mask must have non-zero dimensions"
@@ -171,6 +177,7 @@ impl Mask {
         }
     }
 
+    #[allow(dead_code)]
     pub const fn get(&self, idx: Position) -> Option<bool> {
         if self.contains(idx) {
             let lin_idx = self.linear_idx(idx);
@@ -268,7 +275,6 @@ impl Mask {
             .iter_mut()
             .zip(mask.backings.iter())
             .for_each(|(s, &m)| *s &= m);
-
     }
 
     pub fn apply_function(&mut self, f: impl Fn(Position) -> bool) {
@@ -288,44 +294,9 @@ impl Mask {
         }
     }
 
+    /// Return whether any of the [`Mask`] cells have the provided `VALUE`.
     pub fn any<const VALUE: bool>(&self) -> bool {
         (0..self.n_cells()).any(|lin_idx| self.query_linear_unchecked::<VALUE>(lin_idx))
-    }
-
-    // TODO: Periodicity?
-    /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
-    pub fn grow_analytical(&mut self) {
-        const OFFSETS: [I64Vec3; 6] = [
-            I64Vec3::X,
-            I64Vec3::NEG_X,
-            I64Vec3::Y,
-            I64Vec3::NEG_Y,
-            I64Vec3::Z,
-            I64Vec3::NEG_Z,
-        ];
-
-        let old = self.clone();
-        let [w, h, d] = self.dimensions();
-        for z in 0..d {
-            for y in 0..h {
-                for x in 0..w {
-                    let pos = U64Vec3::new(x, y, z).as_i64vec3();
-                    if OFFSETS.into_iter().any(|offset| {
-                        let pos = pos + offset;
-                        if pos.is_negative_bitmask() != 0 {
-                            false
-                        } else {
-                            let [x, y, z] = pos.as_u64vec3().to_array();
-                            let lin_idx = x + y * w + z * w * h;
-                            old.contains([x, y, z])
-                                && old.query_linear_unchecked::<true>(lin_idx as usize)
-                        }
-                    }) {
-                        self.set([x, y, z], true)
-                    }
-                }
-            }
-        }
     }
 
     // TODO: Periodicity?
@@ -378,7 +349,7 @@ impl Mask {
             mask
         });
 
-        *self = offset_masks.reduce(
+        *self |= offset_masks.reduce(
             || Mask::new(dimensions),
             |mut acc, mask| {
                 acc |= mask;
@@ -398,192 +369,93 @@ const fn normalize_periodic(idx: Position, dimensions: Dimensions) -> Position {
     ]
 }
 
-pub struct MaskSlice<'m> {
-    start: Position,
-    dimensions: Dimensions,
-    mask: &'m Mask,
-}
+mod blocks {
+    use super::{Dimensions, IVec3, U64Vec3};
 
-impl<'m> Mask {
-    pub fn slice_from_start_dimensions(
-        &'m self,
-        start: Position,
-        dimensions: Dimensions,
-    ) -> MaskSlice<'m> {
-        // TODO: A bit sloppy all of this math. Maybe we can just calculate these things with a U64Vec3?
-        let [w, h, d] = dimensions;
-        let [sx, sy, sz] = start;
-        let end = [sx + w, sy + h, sz + d];
-        {
-            let [w, h, d] = self.dimensions(); // The dimensions of the underlying Mask.
-            let [sx, sy, sz] = start;
-            assert!(sx < w && sy < h && sz < d);
-            let [ex, ey, ez] = end;
-            assert!(ex < w && ey < h && ez < d);
-        }
-        assert!(dimensions.iter().all(|&v| v > 0));
+    type Block = Vec<U64Vec3>;
 
-        MaskSlice {
-            start,
-            dimensions,
-            mask: &self,
-        }
-    }
-
-    pub fn slice(&'m self, ranges: [std::ops::Range<u64>; 3]) -> MaskSlice<'m> {
-        let [w, h, d] = self.dimensions(); // The dimensions of the underlying Mask.
-
-        let start = ranges.clone().map(|r| r.start);
-        let end = ranges.clone().map(|r| r.end);
-        {
-            let [sx, sy, sz] = start;
-            assert!(sx < w && sy < h && sz < d);
-            let [ex, ey, ez] = end;
-            assert!(ex < w && ey < h && ez < d);
-        }
-        let dimensions = ranges.map(|r| r.end - r.start);
-        assert!(dimensions.iter().all(|&v| v > 0));
-
-        MaskSlice {
-            start,
-            dimensions,
-            mask: &self,
-        }
-    }
-}
-
-impl MaskSlice<'_> {
-    pub fn iter_linear(&self) -> impl Iterator<Item = bool> + '_ {
-        let [start_x, start_y, start_z] = self.start;
-        let [w, h, d] = self.dimensions;
-        let [end_x, end_y, end_z] = [start_x + w, start_y + h, start_z + d];
-
-        (start_z..end_z).flat_map(move |z| {
-            (start_y..end_y).flat_map(move |y| {
-                (start_x..end_x).map(move |x| {
-                    // FIXME: We know that this is valid. Time for a get_unchecked?
-                    self.mask.get([x, y, z]).unwrap()
-                })
-            })
-        })
-    }
-
-    /// Iterator over the [`Position`]s of cells equal to `VALUE` in this [`MaskSlice`].
-    ///
-    /// The `Positions` are according to the internal `Mask`'s absolute coordinates.
-    pub fn iter_where<const VALUE: bool>(&self) -> impl Iterator<Item = Position> + '_ {
-        let [start_x, start_y, start_z] = self.start;
-        let [w, h, d] = self.dimensions;
-        let [end_x, end_y, end_z] = [start_x + w, start_y + h, start_z + d];
-
-        (start_z..end_z).flat_map(move |z| {
-            (start_y..end_y).flat_map(move |y| {
-                (start_x..end_x).flat_map(move |x| {
-                    let idx = [x, y, z];
-                    let lin_idx = self.mask.linear_idx(idx);
-                    if self.mask.query_linear_unchecked::<VALUE>(lin_idx) {
-                        Some(idx)
-                    } else {
-                        None
-                    }
-                })
-            })
-        })
-    }
-
-    pub fn to_mask(&self) -> Mask {
-        let cells = self.iter_linear();
-        Mask::from_cells_iter(self.dimensions, cells)
-    }
-}
-
-impl MaskSlice<'_> {
-    pub fn any<const VALUE: bool>(&self) -> bool {
-        self.iter_linear().any(|cell| cell == VALUE)
-    }
-}
-
-type Block = Vec<U64Vec3>;
-
-struct Blocks {
-    radius: u64,
-    size: [usize; 3],
-    blocks: Vec<Block>,
-}
-
-impl Blocks {
-    fn from_iter(
+    pub struct Blocks {
         radius: u64,
-        dimensions: Dimensions,
-        positions: impl Iterator<Item = U64Vec3>,
-    ) -> Self {
-        let size = dimensions.map(|v| (v / radius) as usize + 1);
-        dbg!(size);
-        let [w, h, _] = size;
-        let mut blocks = vec![Vec::new(); size.iter().product()];
-        for pos in positions {
-            let idx = pos / radius;
-            let [x, y, z] = idx.to_array().map(|v| v as usize);
-            let lin_idx = x + y * w + z * w * h;
-            blocks[lin_idx].push(pos)
-        }
-
-        Self {
-            radius,
-            size,
-            blocks,
-        }
+        size: [usize; 3],
+        blocks: Vec<Block>,
     }
 
-    fn nearby(&self, position: U64Vec3) -> impl Iterator<Item = U64Vec3> + '_ {
-        let [w, h, d] = self.size;
-        let block_idx = (position / self.radius).as_ivec3();
-        [
-            IVec3::new(0, 0, 0),
-            IVec3::new(-1, 0, 0),
-            IVec3::new(1, 0, 0),
-            IVec3::new(0, -1, 0),
-            IVec3::new(0, 1, 0),
-            IVec3::new(0, 0, -1),
-            IVec3::new(0, 0, 1),
-            IVec3::new(-1, -1, -1),
-            IVec3::new(-1, -1, 0),
-            IVec3::new(-1, -1, 1),
-            IVec3::new(-1, 0, -1),
-            IVec3::new(-1, 0, 1),
-            IVec3::new(-1, 1, -1),
-            IVec3::new(-1, 1, 0),
-            IVec3::new(-1, 1, 1),
-            IVec3::new(0, -1, -1),
-            IVec3::new(0, -1, 1),
-            IVec3::new(0, 1, -1),
-            IVec3::new(0, 1, 1),
-            IVec3::new(1, -1, -1),
-            IVec3::new(1, -1, 0),
-            IVec3::new(1, -1, 1),
-            IVec3::new(1, 0, -1),
-            IVec3::new(1, 0, 1),
-            IVec3::new(1, 1, -1),
-            IVec3::new(1, 1, 0),
-            IVec3::new(1, 1, 1),
-        ]
-        .into_iter()
-        .map(move |offset| block_idx + offset)
-        .filter(move |block_idx| {
-            (0..w as i32).contains(&block_idx.x)
-                && (0..h as i32).contains(&block_idx.y)
-                && (0..d as i32).contains(&block_idx.z)
-        })
-        .flat_map(move |block_idx| {
-            let [x, y, z] = block_idx.to_array().map(|v| v as usize);
-            let lin_idx = x + y * w + z * w * h;
-            &self.blocks[lin_idx]
-        })
-        .copied()
+    impl Blocks {
+        pub fn from_iter(
+            radius: u64,
+            dimensions: Dimensions,
+            positions: impl Iterator<Item = U64Vec3>,
+        ) -> Self {
+            let size = dimensions.map(|v| (v / radius) as usize + 1);
+            dbg!(size);
+            let [w, h, _] = size;
+            let mut blocks = vec![Vec::new(); size.iter().product()];
+            for pos in positions {
+                let idx = pos / radius;
+                let [x, y, z] = idx.to_array().map(|v| v as usize);
+                let lin_idx = x + y * w + z * w * h;
+                blocks[lin_idx].push(pos)
+            }
+
+            Self {
+                radius,
+                size,
+                blocks,
+            }
+        }
+
+        pub fn nearby(&self, position: U64Vec3) -> impl Iterator<Item = U64Vec3> + '_ {
+            let [w, h, d] = self.size;
+            let block_idx = (position / self.radius).as_ivec3();
+            [
+                IVec3::new(0, 0, 0),
+                IVec3::new(-1, 0, 0),
+                IVec3::new(1, 0, 0),
+                IVec3::new(0, -1, 0),
+                IVec3::new(0, 1, 0),
+                IVec3::new(0, 0, -1),
+                IVec3::new(0, 0, 1),
+                IVec3::new(-1, -1, -1),
+                IVec3::new(-1, -1, 0),
+                IVec3::new(-1, -1, 1),
+                IVec3::new(-1, 0, -1),
+                IVec3::new(-1, 0, 1),
+                IVec3::new(-1, 1, -1),
+                IVec3::new(-1, 1, 0),
+                IVec3::new(-1, 1, 1),
+                IVec3::new(0, -1, -1),
+                IVec3::new(0, -1, 1),
+                IVec3::new(0, 1, -1),
+                IVec3::new(0, 1, 1),
+                IVec3::new(1, -1, -1),
+                IVec3::new(1, -1, 0),
+                IVec3::new(1, -1, 1),
+                IVec3::new(1, 0, -1),
+                IVec3::new(1, 0, 1),
+                IVec3::new(1, 1, -1),
+                IVec3::new(1, 1, 0),
+                IVec3::new(1, 1, 1),
+            ]
+            .into_iter()
+            .map(move |offset| block_idx + offset)
+            .filter(move |block_idx| {
+                (0..w as i32).contains(&block_idx.x)
+                    && (0..h as i32).contains(&block_idx.y)
+                    && (0..d as i32).contains(&block_idx.z)
+            })
+            .flat_map(move |block_idx| {
+                let [x, y, z] = block_idx.to_array().map(|v| v as usize);
+                let lin_idx = x + y * w + z * w * h;
+                &self.blocks[lin_idx]
+            })
+            .copied()
+        }
     }
 }
 
+// TODO: Reconsider whether we want to use this function or `distance_mask_grow`.
 // TODO: Add a periodic counterpart or setting.
+#[allow(dead_code)]
 pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
     let dimensions = thing.dimensions();
 
@@ -591,7 +463,7 @@ pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
     let positions = thing
         .indices_where::<false>()
         .map(|idx| U64Vec3::from_array(idx));
-    let thing_blocks = Blocks::from_iter(radius as u64, dimensions, positions);
+    let thing_blocks = blocks::Blocks::from_iter(radius as u64, dimensions, positions);
 
     let radius_squared = radius.powi(2) as i64;
     let [w, h, d] = dimensions;
@@ -631,20 +503,58 @@ pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
 
 // TODO: Add a periodic counterpart or setting.
 /// Create a distance mask by growing the starting point by `radius` voxel steps.
-pub fn distance_mask_grow(thing: &Mask, radius: u64) -> Mask {
-    let mut mask = !thing.clone();
+pub fn distance_mask_grow(mask: &Mask, radius: u64) -> Mask {
+    let mut mask = !mask.clone();
 
-    let start = std::time::Instant::now();
     for _ in 0..radius {
         mask.grow_approx()
     }
 
-    eprintln!(
-        "DISTANCE MASK (grow, {radius} steps) took {:.3} s",
-        start.elapsed().as_secs_f32()
-    );
-
     mask
+}
+
+impl BitOrAssign for Mask {
+    fn bitor_assign(&mut self, rhs: Self) {
+        assert_eq!(
+            self.dimensions(),
+            rhs.dimensions(),
+            "the dimensions of both masks must be identical"
+        );
+        // For good measure, so the compiler gets it.
+        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
+
+        self.backings
+            .iter_mut()
+            .zip(rhs.backings.iter())
+            .for_each(|(s, &m)| *s |= m);
+    }
+}
+
+impl BitAndAssign for Mask {
+    // TODO: Perhaps introduce a macro to set up functions like this?
+    fn bitand_assign(&mut self, rhs: Self) {
+        assert_eq!(
+            self.dimensions(),
+            rhs.dimensions(),
+            "the dimensions of both masks must be identical"
+        );
+        // For good measure, so the compiler gets it.
+        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
+
+        self.backings
+            .iter_mut()
+            .zip(rhs.backings.iter())
+            .for_each(|(s, &m)| *s &= m);
+    }
+}
+
+impl Not for Mask {
+    type Output = Self;
+
+    fn not(mut self) -> Self::Output {
+        self.backings.iter_mut().for_each(|b| *b = !*b);
+        self
+    }
 }
 
 #[cfg(test)]
@@ -1007,7 +917,6 @@ mod tests {
 
         // After this, we should have a 3d cross.
         mask.grow_approx();
-
         assert_eq!(mask.count::<true>(), 1 + 6);
         assert_eq!(mask.get([0, 0, 0]), Some(false));
         assert_eq!(mask.get([1, 0, 0]), Some(false));
@@ -1018,12 +927,14 @@ mod tests {
         assert_eq!(mask.get([0, 1, 1]), Some(true));
         assert_eq!(mask.get([1, 1, 1]), Some(true));
         assert_eq!(mask.get([2, 1, 1]), Some(true));
-        assert_eq!(mask.get([1, 1, 1]), Some(true));
         assert_eq!(mask.get([2, 2, 2]), Some(false));
+
+        // Now we have a cube where only the corners are not occupied.
+        mask.grow_approx();
+        assert_eq!(mask.count::<true>(), mask.n_cells() - 8);
 
         // Finally, this will fill up the whole mask.
         mask.grow_approx();
-
         assert_eq!(mask.count::<true>(), mask.n_cells());
     }
 }

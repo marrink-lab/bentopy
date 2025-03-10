@@ -352,7 +352,7 @@ mod tests {
     /// the not.
     #[test]
     fn check_not_repair() {
-        let mut solvent = Structure::open_gro("structures/water.gro").unwrap();
+        let mut solvent = Structure::open_gro("templates/water.gro").unwrap();
         // Make sure we have a structure size that does neatly fit in some number of bytes.
         if solvent.natoms() % 8 == 0 {
             solvent.atoms.pop();

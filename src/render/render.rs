@@ -2,6 +2,7 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use anyhow::Context;
 use clap::ValueEnum;
 use glam::{Mat3, Vec3};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -60,8 +61,11 @@ impl Batch {
 }
 
 /// Read a placement list to return [`Placements`].
-fn read_placement_list(placement_list: &str, root: Option<PathBuf>) -> Placements {
-    let mut placements: Placements = serde_json::from_str(placement_list).unwrap();
+fn read_placement_list(
+    placement_list: &str,
+    root: Option<PathBuf>,
+) -> serde_json::Result<Placements> {
+    let mut placements: Placements = serde_json::from_str(placement_list)?;
     if let Some(root) = root {
         for p in &mut placements.placements {
             if p.path.is_relative() {
@@ -71,7 +75,7 @@ fn read_placement_list(placement_list: &str, root: Option<PathBuf>) -> Placement
             }
         }
     }
-    placements
+    Ok(placements)
 }
 
 #[derive(Debug, Default, Clone, ValueEnum)]
@@ -406,7 +410,7 @@ pub fn render(
     mode: Mode,
     resnum_mode: ResnumMode,
     ignore_tags: bool,
-) -> io::Result<()> {
+) -> anyhow::Result<()> {
     eprint!("Reading from {input_path:?}... ");
     let t0 = std::time::Instant::now();
     let mut placement_list = String::new();
@@ -415,7 +419,8 @@ pub fn render(
     } else {
         std::fs::File::open(&input_path)?.read_to_string(&mut placement_list)?;
     }
-    let placements = read_placement_list(&placement_list, root);
+    let placements = read_placement_list(&placement_list, root)
+        .with_context(|| format!("Failed to read placement list from {input_path:?}"))?;
     let dt = std::time::Instant::now() - t0;
     eprintln!("Done in {:.3} ms.", dt.as_millis());
 

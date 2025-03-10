@@ -2,7 +2,6 @@
 //!
 //! By Marieke Westendorp, 2024.
 //! <ma3ke.cyber@gmail.com>
-use std::io;
 use std::path::PathBuf;
 
 use clap::{command, Parser};
@@ -61,7 +60,7 @@ struct Args {
     ignore_tags: bool,
 }
 
-fn main() -> io::Result<()> {
+fn main() -> anyhow::Result<()> {
     let Args {
         input,
         output,

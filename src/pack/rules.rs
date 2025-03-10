@@ -1,10 +1,7 @@
 use std::num::ParseFloatError;
-use std::ops::{BitAndAssign, BitOrAssign, Not};
 use std::str::FromStr;
 
-use glam::U64Vec3;
-
-use crate::mask::{Dimensions, Mask, Position};
+use crate::mask::{Dimensions, Mask};
 use crate::state::{Compartment, CompartmentID};
 
 type Scalar = f32;
@@ -19,66 +16,6 @@ pub enum Rule {
 }
 
 impl Rule {
-    /// Return whether this rule is satisfied or not.
-    ///
-    /// The provided `pos` must be in nanometers.
-    pub fn is_satisfied(
-        &self,
-        position: Position,
-        resolution: f32,
-        voxels: &Mask,
-        compartments: &[Compartment],
-    ) -> bool {
-        match self {
-            Rule::Position(poscon) => {
-                let min = U64Vec3::from_array(position).as_vec3() * resolution;
-                let max = min + U64Vec3::from_array(voxels.dimensions()).as_vec3() * resolution;
-                let (min, max) = match poscon.axis() {
-                    Axis::X => (min.x, max.x),
-                    Axis::Y => (min.y, max.y),
-                    Axis::Z => (min.z, max.z),
-                };
-                match poscon {
-                    &PositionConstraint::GreaterThan(_, value) => value < min,
-                    &PositionConstraint::LessThan(_, value) => value > max,
-                }
-            }
-            Rule::IsCloser(CloseStyleBikeshed::BoxCenter, compartment_id, distance) => {
-                assert!(*distance > 0.0, "distance must be a positive float");
-
-                // FIXME: Compartments really ought to be a HashMap of IDs to Compartments.
-                let compartment = compartments
-                    .iter()
-                    .find(|c| c.id == compartment_id.as_str())
-                    // FIXME: This condition can be checked at time of State creation.
-                    .expect("the compartment ID in the rule must exist");
-
-                let voxel_radius = distance / resolution;
-                let distance_mask = compartment.get_distance_mask(voxel_radius);
-
-                // FIXME: Basically the internals of Session::check_collisions here.
-                let occupied_indices = voxels.indices_where::<true>().map(U64Vec3::from_array);
-                let position = U64Vec3::from_array(position);
-                let voxels_dimensions = U64Vec3::from_array(voxels.dimensions());
-                let voxels_center = position + voxels_dimensions / 2;
-                occupied_indices
-                    .map(|p| (p + voxels_center).to_array())
-                    .all(|idx| !distance_mask.get_periodic(idx))
-            }
-            Rule::Or(rules) => rules
-                .iter()
-                .any(|rule| rule.is_satisfied(position, resolution, voxels, compartments)),
-        }
-    }
-
-    fn is_lightweight(&self) -> bool {
-        match self {
-            Rule::Position(_) => true,
-            Rule::IsCloser(_, _, _) => false,
-            Rule::Or(rules) => rules.iter().all(Rule::is_lightweight),
-        }
-    }
-
     fn distill(
         &self,
         dimensions: Dimensions,
@@ -122,50 +59,6 @@ impl Rule {
                 mask
             }
         }
-    }
-}
-
-impl BitOrAssign for Mask {
-    fn bitor_assign(&mut self, rhs: Self) {
-        assert_eq!(
-            self.dimensions(),
-            rhs.dimensions(),
-            "the dimensions of both masks must be identical"
-        );
-        // For good measure, so the compiler gets it.
-        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
-
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s |= m);
-    }
-}
-
-impl BitAndAssign for Mask {
-    // TODO: Perhaps introduce a macro to set up functions like this?
-    fn bitand_assign(&mut self, rhs: Self) {
-        assert_eq!(
-            self.dimensions(),
-            rhs.dimensions(),
-            "the dimensions of both masks must be identical"
-        );
-        // For good measure, so the compiler gets it.
-        assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
-
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s &= m);
-    }
-}
-
-impl Not for Mask {
-    type Output = Self;
-
-    fn not(mut self) -> Self::Output {
-        self.backings.iter_mut().for_each(|b| *b = !*b);
-        self
     }
 }
 
@@ -232,31 +125,19 @@ pub enum ParseRuleError {
 
 impl std::fmt::Display for ParseRuleError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}") // FIXME: This can made much more pretty and clear.
+        match self {
+            ParseRuleError::Empty => write!(f, "no rule keyword was provided"),
+            ParseRuleError::UnknownKeyword(unknown) => {
+                write!(f, "encountered an unknown keyword: {unknown:?}")
+            }
+            ParseRuleError::SyntaxError(err) => write!(f, "syntax error: {err}"),
+            ParseRuleError::ParseScalarError(err) => write!(f, "could not parse float: {err}"),
+            ParseRuleError::ParseAxisError(err) => write!(f, "could not parse axis: {err}"),
+        }
     }
 }
 
 impl std::error::Error for ParseRuleError {}
-
-/// Split rules into a lightweight and heavier subset.
-///
-/// Split a set of rules into those that are cheap to compute for some position, and those that are
-/// more expensive and that should be considered only for promising candidates, such as after
-/// collision checking.
-pub fn split<'r>(
-    rules: &'r [Rule],
-) -> (
-    impl Iterator<Item = &'r Rule>,
-    impl Iterator<Item = &'r Rule>,
-) {
-    fn criterion(rule: &Rule) -> bool {
-        rule.is_lightweight()
-    }
-    (
-        rules.iter().filter(|rule| criterion(rule)),
-        rules.iter().filter(|rule| !criterion(rule)),
-    )
-}
 
 pub fn distill(
     rules: &[Rule],

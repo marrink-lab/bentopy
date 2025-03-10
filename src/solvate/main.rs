@@ -1,6 +1,7 @@
 use std::cmp::Reverse;
 use std::io::{self, Write};
 
+use anyhow::Context;
 use args::SortBehavior;
 use clap::Parser;
 use eightyseven::reader::ReadGro;
@@ -21,12 +22,14 @@ mod solvate;
 mod structure;
 mod substitute;
 
-fn main() -> io::Result<()> {
+fn main() -> anyhow::Result<()> {
     let config = Args::parse();
 
     eprint!("Loading template {:?}... ", config.template);
     let start = std::time::Instant::now();
-    let template = Structure::open_gro(config.template)?;
+    let template_path = &config.template;
+    let template = Structure::open_gro(template_path)
+        .with_context(|| format!("Failed to open template structure {template_path:?}"))?;
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
     if template.natoms() == 0 {
         eprintln!("ERROR: Template contains no atoms, so solvation cannot proceed.");
@@ -34,7 +37,9 @@ fn main() -> io::Result<()> {
     }
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
-    let mut structure = Structure::open_gro(config.input)?;
+    let input_path = &config.input;
+    let mut structure = Structure::open_gro(input_path)
+        .with_context(|| format!("Failed to open structure {input_path:?}"))?;
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     eprintln!("Solvating...");
@@ -111,7 +116,9 @@ fn main() -> io::Result<()> {
 
     eprintln!("Writing to {:?}...", config.output);
     let start = std::time::Instant::now();
-    let file = std::fs::File::create(config.output)?;
+    let output_path = &config.output;
+    let file = std::fs::File::create(output_path)
+        .with_context(|| format!("Failed to create output file {output_path:?}"))?;
     let mut writer = io::BufWriter::new(file);
     let buffer_size = config.buffer_size;
     if config.no_write_parallel {
@@ -121,7 +128,10 @@ fn main() -> io::Result<()> {
             &placemap,
             &substitutions,
             buffer_size,
-        )?;
+        )
+        .with_context(|| {
+            format!("Encountered a problem while writing the output structure to {output_path:?}")
+        })?;
     } else {
         write_structure::<true>(
             &mut writer,
@@ -129,7 +139,10 @@ fn main() -> io::Result<()> {
             &placemap,
             &substitutions,
             buffer_size,
-        )?;
+        )
+        .with_context(|| {
+            format!("Encountered a problem while (in parallel) writing the output structure to {output_path:?}")
+        })?;
     }
     eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
 
@@ -168,14 +181,17 @@ fn main() -> io::Result<()> {
             std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
-                .open(path)
+                .open(&path)
+                .with_context(|| format!("Failed to open topology file {path:?}"))
         })
         .transpose()?;
     for (name, natoms) in topology {
         let s = format!("{name}\t{natoms}\n");
         stdout.write_all(s.as_bytes())?;
         if let Some(topol) = &mut topol {
-            topol.write_all(s.as_bytes())?;
+            topol
+                .write_all(s.as_bytes())
+                .with_context(|| format!("Failed to append component '{name}' to topology file"))?;
         }
     }
 

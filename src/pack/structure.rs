@@ -1,4 +1,5 @@
 use std::io::{BufRead, BufReader};
+use std::num::NonZeroUsize;
 
 use eightyseven::reader::{ParseList, ReadGro};
 use eightyseven::structure::{AtomName, AtomNum, ResName, ResNum};
@@ -9,7 +10,9 @@ pub type Atom = Vec3;
 
 /// A structure type that stores its atoms as simple positions.
 ///
-/// Invariant: A structure is always centered, such that its geometric center lies at the origin.
+/// Invariant: A `Structure` is always centered, such that its geometric center lies at the origin.
+///
+/// Invariant: A `Structure` has at least one atom.
 pub struct Structure {
     atoms: Vec<Atom>,
 }
@@ -32,6 +35,7 @@ impl ReadGro<Atom> for Structure {
         position: Option<[f32; 3]>,
         _velocity: Option<[f32; 3]>,
     ) -> Atom {
+        // We can safely unwrap because this is the only value we expect.
         Atom::from_array(position.unwrap())
     }
 
@@ -46,19 +50,49 @@ impl ReadGro<Atom> for Structure {
     }
 }
 
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum ParsePdbError {
+    IOError(std::io::Error),
+    BadPositionValue {
+        err: std::num::ParseFloatError,
+        /// Line number.
+        ln: NonZeroUsize,
+    },
+}
+
+impl std::error::Error for ParsePdbError {}
+
+impl std::fmt::Display for ParsePdbError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::IOError(err) => write!(f, "IO error: {err}"),
+            Self::BadPositionValue { err, ln } => {
+                write!(f, "Could not parse record on line {ln}: {err}")
+            }
+        }
+    }
+}
+
+impl From<std::io::Error> for ParsePdbError {
+    fn from(err: std::io::Error) -> Self {
+        Self::IOError(err)
+    }
+}
+
 impl Structure {
-    pub fn read_from_pdb_file(
-        file: std::fs::File,
-    ) -> Result<Structure, eightyseven::reader::ParseGroError> {
+    pub fn read_from_pdb_file(file: std::fs::File) -> Result<Structure, ParsePdbError> {
         let reader = BufReader::new(file);
 
         let mut atoms = Vec::new();
-        for line in reader.lines() {
+        for (ln, line) in reader.lines().enumerate() {
             let line = line?;
             if line.starts_with("ATOM") || line.starts_with("HETATM") {
-                let x = line[30..38].trim().parse().unwrap();
-                let y = line[38..46].trim().parse().unwrap();
-                let z = line[46..54].trim().parse().unwrap();
+                let ln = NonZeroUsize::new(ln + 1).unwrap(); // We know ln + 1 >= 1 because ln >= 0.
+                let bad_position = |err| ParsePdbError::BadPositionValue { err, ln };
+                let x = line[30..38].trim().parse().map_err(bad_position)?;
+                let y = line[38..46].trim().parse().map_err(bad_position)?;
+                let z = line[46..54].trim().parse().map_err(bad_position)?;
                 let atom = Atom::new(x, y, z) / 10.0; // Convert from Å to nm.
                 atoms.push(atom);
             }
@@ -71,6 +105,7 @@ impl Structure {
 
     /// Translate this [`Structure`] such that it's geometric center lies at the origin.
     fn translate_to_center(&mut self) {
+        // Invariant: A Structure has at least one atom.
         let center = self.atoms().sum::<Atom>() / self.natoms() as f32;
         for pos in &mut self.atoms {
             *pos -= center;
@@ -79,7 +114,7 @@ impl Structure {
 
     /// Calculate the moment of inertia for this [`Structure`].
     ///
-    /// Assumes that the invariant that the structure has been centered holds.
+    /// Invariant: Assumes that the structure is centered.
     ///
     ///     I = Σ(m_i * r_i²)
     pub fn moment_of_inertia(&self) -> f32 {
@@ -88,12 +123,12 @@ impl Structure {
 
     /// Returns the radius of the point that is farthest from the structure geometric center.
     ///
-    /// Assumes that the invariant that the structure has been centered holds.
+    /// Invariant: Assumes that the structure is centered.
     pub fn bounding_sphere(&self) -> f32 {
         self.atoms()
             .map(|atom| atom.length())
             .max_by(f32::total_cmp)
-            .unwrap()
+            .unwrap() // Invariant: A structure has at least one atom.
     }
 }
 
