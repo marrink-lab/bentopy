@@ -291,6 +291,7 @@ impl Mask {
         }
     }
 
+    /// Return whether any of the [`Mask`] cells have the provided `VALUE`.
     pub fn any<const VALUE: bool>(&self) -> bool {
         (0..self.n_cells()).any(|lin_idx| self.query_linear_unchecked::<VALUE>(lin_idx))
     }
