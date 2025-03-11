@@ -406,8 +406,8 @@ time keeping up.
 
 <details>
 <summary>
-Luckily, _bentopy-render_ has some additional tricks up its sleeve to ease this
-load.
+Luckily, <i>bentopy-render</i> has some additional tricks up its sleeve to ease
+this load.
 </summary>
 
 In case you want to inspect only a small part of a very large placement list,
