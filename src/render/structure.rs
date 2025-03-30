@@ -154,11 +154,16 @@ impl Atom {
     // Examples:
     // ATOM      1  N   ALA A   1      11.104   6.134  -6.504
     // ATOM      1  N   MET     1      48.048  69.220  58.803
+    // ATOM      2  C13 DPPCM 367      31.671 -46.874  39.426  1.00  0.00      MEMB
     /// Read a single "ATOM" or "HETATM" record from a PDB and return an Atom.
     fn from_pdb_atom_line(line: &str) -> Atom {
         let serial = line[6..11].trim().parse().unwrap();
         let name = line[12..16].trim().into();
-        let resname = line[17..20].trim().into();
+        // NOTE: Even though the PDB specification only regards columns 18..21 as constituting the
+        // resname, in practice the character directly after that is also included. This column is
+        // not defined by the spec. Especially for telling apart lipids like DPPC and DPPG, it's
+        // quite important to include that by-convention resname character. Thanks Abby!
+        let resname = line[17..21].trim().into();
         let resnum = line[22..26].trim().parse().unwrap();
         let x = line[30..38].trim().parse().unwrap();
         let y = line[38..46].trim().parse().unwrap();
