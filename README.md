@@ -57,7 +57,8 @@ bentopy-mask --help
 ...
 ```
 
-> [!NOTE] For the moment, the bentopy subcommands can be accessed through the
+> [!NOTE]
+> For the moment, the bentopy subcommands can be accessed through the
 > `bentopy-<subcommand>` pattern. For example, `bentopy-pack`.
 > Shortly, a `bentopy` root command will be introduced, which provides access
 > through a `bentopy <subcommand>` pattern, e.g., `bentopy pack`.
@@ -127,7 +128,8 @@ mask to `mask.npz`._
 
 ### _merge_
 
-> [!NOTE] This command used to be called _bentopy grocat_, but has now been
+> [!NOTE]
+> This command used to be called _bentopy grocat_, but has now been
 > renamed to _bentopy merge_, which better reflects what it does while leaving
 > open the possibility of supporting the merging of structure files beyond
 > `gro`.
@@ -404,8 +406,8 @@ time keeping up.
 
 <details>
 <summary>
-Luckily, _bentopy-render_ has some additional tricks up its sleeve to ease this
-load.
+Luckily, <i>bentopy-render</i> has some additional tricks up its sleeve to ease
+this load.
 </summary>
 
 In case you want to inspect only a small part of a very large placement list,

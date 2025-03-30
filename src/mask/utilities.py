@@ -6,7 +6,7 @@ import numpy as np
 
 def voxels_to_gro(path: Path, arr, scale: float = 1.0, place_in_center: bool = True):
     scale *= 10.0  # We go from Å to nm scale.
-    n_atoms = np.product(arr.shape)
+    n_atoms = np.prod(arr.shape)
 
     # Set up our output universe.
     u = mda.Universe.empty(
