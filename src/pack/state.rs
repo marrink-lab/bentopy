@@ -423,106 +423,9 @@ impl State {
             let ConfigMask::Combination(ces) = combination.mask else {
                 unreachable!() // We partitioned the list above.
             };
-
-            // TODO: Really disliking this code duplication. `or` and `and` are more or less the same
-            // function, except for their mask bit operation.
-            fn or(
-                ces: &[CombinationExpression],
-                compartments: &[Compartment],
-            ) -> anyhow::Result<Mask> {
-                // TODO: Think about how we should address this case. It feels like something we
-                // should just be chill about. But perhaps a warning?
-                if ces.is_empty() {
-                    bail!("combination expression cannot be empty");
-                }
-
-                // TODO: Replace this with a fold or something.
-                let mut mask = None;
-                for ce in ces {
-                    match ce {
-                        CombinationExpression::ID(id) => {
-                            let comp = compartments
-                                .iter()
-                                .find(|comp| &comp.id == id)
-                                .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
-                            if let Some(mask) = &mut mask {
-                                *mask |= comp.mask.clone(); // FIXME: We could get rid of this clone, perhaps.
-                            } else {
-                                mask = Some(comp.mask.clone());
-                            }
-                        }
-                        CombinationExpression::Or(ces) => {
-                            let res = or(ces, compartments)?;
-                            if let Some(mask) = &mut mask {
-                                *mask |= res;
-                            } else {
-                                mask = Some(res);
-                            }
-                        }
-                        CombinationExpression::Not(ces) => {
-                            let res = !or(std::slice::from_ref(ces), compartments)?;
-                            if let Some(mask) = &mut mask {
-                                *mask &= res;
-                            } else {
-                                mask = Some(res);
-                            }
-                        }
-                    };
-                }
-
-                Ok(mask.unwrap()) // We know ecs is not empty.
-            }
-
-            fn and(
-                ces: &[CombinationExpression],
-                compartments: &[Compartment],
-            ) -> anyhow::Result<Mask> {
-                // TODO: Think about how we should address this case. It feels like something we
-                // should just be chill about. But perhaps a warning?
-                if ces.is_empty() {
-                    bail!("combination expression cannot be empty");
-                }
-
-                // TODO: Replace this with a fold or something.
-                let mut mask = None;
-                for ce in ces {
-                    match ce {
-                        CombinationExpression::ID(id) => {
-                            let comp = compartments
-                                .iter()
-                                .find(|comp| &comp.id == id)
-                                .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
-                            if let Some(mask) = &mut mask {
-                                *mask &= comp.mask.clone(); // FIXME: We could get rid of this clone, perhaps.
-                            } else {
-                                mask = Some(comp.mask.clone());
-                            }
-                        }
-                        CombinationExpression::Or(ces) => {
-                            let res = or(ces, compartments)?;
-                            if let Some(mask) = &mut mask {
-                                *mask &= res;
-                            } else {
-                                mask = Some(res);
-                            }
-                        }
-                        CombinationExpression::Not(ces) => {
-                            let res = !or(std::slice::from_ref(ces), compartments)?;
-                            if let Some(mask) = &mut mask {
-                                *mask &= res;
-                            } else {
-                                mask = Some(res);
-                            }
-                        }
-                    };
-                }
-
-                Ok(mask.unwrap()) // We know ecs is not empty.
-            }
-
             let baked = Compartment {
                 id: combination.id,
-                mask: and(&ces, &compartments)?,
+                mask: combinations::and(&ces, &compartments)?,
                 distance_masks: Default::default(),
             };
             compartments.push(baked);
@@ -904,4 +807,69 @@ fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
     }
 
     Ok(structure)
+}
+
+mod combinations {
+    use super::*;
+
+    // TODO: Name.
+    /// Apply some operation
+    fn operate<F: Fn(&mut Mask, Mask)>(
+        ces: &[CombinationExpression],
+        compartments: &[Compartment],
+        op: F,
+    ) -> anyhow::Result<Mask> {
+        // TODO: Think about how we should address this case. It feels like something we
+        // should just be chill about. But perhaps a warning?
+        if ces.is_empty() {
+            bail!("combination expression cannot be empty");
+        }
+
+        // TODO: Replace this with a fold or something.
+        let mut mask = None;
+        for ce in ces {
+            match ce {
+                CombinationExpression::ID(id) => {
+                    let comp = compartments
+                        .iter()
+                        .find(|comp| &comp.id == id)
+                        .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                    if let Some(mask) = &mut mask {
+                        op(mask, comp.mask.clone());
+                    } else {
+                        mask = Some(comp.mask.clone());
+                    }
+                }
+                CombinationExpression::Or(ces) => {
+                    let res = or(ces, compartments)?;
+                    if let Some(mask) = &mut mask {
+                        op(mask, res);
+                    } else {
+                        mask = Some(res);
+                    }
+                }
+                CombinationExpression::Not(ces) => {
+                    let res = !or(std::slice::from_ref(ces), compartments)?;
+                    if let Some(mask) = &mut mask {
+                        *mask &= res;
+                    } else {
+                        mask = Some(res);
+                    }
+                }
+            };
+        }
+
+        Ok(mask.unwrap()) // We know ecs is not empty.
+    }
+
+    fn or(ces: &[CombinationExpression], compartments: &[Compartment]) -> anyhow::Result<Mask> {
+        operate(ces, compartments, |mask, src| *mask |= src)
+    }
+
+    pub(crate) fn and(
+        ces: &[CombinationExpression],
+        compartments: &[Compartment],
+    ) -> anyhow::Result<Mask> {
+        operate(ces, compartments, |mask, src| *mask &= src)
+    }
 }
