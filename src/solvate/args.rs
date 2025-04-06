@@ -82,6 +82,11 @@ pub struct Args {
     #[arg(long)]
     pub seed: Option<u64>,
 
+    /// If the solvent template contains velocity information, write these velocities to the output
+    /// file.
+    #[arg(long, default_value_t)]
+    pub write_velocities: bool,
+
     /// Append solvation topology lines to a path.
     #[arg(short = 't', long)]
     pub append_topol: Option<PathBuf>,

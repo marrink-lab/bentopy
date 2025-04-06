@@ -28,8 +28,18 @@ fn main() -> anyhow::Result<()> {
     eprint!("Loading template {:?}... ", config.template);
     let start = std::time::Instant::now();
     let template_path = &config.template;
-    let template = Structure::open_gro(template_path)
-        .with_context(|| format!("Failed to open template structure {template_path:?}"))?;
+    let template = {
+        let mut template = Structure::open_gro(template_path)
+            .with_context(|| format!("Failed to open template structure {template_path:?}"))?;
+        if !config.write_velocities {
+            // We set all velocities to zero, to indicate that we don't want them written to the
+            // output file.
+            for atom in &mut template.atoms {
+                atom.velocity *= 0.0;
+            }
+        }
+        template
+    };
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
     if template.natoms() == 0 {
         eprintln!("ERROR: Template contains no atoms, so solvation cannot proceed.");

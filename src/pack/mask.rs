@@ -360,8 +360,11 @@ impl Mask {
 }
 
 /// Take an `idx` that may fall outside of the `dimensions` and return a normalized [`Position`].
+// NOTE: It turns out that when compiled with '-C target-cpu=native', this unrolled operation
+// behaved very poorly. That led to poor performance, as this function is very hot.
+// Inlining this function helped.
+#[inline(always)]
 const fn normalize_periodic(idx: Position, dimensions: Dimensions) -> Position {
-    // FIXME: This const unrolling sucks. See if I can do something about that.
     [
         idx[0] % dimensions[0],
         idx[1] % dimensions[1],
