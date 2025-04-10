@@ -28,6 +28,14 @@ impl std::fmt::Display for Shape {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
+pub enum CombinationExpression {
+    Not(Box<Self>),
+    Or(Vec<Self>),
+    ID(CompartmentID),
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub(crate) enum Mask {
     Shape(Shape),
     Analytical {
@@ -38,6 +46,7 @@ pub(crate) enum Mask {
     Voxels {
         path: PathBuf,
     },
+    Combination(Vec<CombinationExpression>),
 }
 
 #[derive(Deserialize)]
@@ -45,6 +54,15 @@ pub struct Compartment {
     pub id: CompartmentID,
     #[serde(flatten)]
     pub mask: Mask,
+}
+
+impl Compartment {
+    pub fn is_predefined(&self) -> bool {
+        match &self.mask {
+            Mask::Shape(_) | Mask::Analytical { .. } | Mask::Voxels { .. } => true,
+            Mask::Combination(_) => false,
+        }
+    }
 }
 
 pub(crate) fn true_by_default() -> bool {
