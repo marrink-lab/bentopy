@@ -213,6 +213,8 @@ a **resolution** of 0.5 nm. The mask&mdash;the volume that defines where
 structures can be placed&mdash;is set to be derived from a **spherical**
 analytical function.
 
+##### Custom mask
+
 In case you want to use a custom mask like you may set up with _bentopy-mask_,
 you could specify the space in the following manner.
 
@@ -231,6 +233,36 @@ This mask can be any data that can be loaded by [`np.load()`][np-load] to be
 interpreted as a three-dimensional boolean mask. The provided mask must have
 the same size as specified in the **space** section's **dimensions** divided by
 the **resolution**.
+
+##### Custom mask
+
+Another option for specifying compartments is through bitwise operations
+between loaded or analytically defined masks. Below, such a **combination**
+compartment entry is shown as the **union** of some previously defined
+compartment `a`, `b`, and the **intersect**ion of the inverse (`!` operator) of
+compartment `c` with compartment `d`.
+
+Written out in prose, that's a mouthful, but **combination compartments** are a
+very concise and powerful way to produce complex spaces within the
+_bentopy-pack_ configuration itself.
+
+```diff
+      	"compartments": [
+		...
+      		{
+      			"id": "cool_combination",
+-     			"shape": "spherical"
++      			"combination": "union(a b intersect(!c d))"
+      		}
+      	]
+```
+
+A combination compartment can be cited in the combination expression for
+subsequent compartment definitions as well.
+
+Of course, the diff above would not work for the input file under discussion,
+as we would have to add definitions for compartments `a`, `b`, `c`, and `d` as
+well.
 
 #### Output
 
