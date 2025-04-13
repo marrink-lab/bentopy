@@ -1,8 +1,21 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 use serde::Deserialize;
 
 use crate::state::{Axes, CompartmentID, Size};
+pub use compartment_combinations::Expression as CombinationExpression;
+
+mod compartment_combinations;
+
+impl<'de> Deserialize<'de> for CombinationExpression {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        CombinationExpression::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
 
 /// Avogadro's number (per mol).
 const N_A: f64 = 6.0221415e23;
@@ -28,14 +41,6 @@ impl std::fmt::Display for Shape {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum CombinationExpression {
-    Not(Box<Self>),
-    Or(Vec<Self>),
-    ID(CompartmentID),
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "lowercase")]
 pub(crate) enum Mask {
     Shape(Shape),
     Analytical {
@@ -46,7 +51,7 @@ pub(crate) enum Mask {
     Voxels {
         path: PathBuf,
     },
-    Combination(Vec<CombinationExpression>),
+    Combination(CombinationExpression),
 }
 
 #[derive(Deserialize)]

@@ -428,7 +428,7 @@ impl State {
             };
             let baked = Compartment {
                 id: combination.id,
-                mask: combinations::and(&ces, &compartments)?,
+                mask: combinations::execute(&ces, &compartments)?,
                 distance_masks: Default::default(),
             };
             compartments.push(baked);
@@ -815,64 +815,51 @@ fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
 mod combinations {
     use super::*;
 
-    // TODO: Name.
-    /// Apply some operation
-    fn operate<F: Fn(&mut Mask, Mask)>(
-        ces: &[CombinationExpression],
+    /// Apply some operation over the mask resulting from the first [`CombinationExpression`] in
+    /// `exprs` for each subsequent `expr`.
+    ///
+    /// # Invariants
+    ///
+    /// Assumes `exprs` has at least one entry.
+    fn fold<F: Fn(&mut Mask, Mask)>(
+        exprs: &[CombinationExpression],
         compartments: &[Compartment],
         op: F,
     ) -> anyhow::Result<Mask> {
-        // TODO: Think about how we should address this case. It feels like something we
-        // should just be chill about. But perhaps a warning?
-        if ces.is_empty() {
-            bail!("combination expression cannot be empty");
+        // Invariant: Assumes `exprs` has at least one entry.
+        let (first, exprs) = exprs.split_first().unwrap();
+        let mut mask = execute(first, compartments)?;
+        // Now apply `op` between the first mask and those resulting from the subsequent `exprs`.
+        for expr in exprs {
+            let src = execute(expr, compartments)?;
+            op(&mut mask, src);
         }
 
-        // TODO: Replace this with a fold or something.
-        let mut mask = None;
-        for ce in ces {
-            match ce {
-                CombinationExpression::ID(id) => {
-                    let comp = compartments
-                        .iter()
-                        .find(|comp| &comp.id == id)
-                        .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
-                    if let Some(mask) = &mut mask {
-                        op(mask, comp.mask.clone());
-                    } else {
-                        mask = Some(comp.mask.clone());
-                    }
-                }
-                CombinationExpression::Or(ces) => {
-                    let res = or(ces, compartments)?;
-                    if let Some(mask) = &mut mask {
-                        op(mask, res);
-                    } else {
-                        mask = Some(res);
-                    }
-                }
-                CombinationExpression::Not(ces) => {
-                    let res = !or(std::slice::from_ref(ces), compartments)?;
-                    if let Some(mask) = &mut mask {
-                        *mask &= res;
-                    } else {
-                        mask = Some(res);
-                    }
-                }
-            };
-        }
-
-        Ok(mask.unwrap()) // We know ecs is not empty.
+        Ok(mask)
     }
 
-    fn or(ces: &[CombinationExpression], compartments: &[Compartment]) -> anyhow::Result<Mask> {
-        operate(ces, compartments, |mask, src| *mask |= src)
-    }
-
-    pub(crate) fn and(
-        ces: &[CombinationExpression],
+    pub fn execute(
+        expr: &CombinationExpression,
         compartments: &[Compartment],
     ) -> anyhow::Result<Mask> {
-        operate(ces, compartments, |mask, src| *mask &= src)
+        let output = match expr {
+            // TODO: This is where a Cow may be great!
+            CombinationExpression::Id(id) => {
+                let compartment = compartments
+                    .iter()
+                    .find(|c| &c.id == id)
+                    .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                compartment.mask.clone()
+            }
+            CombinationExpression::Not(expr) => !execute(expr, compartments)?,
+            CombinationExpression::Union(exprs) => {
+                fold(exprs, compartments, |mask, src| *mask &= src)?
+            }
+            CombinationExpression::Intersect(exprs) => {
+                fold(exprs, compartments, |mask, src| *mask |= src)?
+            }
+        };
+
+        Ok(output)
     }
 }
