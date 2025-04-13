@@ -21,20 +21,11 @@
 			},
 			{
 				"id": "c",
-				"combination": [
-					{ "or": [
-						{ "id": "a" },
-						{ "id": "b" }
-					]}
-				]
+				"combination": "intersect(a b)"
 			},
 			{
 				"id": "d",
-				"combination": [
-					{ "not": 
-						{ "id": "c" }
-					}
-				]
+				"combination": "!c"
 			}
 		]
 	},
