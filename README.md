@@ -234,7 +234,7 @@ interpreted as a three-dimensional boolean mask. The provided mask must have
 the same size as specified in the **space** section's **dimensions** divided by
 the **resolution**.
 
-##### Custom mask
+##### Compartment combinations
 
 Another option for specifying compartments is through bitwise operations
 between loaded or analytically defined masks. Below, such a **combination**
