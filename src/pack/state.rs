@@ -12,8 +12,8 @@ use rand::{Rng as _, SeedableRng};
 
 use crate::args::{Args, RearrangeMethod};
 use crate::config::{
-    Configuration, Mask as ConfigMask, Quantity, RuleExpression, Shape as ConfigShape,
-    TopolIncludes,
+    CombinationExpression, Compartment as ConfigCompartment, Configuration, Mask as ConfigMask,
+    Quantity, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
 use crate::mask::{distance_mask_grow, Dimensions, Mask};
 use crate::placement::{Batch, Placement};
@@ -373,56 +373,154 @@ impl State {
             .map(|d| (d / config.space.resolution) as u64);
         let resolution = config.space.resolution;
         eprintln!("Setting up compartments...");
-        let compartments = config
+        let (predefined, combinations): (Vec<_>, Vec<_>) = config
             .space
             .compartments
             .into_iter()
-            .map(|comp| -> Result<_, _> {
-                Ok(Compartment {
+            .partition(ConfigCompartment::is_predefined);
+        let mut compartments: Vec<Compartment> = predefined
+            .into_iter()
+            .map(|comp| -> anyhow::Result<_> {
+                let mask = match comp.mask {
+                    ConfigMask::Shape(shape) => {
+                        if verbose {
+                            eprintln!("\tConstructing a {shape} mask...");
+                        }
+                        Mask::create_from_shape(shape, dimensions, None, None)
+                    }
+                    ConfigMask::Analytical {
+                        shape,
+                        center,
+                        radius,
+                    } => {
+                        if verbose {
+                            eprintln!("\tConstructing a {shape} mask...");
+                        }
+                        let center = center.map(|c| (Vec3::from_array(c) / resolution).as_uvec3());
+                        let radius = radius.map(|r| (r / resolution) as u32);
+                        Mask::create_from_shape(shape, dimensions, center, radius)
+                    }
+                    ConfigMask::Voxels { path } => {
+                        if verbose {
+                            eprintln!("\tLoading mask from {path:?}...");
+                        }
+                        Mask::load_from_path(&path)
+                            .with_context(|| format!("Failed to load mask {path:?}"))?
+                    }
+                    ConfigMask::Combination(_) => {
+                        unreachable!() // We partitioned the list above.
+                    }
+                };
+                let c = Compartment {
                     id: comp.id,
-                    mask: match comp.mask {
-                        ConfigMask::Shape(shape) => {
-                            if verbose {
-                                eprintln!("\tConstructing a {shape} mask...");
-                            }
-                            Mask::create_from_shape(shape, dimensions, None, None)
-                        }
-                        ConfigMask::Analytical {
-                            shape,
-                            center,
-                            radius,
-                        } => {
-                            if verbose {
-                                eprintln!("\tConstructing a {shape} mask...");
-                            }
-                            let center =
-                                center.map(|c| (Vec3::from_array(c) / resolution).as_uvec3());
-                            let radius = radius.map(|r| (r / resolution) as u32);
-                            Mask::create_from_shape(shape, dimensions, center, radius)
-                        }
-                        ConfigMask::Voxels { path } => {
-                            if verbose {
-                                eprintln!("\tLoading mask from {path:?}...");
-                            }
-                            let mask = Mask::load_from_path(&path)
-                                .with_context(|| format!("Failed to load mask {path:?}"))?;
-                            // Check whether this mask has the correct dimensions.
-                            if mask.dimensions() != dimensions {
-                                let unexpected = mask.dimensions();
-                                let size = config.space.size;
-                                bail!(
-                                    "The mask from {path:?} has unexpected dimensions \
-                                    {unexpected:?} voxels,\nexpected {dimensions:?} voxels \
-                                    ({size:?} nm at a {resolution} nm resolution)"
-                                );
-                            }
-                            mask
-                        }
-                    },
+                    mask,
                     distance_masks: Default::default(),
-                })
+                };
+                Ok(c)
             })
             .collect::<anyhow::Result<_>>()?;
+        for combination in combinations {
+            let ConfigMask::Combination(ces) = combination.mask else {
+                unreachable!() // We partitioned the list above.
+            };
+
+            // TODO: Really disliking this code duplication. `or` and `and` are more or less the same
+            // function, except for their mask bit operation.
+            fn or(ces: &[CombinationExpression], compartments: &[Compartment]) -> Mask {
+                // TODO: Think about how we should address this case. It feels like something we
+                // should just be chill about. But perhaps a warning?
+                if ces.is_empty() {
+                    panic!("combination expression cannot be empty");
+                }
+
+                // TODO: Replace this with a fold or something.
+                let mut mask = None;
+                for ce in ces {
+                    match ce {
+                        CombinationExpression::ID(id) => {
+                            let comp = compartments
+                                .iter()
+                                .find(|comp| &comp.id == id)
+                                .expect(&format!("mask with id {id:?} not (yet) defined"));
+                            if let Some(mask) = &mut mask {
+                                *mask |= comp.mask.clone(); // FIXME: We could get rid of this clone, perhaps.
+                            } else {
+                                mask = Some(comp.mask.clone());
+                            }
+                        }
+                        CombinationExpression::Or(ces) => {
+                            let res = or(ces, compartments);
+                            if let Some(mask) = &mut mask {
+                                *mask |= res;
+                            } else {
+                                mask = Some(res);
+                            }
+                        }
+                        CombinationExpression::Not(ces) => {
+                            let res = !or(std::slice::from_ref(ces), compartments);
+                            if let Some(mask) = &mut mask {
+                                *mask &= res;
+                            } else {
+                                mask = Some(res);
+                            }
+                        }
+                    };
+                }
+
+                mask.unwrap() // We know ecs is not empty.
+            }
+
+            fn and(ces: &[CombinationExpression], compartments: &[Compartment]) -> Mask {
+                // TODO: Think about how we should address this case. It feels like something we
+                // should just be chill about. But perhaps a warning?
+                if ces.is_empty() {
+                    panic!("combination expression cannot be empty");
+                }
+
+                // TODO: Replace this with a fold or something.
+                let mut mask = None;
+                for ce in ces {
+                    match ce {
+                        CombinationExpression::ID(id) => {
+                            let comp = compartments
+                                .iter()
+                                .find(|comp| &comp.id == id)
+                                .expect(&format!("mask with id {id:?} not (yet) defined"));
+                            if let Some(mask) = &mut mask {
+                                *mask &= comp.mask.clone(); // FIXME: We could get rid of this clone, perhaps.
+                            } else {
+                                mask = Some(comp.mask.clone());
+                            }
+                        }
+                        CombinationExpression::Or(ces) => {
+                            let res = or(ces, compartments);
+                            if let Some(mask) = &mut mask {
+                                *mask &= res;
+                            } else {
+                                mask = Some(res);
+                            }
+                        }
+                        CombinationExpression::Not(ces) => {
+                            let res = !or(std::slice::from_ref(ces), compartments);
+                            if let Some(mask) = &mut mask {
+                                *mask &= res;
+                            } else {
+                                mask = Some(res);
+                            }
+                        }
+                    };
+                }
+
+                mask.unwrap() // We know ecs is not empty.
+            }
+
+            let baked = Compartment {
+                id: combination.id,
+                mask: and(&ces, &compartments),
+                distance_masks: Default::default(),
+            };
+            compartments.push(baked);
+        }
         let space = Space {
             size: config.space.size,
             dimensions,
