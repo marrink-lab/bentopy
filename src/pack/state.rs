@@ -489,7 +489,11 @@ impl State {
                     })
                 })
                 .collect::<anyhow::Result<_>>()?;
-            if let Some(method) = args.rearrange {
+
+            let method = args.rearrange;
+            if let RearrangeMethod::None = method {
+                eprint!("Segments were not rearranged.");
+            } else {
                 eprint!("Rearranging segments according to the {method:?} method... ");
                 match method {
                     RearrangeMethod::Volume => {
@@ -518,9 +522,14 @@ impl State {
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                         segments.reverse();
                     }
+                    // Already taken care of above.
+                    RearrangeMethod::None => {
+                        unreachable!()
+                    }
                 }
                 eprintln!("Done.");
             }
+
             segments
         };
 

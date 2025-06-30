@@ -41,7 +41,7 @@ pub struct Args {
 
     /// Sort the input structures by approximate size to optimize packing.
     #[arg(long, default_value = "moment-of-inertia")]
-    pub rearrange: Option<RearrangeMethod>,
+    pub rearrange: RearrangeMethod,
 
     /// Random number generator seed.
     #[arg(long)]
@@ -62,7 +62,9 @@ pub struct Args {
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum RearrangeMethod {
-    Volume,
     MomentOfInertia,
+    Volume,
     BoundingSphere,
+    /// Keep the arrangement specified in the input file.
+    None,
 }
