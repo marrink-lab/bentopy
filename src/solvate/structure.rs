@@ -16,7 +16,13 @@ pub trait BoxVecsExtension {
 impl BoxVecsExtension for BoxVecs {
     fn as_vec3(&self) -> Vec3 {
         match self {
-            &BoxVecs::Short(three) => Vec3::from_array(three),
+            // FIX: When a gro file with cuboid boundaries represented as a nine-valued vector
+            // (trailing six values are zero) is loaded, we can canonicalize it as a three-valued
+            // cuboid. This should probably be fixed in eightyseven, but I'll want to reconsider
+            // this and related issues properly at another moment.
+            &BoxVecs::Short(three) | &BoxVecs::Full([three @ .., 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) => {
+                Vec3::from_array(three)
+            }
             BoxVecs::Full(nine) => todo!("nine-value boxvecs ({nine:?}) are currently unsupported"),
         }
     }
