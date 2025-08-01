@@ -35,6 +35,10 @@ def mask(args):
     # Everything must be set correctly in case --no-interactive is used.
     if not args.interactive:
         log("Running in non-interactive mode.")
+        if args.output is None:
+            log("WARNING: No mask output path was specified.")
+            log("The computed mask will not be written to disk.")
+            log("Like tears in rain.")
         if args.labels is None:
             log("ERROR: No labels were specified.")
             log("In non-interactive mode, at least one label must be provided.")
@@ -225,10 +229,25 @@ def mask(args):
         voxels_to_gro(voxels_path, zoomed)
         log("done.")
 
-    # Finally, write out the voxel mask.
-    log(f"Writing the voxel mask to {args.output}... ", end="")
-    np.savez(args.output, zoomed)
-    log("done.")
+    # Determine the voxel mask output path.
+    output_path = args.output
+    if args.output is None and args.interactive:
+        log("Please provide an output path for the final voxel mask.")
+        while True:
+            path = input("(npz) -> ").strip()
+            if len(path) == 0:
+                output_path = None
+                break
+            output_path = Path(path)
+            if output_path.suffix == ".npz":
+                break
+            log(f"Path must have an npz extension. Found '{output_path.suffix}'.")
+
+    # Finally, write out the voxel mask when desired.
+    if output_path is not None:
+        log(f"Writing the voxel mask to {output_path}... ", end="")
+        np.savez(output_path, zoomed)
+        log("done.")
 
 
 def resolve_cache_path(structure_path):

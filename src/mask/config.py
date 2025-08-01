@@ -33,6 +33,7 @@ def setup_parser(parser=None):
     parser.add_argument(
         "output",
         type=Path,
+        nargs="?",
         help="Output path for the resulting voxel mask.",
     )
     parser.add_argument(
