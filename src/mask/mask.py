@@ -39,9 +39,9 @@ def mask(args):
             log("WARNING: No mask output path was specified.")
             log("The computed mask will not be written to disk.")
             log("Like tears in rain.")
-        if args.labels is None:
+        if args.labels is None and not args.autofill:
             log("ERROR: No labels were specified.")
-            log("In non-interactive mode, at least one label must be provided.")
+            log("In non-interactive mode, at least one label must be provided manually (`--label`) or automitacally (`--autofill`).")
             return 1
 
     # Read in structures from a structure file or from a cache..
