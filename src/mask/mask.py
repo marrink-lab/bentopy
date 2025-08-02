@@ -97,8 +97,8 @@ def mask(args):
 
     # Show what we found.
     log("Found the following node groups:")
-    log(f"        root:\t{containment.voxel_containment.root_nodes}")
-    log(f"        leaf:\t{containment.voxel_containment.leaf_nodes}")
+    log(f"        root:\t{npc(containment.voxel_containment.root_nodes)}")
+    log(f"        leaf:\t{npc(containment.voxel_containment.leaf_nodes)}")
     # And show it as a tree of containments.
     # TODO: This has got to change on Bart's end. I just want a string that I can print at my own leisure. @Bart
     containment.voxel_containment.print_containment()
@@ -168,7 +168,7 @@ def mask(args):
                     break
     elif args.autofill is True:
         labels = containment.voxel_containment.leaf_nodes
-        log(f"Automatically choosing leaf components: {labels}.")
+        log(f"Automatically choosing leaf components: {npc(labels)}.")
     else:
         # Making sure we this is the case, even though we do this check at the top as well.
         assert (
@@ -179,7 +179,7 @@ def mask(args):
             if label not in possible_labels:
                 log(f"ERROR: '{label}' is not a valid compartment label.")
                 return 1
-    log(f"Selected the following labels: {labels}.")
+    log(f"Selected the following labels: {npc(labels)}.")
 
     # Get our compartment by masking out all voxels that have our selected labels.
     compartment = containment.voxel_containment.get_voxel_mask(labels)
@@ -204,7 +204,7 @@ def mask(args):
     # Report a summary of the final mask's dimensions.
     mask_res = args.mask_resolution
     mask_shape = zoomed.shape
-    mask_size = tuple(np.array(mask_shape) * mask_res)
+    mask_size = tuple(npc(np.array(mask_shape) * mask_res))
     log(f"Size of final voxel mask is {mask_shape} at a {mask_res} nm resolution.")
     log(f"This corresponds to a final mask size of {mask_size} nm.")
 
@@ -257,6 +257,19 @@ def resolve_cache_path(structure_path):
     structure_name = structure_path.name
     cached_name = f".cached_{structure_name}.pickle"
     return structure_path.with_name(cached_name)
+
+
+def npc_single(n):
+    match type(n):
+        case np.float32 | np.float64:
+            return float(n)
+        case np.int32 | np.int64:
+            return int(n)
+
+
+def npc(ns):
+    "Canonicalize numpy number types to print them properly."
+    return [npc_single(n) for n in ns]
 
 
 def main():
