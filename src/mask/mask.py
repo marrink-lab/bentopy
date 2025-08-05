@@ -41,7 +41,7 @@ def mask(args):
             log("Like tears in rain.")
         if args.labels is None and not args.autofill:
             log("ERROR: No labels were specified.")
-            log("In non-interactive mode, at least one label must be provided manually (`--label`) or automitacally (`--autofill`).")
+            log("In non-interactive mode, at least one label must be provided manually (`--label`) or automatically (`--autofill`).")
             return 1
 
     # Read in structures from a structure file or from a cache..
