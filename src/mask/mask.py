@@ -183,9 +183,8 @@ def mask(args):
 
     # Get our compartment by masking out all voxels that have our selected labels.
     compartment = containment.voxel_containment.get_voxel_mask(labels)
-    (_things, (full, free)) = np.unique(
-        compartment, return_counts=True
-    )  # &&  We can get this from the class.
+    full = np.count_nonzero(compartment == True)
+    free = np.count_nonzero(compartment == False)
     containment_voxel_volume = args.containment_resolution**3
     full_volume = full * containment_voxel_volume
     free_volume = free * containment_voxel_volume
