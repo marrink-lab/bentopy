@@ -38,7 +38,9 @@ impl Cookies {
         for (i, bead) in structure.atoms.iter().enumerate() {
             let mut pos = bead.position.convert();
             match mode {
-                PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
+                // Note that rem_euclid may give negative zeros back, which may subtly break our
+                // assumptions, as asserted below. Perhaps overly strict but better be safe.
+                PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions).abs(),
                 PeriodicMode::Ignore => {
                     if pos.cmplt(Vec3::ZERO).any() || pos.cmpgt(box_dimensions).any() {
                         continue;
@@ -55,7 +57,7 @@ impl Cookies {
             }
             // Note that we can safely cast to a UVec3 here, since beads that fall outside the box
             // dimensions have already been translated inside or skipped.
-            assert!(pos.is_negative_bitmask() == 0);
+            assert!(pos.is_negative_bitmask() == 0, "pos = {pos}");
             let cell_pos = (pos / cookie_size).floor().as_uvec3();
             let idx = index_3d(cell_pos, dimensions);
             cookies[idx].push(pos);
