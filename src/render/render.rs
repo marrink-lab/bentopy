@@ -2,7 +2,7 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use clap::ValueEnum;
 use glam::{Mat3, Vec3};
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -116,7 +116,7 @@ fn write_gro(
     mode: Mode,
     resnum_mode: ResnumMode,
     ignore_tags: bool,
-) -> io::Result<Box<[(String, usize)]>> {
+) -> Result<Box<[(String, usize)]>> {
     let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
         if !ignore_tags {
             if let Some(tag) = tag {
@@ -143,7 +143,7 @@ fn write_gro(
                     molecule.translate_to_center();
                     Ok(molecule)
                 })
-                .collect::<io::Result<Vec<_>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             Mode::Backbone => placements
                 .iter()
                 .map(|p| {
@@ -157,7 +157,7 @@ fn write_gro(
                         .collect();
                     Ok(molecule)
                 })
-                .collect::<io::Result<Vec<_>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             Mode::Alpha => placements
                 .iter()
                 .map(|p| {
@@ -171,7 +171,7 @@ fn write_gro(
                         .collect();
                     Ok(molecule)
                 })
-                .collect::<io::Result<Vec<_>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             Mode::Residue => placements
                 .iter()
                 .map(|p| {
@@ -208,7 +208,7 @@ fn write_gro(
                     molecule.translate_to_center();
                     Ok(molecule)
                 })
-                .collect::<io::Result<Vec<_>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             Mode::Instance => placements
                 .iter()
                 .map(|p| {

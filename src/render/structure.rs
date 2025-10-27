@@ -1,8 +1,6 @@
-use std::{
-    io::{self, Read},
-    path::Path,
-};
+use std::{io::Read, path::Path};
 
+use anyhow::{Context, Result};
 use eightyseven::structure::{AtomName, AtomNum, ResName, ResNum};
 use glam::{Mat3, Vec3};
 
@@ -14,37 +12,43 @@ pub struct Molecule {
 
 impl Molecule {
     /// Create a new molecule from a PDB file.
-    fn from_pdb(pdb: &str) -> Self {
+    fn from_pdb(pdb: &str) -> Result<Self> {
         let mut atoms = Vec::new();
-        for line in pdb.lines() {
+        for (ln, line) in pdb.lines().enumerate() {
             if line.starts_with("ATOM") || line.starts_with("HETATM") {
-                let atom = Atom::from_pdb_atom_line(line);
+                let ln = ln + 1;
+                let atom = Atom::from_pdb_atom_line(line)
+                    .context(format!("could not parse atom on line {ln}"))?;
                 atoms.push(atom);
             }
         }
 
-        Self { atoms }
+        Ok(Self { atoms })
     }
 
     /// Create a new molecule from a gro file.
-    fn from_gro(gro: &str) -> Self {
+    fn from_gro(gro: &str) -> Result<Self> {
         let mut atoms = Vec::new();
-        let mut lines = gro.lines();
-        let _title = lines.next().expect("expected a title line");
+        let mut lines = gro.lines().enumerate();
+        let (_ln, _title) = lines.next().context("expected a title line")?;
         let n_atoms: usize = lines
             .next()
-            .expect("expected the number of atoms")
+            .context("expected the number of atoms")?
+            .1
             .trim()
             .parse()
-            .expect("could not parse the number of atoms");
-        for line in lines.take(n_atoms) {
-            let atom = Atom::from_gro_atom_line(line);
+            .context("could not parse the number of atoms")?;
+        // Read the atoms.
+        for (ln, line) in lines.take(n_atoms) {
+            let ln = ln + 1;
+            let atom = Atom::from_gro_atom_line(line)
+                .context(format!("could not parse atom on line {ln}"))?;
             atoms.push(atom);
         }
+        // We don't check for the presence and correctness of the box vectors, even though they
+        // should be there. We just don't care here.
 
-        // let _boxvec = lines.next().expect("expected the box vectors");
-
-        Self { atoms }
+        Ok(Self { atoms })
     }
 
     /// Apply a `tag` to the atoms in this [`Molecule`].
@@ -156,44 +160,74 @@ impl Atom {
     // ATOM      1  N   MET     1      48.048  69.220  58.803
     // ATOM      2  C13 DPPCM 367      31.671 -46.874  39.426  1.00  0.00      MEMB
     /// Read a single "ATOM" or "HETATM" record from a PDB and return an Atom.
-    fn from_pdb_atom_line(line: &str) -> Atom {
-        let serial = line[6..11].trim().parse().unwrap();
+    fn from_pdb_atom_line(line: &str) -> Result<Atom> {
+        let serial = line[6..11]
+            .trim()
+            .parse()
+            .context("could not parse atom serial")?;
         let name = line[12..16].trim().into();
         // NOTE: Even though the PDB specification only regards columns 18..21 as constituting the
         // resname, in practice the character directly after that is also included. This column is
         // not defined by the spec. Especially for telling apart lipids like DPPC and DPPG, it's
         // quite important to include that by-convention resname character. Thanks Abby!
         let resname = line[17..21].trim().into();
-        let resnum = line[22..26].trim().parse().unwrap();
-        let x = line[30..38].trim().parse().unwrap();
-        let y = line[38..46].trim().parse().unwrap();
-        let z = line[46..54].trim().parse().unwrap();
-        Atom {
+        let resnum = line[22..26]
+            .trim()
+            .parse()
+            .context("could not parse atom resnum")?;
+        let x = line[30..38]
+            .trim()
+            .parse()
+            .context("could not parse x coordinate")?;
+        let y = line[38..46]
+            .trim()
+            .parse()
+            .context("could not parse y coordinate")?;
+        let z = line[46..54]
+            .trim()
+            .parse()
+            .context("could not parse z coordinate")?;
+        Ok(Atom {
             name,
             resname,
             resnum,
             num: serial,
             pos: Vec3::new(x, y, z) / 10.0, // Convert from Å to nm.
-        }
+        })
     }
 
     // `    2WATER  HW3    6   1.326   0.120   0.568  1.9427 -0.8216 -0.0244`
     /// Read a single atom line from a gro file and return an Atom.
-    fn from_gro_atom_line(line: &str) -> Atom {
-        let resnum = line[0..5].trim().parse().unwrap();
+    fn from_gro_atom_line(line: &str) -> Result<Atom> {
+        let resnum = line[0..5]
+            .trim()
+            .parse()
+            .context("could not parse resnum")?;
         let resname = line[5..10].trim().into();
         let name = line[10..15].trim().into(); // Atom name.
-        let num = line[15..20].trim().parse().unwrap(); // Atom number.
-        let x = line[20..28].trim().parse().unwrap();
-        let y = line[28..36].trim().parse().unwrap();
-        let z = line[36..44].trim().parse().unwrap();
-        Atom {
+        let num = line[15..20]
+            .trim()
+            .parse()
+            .context("could not parse atomnum")?; // Atom number.
+        let x = line[20..28]
+            .trim()
+            .parse()
+            .context("could not parse x coordinate")?;
+        let y = line[28..36]
+            .trim()
+            .parse()
+            .context("could not parse y coordinate")?;
+        let z = line[36..44]
+            .trim()
+            .parse()
+            .context("could not parse z coordinate")?;
+        Ok(Atom {
             name,
             resname,
             resnum,
             num,
             pos: Vec3::new(x, y, z), // Values are already in nm.
-        }
+        })
     }
 
     /// Create a dummy atom.
@@ -209,19 +243,23 @@ impl Atom {
 }
 
 /// Load a [`Molecule`] from a pdb file.
-pub fn load_molecule<P: AsRef<Path> + std::fmt::Debug>(path: P) -> io::Result<Molecule> {
+pub fn load_molecule<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Molecule> {
     let mut data = String::new();
     eprintln!("\tLoading {path:?}...");
     std::fs::File::open(&path)?.read_to_string(&mut data)?;
 
-    let molecule = match path.as_ref().extension().and_then(|s| s.to_str()) {
-        Some("gro") => Molecule::from_gro(&data),
-        Some("pdb") => Molecule::from_pdb(&data),
-        None | Some(_) => {
-            eprintln!("WARNING: Assuming {path:?} is a pdb file.");
-            Molecule::from_pdb(&data)
-        }
-    };
+    let molecule =
+        match path.as_ref().extension().and_then(|s| s.to_str()) {
+            Some("gro") => Molecule::from_gro(&data)
+                .context(format!("could not parse .gro file at {path:?}"))?,
+            Some("pdb") => Molecule::from_pdb(&data)
+                .context(format!("could not parse .pdb file at {path:?}"))?,
+            None | Some(_) => {
+                eprintln!("WARNING: Assuming {path:?} is a pdb file.");
+                Molecule::from_pdb(&data)
+                    .context(format!("could not parse file at {path:?} as .pdb"))?
+            }
+        };
 
     Ok(molecule)
 }
