@@ -56,7 +56,7 @@ impl<'s> PlaceMap<'s> {
         self.dimensions.x as usize * self.dimensions.y as usize * self.dimensions.z as usize
     }
 
-    pub fn iter_placements(&self) -> impl Iterator<Item = (Vec3, Placement)> {
+    pub fn iter_placements(&'_ self) -> impl Iterator<Item = (Vec3, Placement<'_>)> {
         iter_3d(self.dimensions).map(|cell_pos| {
             let translation = cell_pos.as_vec3() * self.solvent.boxvecs.as_vec3();
             let placement = self.get(cell_pos).unwrap();
@@ -64,7 +64,7 @@ impl<'s> PlaceMap<'s> {
         })
     }
 
-    pub fn iter_placements_mut(&mut self) -> impl Iterator<Item = PlacementMut> {
+    pub fn iter_placements_mut(&'_ mut self) -> impl Iterator<Item = PlacementMut<'_>> {
         let n_beads = self.solvent.natoms();
         let n_bytes = n_beads.div_ceil(8);
         self.placements
@@ -112,7 +112,7 @@ impl<'s> PlaceMap<'s> {
         self.iter_atoms().map(|atom| atom.position)
     }
 
-    pub fn get_mut(&mut self, pos: UVec3) -> Option<PlacementMut> {
+    pub fn get_mut(&'_ mut self, pos: UVec3) -> Option<PlacementMut<'_>> {
         if pos.x >= self.dimensions.x || pos.y >= self.dimensions.y || pos.z >= self.dimensions.z {
             return None;
         }
@@ -127,7 +127,7 @@ impl<'s> PlaceMap<'s> {
         Some(PlacementMut::new(bytes, n_beads))
     }
 
-    pub fn get(&self, pos: UVec3) -> Option<Placement> {
+    pub fn get(&'_ self, pos: UVec3) -> Option<Placement<'_>> {
         if pos.x >= self.dimensions.x || pos.y >= self.dimensions.y || pos.z >= self.dimensions.z {
             return None;
         }
