@@ -34,9 +34,11 @@ pub struct Args {
     #[arg(long, default_value_t = 0.21)]
     pub solvent_cutoff: f32,
 
-    // TODO: Make hidden.
     /// The type of water written to the output file.
-    #[arg(long, value_enum, default_value_t)]
+    ///
+    /// This is a hidden option, since the performance of these structures has not been fully
+    /// tested.
+    #[arg(long, value_enum, default_value_t, hide = true)]
     pub water_type: WaterType,
 
     /// Center the structure in the new box.
