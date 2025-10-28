@@ -5,7 +5,6 @@ use anyhow::Context;
 use args::SortBehavior;
 use clap::Parser;
 use eightyseven::reader::ReadGro;
-use eightyseven::writer::WriteGro;
 use rand::SeedableRng;
 
 use crate::args::Args;
@@ -13,6 +12,7 @@ pub(crate) use crate::args::{BoundaryMode, PeriodicMode};
 use crate::solvate::solvate;
 use crate::structure::{write_structure, BoxVecsExtension, Structure};
 use crate::substitute::substitute;
+use crate::water::WaterType;
 
 mod args;
 mod convert;
@@ -21,6 +21,7 @@ mod placement;
 mod solvate;
 mod structure;
 mod substitute;
+mod water;
 
 fn main() -> anyhow::Result<()> {
     let config = Args::parse();
@@ -42,9 +43,22 @@ fn main() -> anyhow::Result<()> {
     };
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
     if template.natoms() == 0 {
-        eprintln!("ERROR: Template contains no atoms, so solvation cannot proceed.");
+        eprintln!("ERROR: Template contains no beads, so solvation cannot proceed.");
         std::process::exit(1);
     }
+
+    // We always expect a box of Martini waters.
+    let expected_resname = WaterType::Martini.resname();
+    if template
+        .atoms
+        .iter()
+        .any(|atom| &atom.resname != expected_resname)
+    {
+        eprintln!("ERROR: All template beads must be Martini waters ({expected_resname:?}).");
+        eprintln!("       The beads in the water template are all treated as the same kind.");
+        std::process::exit(1);
+    }
+
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
     let input_path = &config.input;
@@ -137,6 +151,7 @@ fn main() -> anyhow::Result<()> {
             &structure,
             &placemap,
             &substitutions,
+            config.water_type,
             buffer_size,
         )
         .with_context(|| {
@@ -148,6 +163,7 @@ fn main() -> anyhow::Result<()> {
             &structure,
             &placemap,
             &substitutions,
+            config.water_type,
             buffer_size,
         )
         .with_context(|| {
@@ -156,29 +172,9 @@ fn main() -> anyhow::Result<()> {
     }
     eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
 
-    let solvent_name = placemap
-        .solvent
-        .atoms()
-        .next()
-        .expect("there is at least one solvent bead")
-        .resname
-        .as_str();
-
-    // To print out a proper topology, we assume that all solvent beads share the same resname.
-    // If these assumptions do not hold, no topology can be printed.
-    if !placemap
-        .solvent
-        .atoms()
-        .all(|a| a.resname.as_str() == solvent_name)
-    {
-        eprintln!(
-            "WARNING: Cannot output topology information, since not all beads in the \
-            template have the same name (expected {solvent_name:?})."
-        );
-        std::process::exit(0);
-    }
-
-    let mut topology = vec![(solvent_name, placemap.unoccupied_count() as usize)];
+    let solvent_name = config.water_type.resname();
+    let nsolvent = placemap.unoccupied_count() as usize * config.water_type.nresidues();
+    let mut topology = vec![(solvent_name, nsolvent)];
     topology.extend(substitutions.iter().map(|s| (s.name(), s.natoms())));
     let mut stdout = io::stdout();
     match &config.append_topol {

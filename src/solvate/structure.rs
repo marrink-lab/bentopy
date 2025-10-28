@@ -5,7 +5,7 @@ use eightyseven::writer::WriteGro;
 use glam::Vec3;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{placement::PlaceMap, substitute::Substitution};
+use crate::{placement::PlaceMap, substitute::Substitution, water::WaterType};
 
 pub type Structure = eightyseven::structure::Structure;
 
@@ -33,10 +33,11 @@ pub fn write_structure<const PAR: bool>(
     structure: &Structure,
     solvent_placemap: &PlaceMap,
     substitutions: &[Substitution],
+    water_type: WaterType,
     buffer_size: usize,
 ) -> io::Result<()> {
     let natoms_structure = structure.natoms();
-    let natoms_solvent = solvent_placemap.unoccupied_count() as usize;
+    let natoms_solvent = solvent_placemap.unoccupied_count() as usize * water_type.total_natoms();
     let natoms_substitutes = substitutions.iter().map(|s| s.natoms()).sum::<usize>();
     let natoms = natoms_structure + natoms_solvent + natoms_substitutes;
 
@@ -76,19 +77,28 @@ pub fn write_structure<const PAR: bool>(
             }
         }
 
-        let atoms = &buffer;
+        // TODO: Consider breaking this into specific implementations for vecs of waters and single
+        // waters. Don't want the performance of the usual single-bead martini water to suffer!
+        let beads = &buffer;
         if PAR {
-            let lines: String = atoms.par_iter().map(Structure::format_atom_line).collect();
+            let lines: String = beads
+                .par_iter()
+                .flat_map(|bead| water_type.expand(bead.position))
+                .map(|a| Structure::format_atom_line(&a))
+                .collect();
             writer.write_all(lines.as_bytes())?;
         } else {
-            for atom in atoms {
+            let expanded = beads
+                .iter()
+                .flat_map(|bead| water_type.expand(bead.position));
+            for atom in expanded {
                 let line = Structure::format_atom_line(&atom);
                 writer.write_all(line.as_bytes())?;
             }
         }
 
         // Report the progress.
-        n += buffer.len();
+        n += buffer.len() * water_type.total_natoms();
         let progress = n as f32 / natoms_solvent as f32;
         let percentage = progress * 100.0;
         let delta = std::time::Instant::now() - start;
@@ -118,12 +128,12 @@ pub fn write_structure<const PAR: bool>(
                     break;
                 }
 
-                let atoms = &buffer;
+                let beads = &buffer;
                 if PAR {
-                    let lines: String = atoms.par_iter().map(Structure::format_atom_line).collect();
+                    let lines: String = beads.par_iter().map(Structure::format_atom_line).collect();
                     writer.write_all(lines.as_bytes())?;
                 } else {
-                    for atom in atoms {
+                    for atom in beads {
                         let line = Structure::format_atom_line(&atom);
                         writer.write_all(line.as_bytes())?;
                     }

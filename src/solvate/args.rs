@@ -3,6 +3,8 @@ use std::str::FromStr;
 
 use clap::{Parser, ValueEnum};
 
+use crate::water::WaterType;
+
 /// Solvate.
 #[derive(Debug, Parser)]
 pub struct Args {
@@ -31,6 +33,11 @@ pub struct Args {
     /// For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
     #[arg(long, default_value_t = 0.21)]
     pub solvent_cutoff: f32,
+
+    // TODO: Make hidden.
+    /// The type of water written to the output file.
+    #[arg(long, value_enum, default_value_t)]
+    pub water_type: WaterType,
 
     /// Center the structure in the new box.
     ///
