@@ -1,3 +1,4 @@
+use eightyseven::structure::ResName;
 use glam::{BVec3, IVec3, UVec3, Vec3, Vec3A};
 
 use crate::convert::Convert;
@@ -23,6 +24,7 @@ impl Cookies {
     /// the treatment of atoms according to the [`PeriodicMode`].
     pub fn new(
         structure: &Structure,
+        ignore: &[ResName],
         cookie_size: Vec3,
         dimensions: UVec3,
         cutoff: f32,
@@ -37,6 +39,11 @@ impl Cookies {
         let box_dimensions = structure.boxvecs.as_vec3();
         for (i, bead) in structure.atoms.iter().enumerate() {
             let mut pos = bead.position.convert();
+            if ignore.contains(&bead.resname) {
+                // We don't even consider this particle in setting up our Cookies because we want
+                // to ignore it in our solvent-water check.
+                continue;
+            }
             match mode {
                 PeriodicMode::Periodic => pos = pos.rem_euclid(box_dimensions),
                 PeriodicMode::Ignore => {

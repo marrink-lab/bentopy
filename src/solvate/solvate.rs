@@ -1,3 +1,4 @@
+use eightyseven::structure::ResName;
 use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
@@ -14,6 +15,7 @@ pub fn solvate<'sol>(
     solvent: &'sol Structure,
     cutoff: f32,
     solvent_cutoff: f32,
+    ignore: &[ResName],
     center: bool,
     boundary_mode: BoundaryMode,
     periodic_mode: PeriodicMode,
@@ -56,10 +58,15 @@ pub fn solvate<'sol>(
 
     // Cut the input structure into cell-sized cookies that are ordered in the same manner as the
     // solvent placement map is.
+    if !ignore.is_empty() {
+        let ignored = ignore.join(", ");
+        eprintln!("\tParticles with the following resnames will be ignored: {ignored}");
+    }
     eprint!("\tCutting cookies... ");
     let start = std::time::Instant::now();
     let cookies = Cookies::new(
         structure,
+        ignore,
         solvent.boxvecs.as_vec3(),
         dimensions,
         cutoff,

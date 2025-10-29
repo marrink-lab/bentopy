@@ -73,6 +73,7 @@ fn main() -> anyhow::Result<()> {
         &template,
         config.cutoff,
         config.solvent_cutoff,
+        &config.ignore,
         config.center,
         config.boundary_mode,
         config.periodic_mode,

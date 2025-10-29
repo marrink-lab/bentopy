@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use clap::{Parser, ValueEnum};
+use eightyseven::structure::ResName;
 
 use crate::water::WaterType;
 
@@ -33,6 +34,10 @@ pub struct Args {
     /// For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
     #[arg(long, default_value_t = 0.21)]
     pub solvent_cutoff: f32,
+
+    /// List of resnames to ignore when checking against structure-solvent collisions.
+    #[arg(long, value_delimiter = ',')]
+    pub ignore: Vec<ResName>,
 
     /// The type of water written to the output file.
     ///
