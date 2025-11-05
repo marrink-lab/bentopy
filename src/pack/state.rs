@@ -363,6 +363,8 @@ pub struct State {
 
     pub rng: Rng,
     pub seed: u64,
+    pub max_tries_multiplier: u64,
+    pub max_tries_per_rotation_divisor: u64,
     pub bead_radius: f32,
     pub verbose: bool,
     pub summary: bool,
@@ -544,6 +546,28 @@ impl State {
         let seed = args.seed.unwrap_or_else(|| Rng::from_entropy().next_u64());
         let rng = Rng::seed_from_u64(seed);
 
+        // Determine the max_tries parameters.
+        let max_tries_multiplier = match std::env::var("BENTOPY_TRIES") {
+            Ok(s) => {
+                let n = s.parse().with_context(|| {
+                    format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
+                })?;
+                eprintln!("\tMax tries multiplier set to {n}.");
+                n
+            }
+            Err(_) => 1000,
+        };
+        let max_tries_per_rotation_divisor = match std::env::var("BENTOPY_ROT_DIV") {
+            Ok(s) => {
+                let n = s.parse().with_context(|| {
+                    format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
+                })?;
+                eprintln!("\tMax tries per rotation divisor set to {n}.");
+                n
+            }
+            Err(_) => 100,
+        };
+
         Ok(Self {
             space,
             segments,
@@ -551,6 +575,8 @@ impl State {
 
             rng,
             seed,
+            max_tries_multiplier,
+            max_tries_per_rotation_divisor,
             bead_radius,
             verbose,
             summary: !args.no_summary,
@@ -593,25 +619,6 @@ impl State {
         let mut locations = Locations::new();
         let mut placements = Vec::new();
         let mut summary = Summary::new();
-
-        let max_tries_multiplier = match std::env::var("BENTOPY_TRIES") {
-            Ok(s) => s
-                .parse()
-                .with_context(|| {
-                    format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
-                })
-                .inspect(|n| eprintln!("\tMax tries multiplier set to {n}."))?,
-            Err(_) => 1000,
-        };
-        let max_tries_per_rotation_divisor = match std::env::var("BENTOPY_ROT_DIV") {
-            Ok(s) => s
-                .parse()
-                .with_context(|| {
-                    format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
-                })
-                .inspect(|n| eprintln!("\tMax tries per rotation divisor set to {n}."))?,
-            Err(_) => 100,
-        };
 
         let state = self;
         let n_segments = state.segments.len();
@@ -658,8 +665,10 @@ impl State {
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.
             let mut tries_per_rotation = 0;
-            let max_tries = max_tries_multiplier * session.target(); // The number of unsuccessful tries.
-            let max_tries_per_rotation = max_tries / max_tries_per_rotation_divisor;
+            // The maximum number of unsuccessful tries.
+            let max_tries = state.max_tries_multiplier * session.target() as u64;
+            // The number of
+            let max_tries_per_rotation = max_tries / state.max_tries_per_rotation_divisor;
             let mut batch_positions = Vec::new();
             'placement: while hits < session.target() {
                 if tries >= max_tries {
