@@ -55,6 +55,27 @@ pub struct Args {
     #[arg(long)]
     pub no_summary: bool,
 
+    /// Set the multiplier for determining the maximum number of tries for placing a segment.
+    ///
+    /// The number of segments requested is multiplied with this value to set the upper limit on
+    /// how many unsuccessful attempts will be made to place it.
+    ///
+    /// Setting a higher value will result in more attempts, which can help improve the total
+    /// number of segments packed in very dense systems.
+    #[arg(long, default_value_t = 1000)]
+    pub max_tries_mult: u64,
+
+    /// Set the divisor for determining the maximum number of tries for placing a segment per
+    /// rotation.
+    ///
+    /// This is a rather advanced option, and it is unlikely that it requires tweaking.
+    ///
+    /// The maximum number of attempts (see `--max-tries-mult`) is divided by this divisor value to
+    /// determine the number of unsuccessful attempts that are allowed for a given rotation. After
+    /// this number of unsuccessful tries, the next random rotation will be tried.
+    #[arg(long, default_value_t = 100)]
+    pub max_tries_rot_div: u64,
+
     /// Display verbose output.
     #[arg(short, long)]
     pub verbose: bool,

@@ -547,25 +547,27 @@ impl State {
         let rng = Rng::seed_from_u64(seed);
 
         // Determine the max_tries parameters.
-        let max_tries_multiplier = match std::env::var("BENTOPY_TRIES") {
-            Ok(s) => {
-                let n = s.parse().with_context(|| {
-                    format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
-                })?;
-                eprintln!("\tMax tries multiplier set to {n}.");
-                n
-            }
-            Err(_) => 1000,
+        let max_tries_multiplier = if let Ok(s) = std::env::var("BENTOPY_TRIES") {
+            let n = s.parse().with_context(|| {
+                format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
+            })?;
+            eprintln!("\tMax tries multiplier set to {n}.");
+            eprintln!("\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated.");
+            eprintln!("\t         Use --max-tries-mult instead.");
+            n
+        } else {
+            args.max_tries_mult
         };
-        let max_tries_per_rotation_divisor = match std::env::var("BENTOPY_ROT_DIV") {
-            Ok(s) => {
-                let n = s.parse().with_context(|| {
-                    format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
-                })?;
-                eprintln!("\tMax tries per rotation divisor set to {n}.");
-                n
-            }
-            Err(_) => 100,
+        let max_tries_per_rotation_divisor = if let Ok(s) = std::env::var("BENTOPY_ROT_DIV") {
+            let n = s.parse().with_context(|| {
+                format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
+            })?;
+            eprintln!("\tMax tries per rotation divisor set to {n}.");
+            eprintln!("\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated.");
+            eprintln!("\t         Use --max-tries-rot-div instead.");
+            n
+        } else {
+            args.max_tries_rot_div
         };
 
         Ok(Self {
