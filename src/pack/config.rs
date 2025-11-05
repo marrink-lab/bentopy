@@ -45,6 +45,17 @@ pub struct General {
     pub max_tries_rot_div: u64,
 }
 
+impl Default for General {
+    fn default() -> Self {
+        Self {
+            seed: Default::default(),
+            bead_radius: bead_radius_default(),
+            max_tries_mult: max_tries_mult_default(),
+            max_tries_rot_div: max_tries_rot_div_default(),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Shape {
@@ -204,6 +215,7 @@ pub struct Output {
 
 #[derive(Deserialize)]
 pub struct Configuration {
+    #[serde(default)]
     pub general: General,
     pub space: Space,
     pub segments: Vec<Segment>,

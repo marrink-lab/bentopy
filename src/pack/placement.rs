@@ -62,6 +62,10 @@ impl Placement {
 pub struct PlacementList {
     title: String,
     size: Size,
+    seed: u64,
+    max_tries_mult: u64,
+    max_tries_per_rotation_divisor: u64,
+    bead_radius: f32,
     topol_includes: TopolIncludes,
     placements: Vec<Placement>,
 }
@@ -71,6 +75,10 @@ impl PlacementList {
         Self {
             title: state.output.title.to_string(),
             size: state.space.size,
+            seed: state.seed,
+            max_tries_mult: state.max_tries_multiplier,
+            max_tries_per_rotation_divisor: state.max_tries_per_rotation_divisor,
+            bead_radius: state.bead_radius,
             topol_includes: state.output.topol_includes.clone().unwrap_or_default(),
             placements: placements.into_iter().collect(),
         }

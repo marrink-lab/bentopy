@@ -376,7 +376,10 @@ impl State {
         // it overwrites the config value. (And the deprecated env vars have the highest priority.)
 
         // If no seed is provided, use a random seed.
-        let seed = args.seed.unwrap_or_else(|| Rng::from_entropy().next_u64());
+        let seed = args
+            .seed
+            .or(config.general.seed)
+            .unwrap_or_else(|| Rng::from_entropy().next_u64());
         let rng = Rng::seed_from_u64(seed);
 
         let bead_radius = args.bead_radius.unwrap_or(config.general.bead_radius);
@@ -390,11 +393,10 @@ impl State {
             eprintln!("\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated.");
             eprintln!("\t         Use --max-tries-mult instead.");
             n
-        } else if let Some(m) = args.max_tries_mult {
-            m
         } else {
-            config.general.max_tries_mult
+            args.max_tries_mult.unwrap_or(config.general.max_tries_mult)
         };
+
         let max_tries_per_rotation_divisor = if let Ok(s) = std::env::var("BENTOPY_ROT_DIV") {
             let n = s.parse().with_context(|| {
                 format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
@@ -403,10 +405,9 @@ impl State {
             eprintln!("\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated.");
             eprintln!("\t         Use --max-tries-rot-div instead.");
             n
-        } else if let Some(m) = args.max_tries_rot_div {
-            m
         } else {
-            config.general.max_tries_rot_div
+            args.max_tries_rot_div
+                .unwrap_or(config.general.max_tries_rot_div)
         };
 
         let verbose = args.verbose;
