@@ -48,12 +48,11 @@ pub struct Args {
     pub seed: Option<u64>,
 
     /// Set the bead radius that is considered during voxelization in nm.
-    #[arg(long, default_value_t = 0.20)]
-    pub bead_radius: f32,
-
-    /// Disable printing the summary after the placement procedure.
+    ///
+    /// If set, this value overwrites any value provided in the input file.
+    /// If this value is not provided in the input file, the default value is 0.20 nm.
     #[arg(long)]
-    pub no_summary: bool,
+    pub bead_radius: Option<f32>,
 
     /// Set the multiplier for determining the maximum number of tries for placing a segment.
     ///
@@ -62,8 +61,11 @@ pub struct Args {
     ///
     /// Setting a higher value will result in more attempts, which can help improve the total
     /// number of segments packed in very dense systems.
-    #[arg(long, default_value_t = 1000)]
-    pub max_tries_mult: u64,
+    ///
+    /// If set, this value overwrites any value provided in the input file.
+    /// If this value is not provided in the input file, the default value is 1000.
+    #[arg(long)]
+    pub max_tries_mult: Option<u64>,
 
     /// Set the divisor for determining the maximum number of tries for placing a segment per
     /// rotation.
@@ -73,8 +75,15 @@ pub struct Args {
     /// The maximum number of attempts (see `--max-tries-mult`) is divided by this divisor value to
     /// determine the number of unsuccessful attempts that are allowed for a given rotation. After
     /// this number of unsuccessful tries, the next random rotation will be tried.
-    #[arg(long, default_value_t = 100)]
-    pub max_tries_rot_div: u64,
+    ///
+    /// If set, this value overwrites any value provided in the input file.
+    /// If this value is not provided in the input file, the default value is 100.
+    #[arg(long)]
+    pub max_tries_rot_div: Option<u64>,
+
+    /// Disable printing the summary after the placement procedure.
+    #[arg(long)]
+    pub no_summary: bool,
 
     /// Display verbose output.
     #[arg(short, long)]

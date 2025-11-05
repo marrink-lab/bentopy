@@ -372,7 +372,46 @@ pub struct State {
 
 impl State {
     pub fn new(args: Args, config: Configuration) -> anyhow::Result<Self> {
+        // Read values from the general section of the config. If a command line argument is given,
+        // it overwrites the config value. (And the deprecated env vars have the highest priority.)
+
+        // If no seed is provided, use a random seed.
+        let seed = args.seed.unwrap_or_else(|| Rng::from_entropy().next_u64());
+        let rng = Rng::seed_from_u64(seed);
+
+        let bead_radius = args.bead_radius.unwrap_or(config.general.bead_radius);
+
+        // Determine the max_tries parameters.
+        let max_tries_multiplier = if let Ok(s) = std::env::var("BENTOPY_TRIES") {
+            let n = s.parse().with_context(|| {
+                format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
+            })?;
+            eprintln!("\tMax tries multiplier set to {n}.");
+            eprintln!("\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated.");
+            eprintln!("\t         Use --max-tries-mult instead.");
+            n
+        } else if let Some(m) = args.max_tries_mult {
+            m
+        } else {
+            config.general.max_tries_mult
+        };
+        let max_tries_per_rotation_divisor = if let Ok(s) = std::env::var("BENTOPY_ROT_DIV") {
+            let n = s.parse().with_context(|| {
+                format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
+            })?;
+            eprintln!("\tMax tries per rotation divisor set to {n}.");
+            eprintln!("\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated.");
+            eprintln!("\t         Use --max-tries-rot-div instead.");
+            n
+        } else if let Some(m) = args.max_tries_rot_div {
+            m
+        } else {
+            config.general.max_tries_rot_div
+        };
+
         let verbose = args.verbose;
+
+        // Space.
         let dimensions = config
             .space
             .size
@@ -449,7 +488,7 @@ impl State {
             previous_rules: None,
         };
 
-        let bead_radius = args.bead_radius;
+        // Segments.
         eprintln!("Loading segment structures...");
         let segments = {
             let mut segments: Vec<_> = config
@@ -536,38 +575,11 @@ impl State {
             segments
         };
 
+        // Output.
         let output = Output {
             title: config.output.title,
             path: args.output,
             topol_includes: config.output.topol_includes,
-        };
-
-        // If no seed is provided, use a random seed.
-        let seed = args.seed.unwrap_or_else(|| Rng::from_entropy().next_u64());
-        let rng = Rng::seed_from_u64(seed);
-
-        // Determine the max_tries parameters.
-        let max_tries_multiplier = if let Ok(s) = std::env::var("BENTOPY_TRIES") {
-            let n = s.parse().with_context(|| {
-                format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
-            })?;
-            eprintln!("\tMax tries multiplier set to {n}.");
-            eprintln!("\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated.");
-            eprintln!("\t         Use --max-tries-mult instead.");
-            n
-        } else {
-            args.max_tries_mult
-        };
-        let max_tries_per_rotation_divisor = if let Ok(s) = std::env::var("BENTOPY_ROT_DIV") {
-            let n = s.parse().with_context(|| {
-                format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
-            })?;
-            eprintln!("\tMax tries per rotation divisor set to {n}.");
-            eprintln!("\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated.");
-            eprintln!("\t         Use --max-tries-rot-div instead.");
-            n
-        } else {
-            args.max_tries_rot_div
         };
 
         Ok(Self {

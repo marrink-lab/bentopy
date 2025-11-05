@@ -20,6 +20,31 @@ impl<'de> Deserialize<'de> for CombinationExpression {
 /// Avogadro's number (per mol).
 const N_A: f64 = 6.0221415e23;
 
+// TODO: I think it's cursed that we store these defaults here. I'd like to create a file
+// collecting all of these consts, one day.
+fn bead_radius_default() -> f32 {
+    0.20 // nm
+}
+
+fn max_tries_mult_default() -> u64 {
+    1000
+}
+
+fn max_tries_rot_div_default() -> u64 {
+    100
+}
+
+#[derive(Deserialize)]
+pub struct General {
+    pub seed: Option<u64>,
+    #[serde(default = "bead_radius_default")]
+    pub bead_radius: f32,
+    #[serde(default = "max_tries_mult_default")]
+    pub max_tries_mult: u64,
+    #[serde(default = "max_tries_rot_div_default")]
+    pub max_tries_rot_div: u64,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Shape {
@@ -179,6 +204,7 @@ pub struct Output {
 
 #[derive(Deserialize)]
 pub struct Configuration {
+    pub general: General,
     pub space: Space,
     pub segments: Vec<Segment>,
     pub output: Output,
