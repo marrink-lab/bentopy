@@ -8,7 +8,7 @@ use anyhow::{bail, Context};
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
-use rand::{Rng as _, SeedableRng};
+use rand::{Rng as _, RngCore, SeedableRng};
 
 use crate::args::{Args, RearrangeMethod};
 use crate::config::{
@@ -362,6 +362,7 @@ pub struct State {
     pub output: Output,
 
     pub rng: Rng,
+    pub seed: u64,
     pub bead_radius: f32,
     pub verbose: bool,
     pub summary: bool,
@@ -539,11 +540,9 @@ impl State {
             topol_includes: config.output.topol_includes,
         };
 
-        let rng = if let Some(seed) = args.seed {
-            Rng::seed_from_u64(seed)
-        } else {
-            Rng::from_entropy()
-        };
+        // If no seed is provided, use a random seed.
+        let seed = args.seed.unwrap_or_else(|| Rng::from_entropy().next_u64());
+        let rng = Rng::seed_from_u64(seed);
 
         Ok(Self {
             space,
@@ -551,6 +550,7 @@ impl State {
             output,
 
             rng,
+            seed,
             bead_radius,
             verbose,
             summary: !args.no_summary,
