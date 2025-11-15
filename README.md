@@ -2,11 +2,6 @@
 
 ![Bentopy](figures/logo_header.png)
 
-## State
-
-This project is under development and solely for internal use. Many parts are
-in flux, and no guarantees about correctness or stability can be made.
-
 ## Installation
 
 ### Prerequisites
@@ -57,19 +52,9 @@ bentopy-mask --help
 ...
 ```
 
-> [!NOTE]
-> For the moment, the bentopy subcommands can be accessed through the
-> `bentopy-<subcommand>` pattern. For example, `bentopy-pack`.
-> Shortly, a `bentopy` root command will be introduced, which provides access
-> through a `bentopy <subcommand>` pattern, e.g., `bentopy pack`.
-> Throughout this document, the former usage is shown.
-> For now, a dash between the words is necessary.
-
 A typical _bentopy_ workflow may look like this.
 
-```
-bentopy-merge -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-merge -> bentopy-solvate
-```
+![bentopy-merge -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-merge -> bentopy-solvate](figures/bentopy_workflow.png)
 
 What follows is a brief explanation and example invocation of these
 subcommands. A more detailed walkthrough can be found in the
