@@ -118,17 +118,25 @@ impl<'wb> Residue<'wb> {
     // details that are more local at the call site.
     pub fn atoms<'a: 'wb>(
         &'wb self,
-        // resnum: &'a mut u32,
-        // atomnum: &'a mut u32,
+        resnum: &'a mut u32,
+        atomnum: &'a mut u32,
         translation: Vec3,
     ) -> impl Iterator<Item = Atom> + use<'wb> {
-        Iterator::zip(self.positions.iter(), self.names).map(move |(&pos, &name)| Atom {
-            resnum: 1,
-            resname: self.resname.into(),
-            atomname: name.into(),
-            atomnum: 1,
-            position: (pos + translation).convert(),
-            velocity: Default::default(),
+        let rn = *resnum;
+        *resnum += 1;
+
+        Iterator::zip(self.positions.iter(), self.names).map(move |(&pos, &name)| {
+            let an = *atomnum;
+            *atomnum += 1;
+
+            Atom {
+                resnum: rn,
+                resname: self.resname.into(),
+                atomname: name.into(),
+                atomnum: an,
+                position: (pos + translation).convert(),
+                velocity: Default::default(),
+            }
         })
     }
 }
