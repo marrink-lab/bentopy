@@ -1,81 +1,89 @@
 use clap::ValueEnum;
-use eightyseven::structure::{Atom, AtomName, AtomNum, ResName, ResNum, Vec3};
+use eightyseven::structure::Atom;
+use glam::Vec3;
+
+use crate::args::WaterType;
+use crate::water::models::ResiduesIterator;
+
+mod models;
 
 #[derive(Debug, Default, Clone, Copy, ValueEnum, PartialEq, Eq)]
 #[clap(rename_all = "lowercase")]
-pub enum WaterType {
+pub enum Water {
     #[default]
     Martini,
     Tip3P,
 }
 
-impl WaterType {
-    // TODO: SmallVec optimization?
-    pub fn expand(&self, position: Vec3) -> Vec<Atom> {
-        fn build_atom(
-            resnum: ResNum,
-            resname: impl Into<ResName>,
-            atomname: impl Into<AtomName>,
-            atomnum: AtomNum,
-            position: Vec3,
-        ) -> Atom {
-            Atom {
-                resnum,
-                resname: resname.into(),
-                atomname: atomname.into(),
-                atomnum,
-                position,
-                ..Default::default()
-            }
+impl From<WaterType> for Water {
+    fn from(value: WaterType) -> Self {
+        match value {
+            WaterType::Martini => Self::Martini,
+            WaterType::Tip3P => Self::Tip3P,
         }
+    }
+}
 
+impl Water {
+    /// Returns an iterator over the positions that must be considered for solvent-structure
+    /// collisions.
+    pub fn positions(&self) -> impl Iterator<Item = Vec3> {
         match self {
-            Self::Martini => vec![build_atom(0, "W", "W", 0, position)],
-            Self::Tip3P => TIP3P_ATOMS
-                .map(|(atomnum, atomname, resname, resnum, pos)| {
-                    build_atom(resnum, resname, atomname, atomnum, pos + position)
-                })
-                .to_vec(),
+            Water::Martini => models::MARTINI.positions(),
+            Water::Tip3P => models::TIP3P.positions(),
+        }
+    }
+
+    // TODO: All of these delegate functions can be resolved after the refactor.
+    /// Returns an iterator over the residues in this [`Water`].
+    fn residues(&'_ self) -> ResiduesIterator<'_> {
+        match self {
+            Water::Martini => models::MARTINI.residues(),
+            Water::Tip3P => models::TIP3P.residues(),
+        }
+    }
+
+    pub const fn dimensions(&self) -> Vec3 {
+        match self {
+            Water::Martini => models::MARTINI.dimensions(),
+            Water::Tip3P => models::TIP3P.dimensions(),
         }
     }
 
     pub const fn resname(&self) -> &str {
         match self {
-            Self::Martini => "W",
-            Self::Tip3P => "SOL",
+            Water::Martini => models::MARTINI.resname(),
+            Water::Tip3P => models::TIP3P.resname(),
         }
     }
 
-    pub const fn nresidues(&self) -> usize {
+    // TODO: Rename to natoms_per_residue?
+    pub const fn residue_points(&self) -> usize {
         match self {
-            Self::Martini => 1,
-            Self::Tip3P => 4,
+            Water::Martini => models::MARTINI.residue_points(),
+            Water::Tip3P => models::TIP3P.residue_points(),
         }
     }
 
-    const fn residue_points(&self) -> usize {
-        match self {
-            Self::Martini => 1,
-            Self::Tip3P => 3,
-        }
-    }
-
-    pub const fn total_natoms(&self) -> usize {
-        self.residue_points() * self.nresidues()
+    /// Returns an iterator over the accepted atoms, ready to be written out.
+    pub fn spray<'w, 'a: 'w, A: Iterator<Item = bool>>(
+        &'w self,
+        mut occupied: A,
+        // resnum: &'a mut u32,
+        // atomnum: &'a mut u32,
+        translation: Vec3,
+    ) -> impl Iterator<Item = Atom> + use<'w, A> {
+        // TODO: Add the whole resnum atomnum thing back in!
+        self.residues()
+            .map(move |res| res.atoms(translation).collect::<Box<[_]>>())
+            .filter(move |_atom| {
+                // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
+                // that impossible far before this function is executed. Otherwise, can we make it
+                // a nicer error? Or even an unimplemented!().
+                !occupied
+                    .next()
+                    .expect("occupied should have the same length as the number of residues")
+            })
+            .flatten()
     }
 }
-
-const TIP3P_ATOMS: [(ResNum, &str, &str, AtomNum, Vec3); 12] = [
-    (1, "OW", "SOL", 1, Vec3::new(-0.09525, -0.0945, -0.08175)),
-    (2, "HW1", "SOL", 1, Vec3::new(-0.12825, -0.0415, -0.00975)),
-    (3, "HW2", "SOL", 1, Vec3::new(-0.02225, -0.0435, -0.11775)),
-    (4, "OW", "SOL", 2, Vec3::new(-0.08625, 0.0885, 0.09925)),
-    (5, "HW1", "SOL", 2, Vec3::new(-0.04725, 0.1145, 0.01525)),
-    (6, "HW2", "SOL", 2, Vec3::new(-0.04125, 0.0085, 0.12425)),
-    (7, "OW", "SOL", 3, Vec3::new(0.07875, 0.0945, -0.10375)),
-    (8, "HW1", "SOL", 3, Vec3::new(0.09675, 0.0335, -0.03275)),
-    (9, "HW2", "SOL", 3, Vec3::new(0.16475, 0.1265, -0.13075)),
-    (10, "OW", "SOL", 4, Vec3::new(0.10275, -0.0885, 0.08625)),
-    (11, "HW1", "SOL", 4, Vec3::new(0.02675, -0.1105, 0.03225)),
-    (12, "HW2", "SOL", 4, Vec3::new(0.12275, -0.1695, 0.13425)),
-];

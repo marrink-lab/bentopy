@@ -1,5 +1,4 @@
 use eightyseven::structure::ResName;
-use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
 use crate::convert::Convert;
@@ -7,13 +6,14 @@ use crate::cookies::Cookies;
 use crate::placement::PlaceMap;
 use crate::placement::iter_3d;
 use crate::structure::{BoxVecsExtension, Structure};
+use crate::water::Water;
 use crate::{BoundaryMode, PeriodicMode};
 
 /// Solvate a [`Structure`] with a template solvent box.
 #[allow(clippy::too_many_arguments)]
 pub fn solvate<'sol>(
     structure: &mut Structure,
-    solvent: &'sol Structure,
+    solvent: Water,
     cutoff: f32,
     solvent_cutoff: f32,
     ignore: &[ResName],
@@ -23,7 +23,8 @@ pub fn solvate<'sol>(
 ) -> PlaceMap<'sol> {
     // Determine how many copies of the solvent cell are required to fill the input box for each
     // direction.
-    let d = structure.boxvecs.as_vec3() / solvent.boxvecs.as_vec3();
+    let cookie_size = solvent.dimensions();
+    let d = structure.boxvecs.as_vec3() / cookie_size;
     let dimensions = d.ceil().as_uvec3();
 
     // Depending on the desired behavior, modify the structure.
@@ -34,7 +35,7 @@ pub fn solvate<'sol>(
             // If the solvent box does not fit precisely (viz., the input box size is not an
             // integer multiple of the solvent box size), the size will be overshot. This means that in
             // many cases, the size of the output box may be greater than that of the input structure.
-            let remainder = d.fract() * solvent.boxvecs.as_vec3();
+            let remainder = d.fract() * cookie_size;
             if center {
                 // Add half of the overshot to the positions in the structure to place it in the center of
                 // the final box.
@@ -68,9 +69,9 @@ pub fn solvate<'sol>(
     let cookies = Cookies::new(
         structure,
         ignore,
-        solvent.boxvecs.as_vec3(),
+        cookie_size,
         dimensions,
-        cutoff,
+        cutoff, // TODO: Should the cutoff depend on the water-type?
         periodic_mode,
     );
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
@@ -90,8 +91,11 @@ pub fn solvate<'sol>(
             continue;
         }
         let translation = cookies.offset(cell_pos);
-        for (idx, solvent_bead) in placemap.solvent.atoms().enumerate() {
-            let solvent_pos = solvent_bead.position.convert() + translation;
+        // TODO: This is a bit dirty but necessary for the time being because we are iterating over
+        // something that we also need to modify.
+        let p = placemap.all_positions().to_vec();
+        for (idx, &solvent_bead) in p.iter().enumerate() {
+            let solvent_pos = solvent_bead + translation;
             let mut collision = false;
             for &cookie_bead in cookie {
                 // TODO: Consider applying this translation as a map before the iter over
@@ -134,9 +138,9 @@ pub fn solvate<'sol>(
                     .crown(box_dimensions)
                     .map(|translation| {
                         placemap
-                            .solvent
-                            .atoms()
-                            .map(move |a| a.position.convert() + translation)
+                            .all_positions()
+                            .iter()
+                            .map(move |&a| a + translation)
                             // We are only interested in positions that lie at the periodic
                             // interface. Anything beyond the solvent cutoff distance from that
                             // interface is out of reach.
@@ -148,10 +152,9 @@ pub fn solvate<'sol>(
 
                 let translation = cookies.offset(main.as_uvec3() * max);
                 let this = placemap
-                    .solvent
-                    .atoms()
-                    .map(|a| a.position)
-                    .map(|position| position.convert() + translation);
+                    .all_positions()
+                    .iter()
+                    .map(|&position| position + translation);
 
                 // We'll make a list of solvent atoms we need to reject by index.
                 let rejected: Box<[_]> = this

@@ -5,7 +5,8 @@ use eightyseven::writer::WriteGro;
 use glam::Vec3;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{placement::PlaceMap, substitute::Substitution, water::WaterType};
+use crate::placement::PlaceMap;
+use crate::substitute::Substitution;
 
 pub type Structure = eightyseven::structure::Structure;
 
@@ -33,11 +34,12 @@ pub fn write_structure<const PAR: bool>(
     structure: &Structure,
     solvent_placemap: &PlaceMap,
     substitutions: &[Substitution],
-    water_type: WaterType,
     buffer_size: usize,
 ) -> io::Result<()> {
+    let solvent = solvent_placemap.solvent;
     let natoms_structure = structure.natoms();
-    let natoms_solvent = solvent_placemap.unoccupied_count() as usize * water_type.total_natoms();
+    let natoms_per_residue = solvent.residue_points();
+    let natoms_solvent = solvent_placemap.unoccupied_count() as usize * natoms_per_residue;
     let natoms_substitutes = substitutions.iter().map(|s| s.natoms()).sum::<usize>();
     let natoms = natoms_structure + natoms_solvent + natoms_substitutes;
 
@@ -64,41 +66,41 @@ pub fn write_structure<const PAR: bool>(
     let start = std::time::Instant::now();
     eprintln!("Writing solvent structure  ({natoms_solvent:>9}/{natoms} total atoms)...");
     let mut placements = solvent_placemap.iter_atoms_chunks();
-    let mut buffer = Vec::new();
+    let mut particle_buffer = Vec::new();
     let mut n = 0;
     'write_atoms: loop {
-        buffer.clear();
+        particle_buffer.clear();
 
-        'fill_buffer: while buffer.len() < buffer_size {
+        // TODO: I think it's scary that buffer_size could feasibly be zero.
+        'fill_buffer: while particle_buffer.len() < buffer_size {
             match placements.next() {
-                Some(sp) => buffer.extend(sp),
-                None if buffer.is_empty() => break 'write_atoms,
+                Some(sp) => particle_buffer.extend(sp),
+                None if particle_buffer.is_empty() => break 'write_atoms,
                 None => break 'fill_buffer,
             }
         }
 
-        // TODO: Consider breaking this into specific implementations for vecs of waters and single
-        // waters. Don't want the performance of the usual single-bead martini water to suffer!
-        let beads = &buffer;
         if PAR {
-            let lines: String = beads
+            let lines: String = particle_buffer
                 .par_iter()
-                .flat_map(|bead| water_type.expand(bead.position))
                 .map(|a| Structure::format_atom_line(&a))
                 .collect();
             writer.write_all(lines.as_bytes())?;
         } else {
-            let expanded = beads
-                .iter()
-                .flat_map(|bead| water_type.expand(bead.position));
-            for atom in expanded {
-                let line = Structure::format_atom_line(&atom);
+            // TODO: Even this could be done with a buffer of lines that fills up for a while,
+            // and then we write it. So non-parallel but still buffered. But in a way that is
+            // equivalent to making sure we use a BufWriter. Maybe first benchmark if requiring a
+            // BufWriter in the function signature (we already use it at the call site) makes a
+            // difference (it shouldn't because the impl Write makes it generic over our
+            // BufWriter). Only then try to see if rolling our own helps out.
+            for atom in &particle_buffer {
+                let line = Structure::format_atom_line(atom);
                 writer.write_all(line.as_bytes())?;
             }
         }
 
         // Report the progress.
-        n += buffer.len() * water_type.total_natoms();
+        n += particle_buffer.len();
         let progress = n as f32 / natoms_solvent as f32;
         let percentage = progress * 100.0;
         let delta = std::time::Instant::now() - start;
@@ -124,13 +126,13 @@ pub fn write_structure<const PAR: bool>(
             let start = std::time::Instant::now();
             let mut placements = substitution.iter_atoms();
             loop {
-                buffer.clear();
-                buffer.extend(placements.by_ref().take(buffer_size));
-                if buffer.is_empty() {
+                particle_buffer.clear();
+                particle_buffer.extend(placements.by_ref().take(buffer_size));
+                if particle_buffer.is_empty() {
                     break;
                 }
 
-                let beads = &buffer;
+                let beads = &particle_buffer;
                 if PAR {
                     let lines: String = beads.par_iter().map(Structure::format_atom_line).collect();
                     writer.write_all(lines.as_bytes())?;

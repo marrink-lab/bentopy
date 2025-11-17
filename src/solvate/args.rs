@@ -4,8 +4,6 @@ use std::str::FromStr;
 use clap::{Parser, ValueEnum};
 use eightyseven::structure::ResName;
 
-use crate::water::WaterType;
-
 /// Solvate.
 #[derive(Debug, Parser)]
 #[command(about, version = bentopy::core::version::VERSION)]
@@ -18,7 +16,7 @@ pub struct Args {
     pub output: PathBuf,
     /// Solvent template path.
     #[arg(short = 'w', long = "water-box")]
-    pub template: PathBuf,
+    pub template: Option<PathBuf>,
 
     /// Lowest allowable distance between solvent and structure beads (nm).
     ///
@@ -41,10 +39,7 @@ pub struct Args {
     pub ignore: Vec<ResName>,
 
     /// The type of water written to the output file.
-    ///
-    /// This is a hidden option, since the performance of these structures has not been fully
-    /// tested.
-    #[arg(long, value_enum, default_value_t, hide = true)]
+    #[arg(long, value_enum, default_value_t)]
     pub water_type: WaterType,
 
     /// Center the structure in the new box.
@@ -118,6 +113,14 @@ pub struct Args {
     /// be overshot by at most that number.
     #[arg(long, default_value_t = 10000000)]
     pub buffer_size: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[clap(rename_all = "lowercase")]
+pub enum WaterType {
+    #[default]
+    Martini,
+    Tip3P,
 }
 
 #[derive(Debug, Default, Clone, ValueEnum, PartialEq, Eq)]

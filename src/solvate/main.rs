@@ -12,7 +12,6 @@ pub(crate) use crate::args::{BoundaryMode, PeriodicMode};
 use crate::solvate::solvate;
 use crate::structure::{BoxVecsExtension, Structure, write_structure};
 use crate::substitute::substitute;
-use crate::water::WaterType;
 
 mod args;
 mod convert;
@@ -25,39 +24,46 @@ mod water;
 
 fn main() -> anyhow::Result<()> {
     let config = Args::parse();
-
-    eprint!("Loading template {:?}... ", config.template);
-    let start = std::time::Instant::now();
-    let template_path = &config.template;
-    let template = {
-        let mut template = Structure::open_gro(template_path)
-            .with_context(|| format!("Failed to open template structure {template_path:?}"))?;
-        if !config.write_velocities {
-            // We set all velocities to zero, to indicate that we don't want them written to the
-            // output file.
-            for atom in &mut template.atoms {
-                atom.velocity *= 0.0;
-            }
-        }
-        template
-    };
-    eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
-    if template.natoms() == 0 {
-        eprintln!("ERROR: Template contains no beads, so solvation cannot proceed.");
-        std::process::exit(1);
+    if config.template.is_some() {
+        todo!(
+            "loading custom water box templates is temporarily unsupported, \
+            an internally stored martini or atomistic water box is used"
+        )
     }
 
-    // We always expect a box of Martini waters.
-    let expected_resname = WaterType::Martini.resname();
-    if template
-        .atoms
-        .iter()
-        .any(|atom| &atom.resname != expected_resname)
-    {
-        eprintln!("ERROR: All template beads must be Martini waters ({expected_resname:?}).");
-        eprintln!("       The beads in the water template are all treated as the same kind.");
-        std::process::exit(1);
-    }
+    // TODO: Add template loading again.
+    // eprint!("Loading template {:?}... ", config.template);
+    // let start = std::time::Instant::now();
+    // let template_path = &config.template;
+    // let template = {
+    //     let mut template = Structure::open_gro(template_path)
+    //         .with_context(|| format!("Failed to open template structure {template_path:?}"))?;
+    //     if !config.write_velocities {
+    //         // We set all velocities to zero, to indicate that we don't want them written to the
+    //         // output file.
+    //         for atom in &mut template.atoms {
+    //             atom.velocity *= 0.0;
+    //         }
+    //     }
+    //     template
+    // };
+    // eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
+    // if template.natoms() == 0 {
+    //     eprintln!("ERROR: Template contains no beads, so solvation cannot proceed.");
+    //     std::process::exit(1);
+    // }
+    //
+    // // We always expect a box of Martini waters.
+    // let expected_resname = WaterType::Martini.resname();
+    // if template
+    //     .atoms
+    //     .iter()
+    //     .any(|atom| &atom.resname != expected_resname)
+    // {
+    //     eprintln!("ERROR: All template beads must be Martini waters ({expected_resname:?}).");
+    //     eprintln!("       The beads in the water template are all treated as the same kind.");
+    //     std::process::exit(1);
+    // }
 
     eprint!("Loading structure {:?}... ", config.input);
     let start = std::time::Instant::now();
@@ -68,9 +74,10 @@ fn main() -> anyhow::Result<()> {
 
     eprintln!("Solvating...");
     let start = std::time::Instant::now();
+    let solvent = config.water_type.into();
     let mut placemap = solvate(
         &mut structure,
-        &template,
+        solvent,
         config.cutoff,
         config.solvent_cutoff,
         &config.ignore,
@@ -152,7 +159,6 @@ fn main() -> anyhow::Result<()> {
             &structure,
             &placemap,
             &substitutions,
-            config.water_type,
             buffer_size,
         )
         .with_context(|| {
@@ -164,7 +170,6 @@ fn main() -> anyhow::Result<()> {
             &structure,
             &placemap,
             &substitutions,
-            config.water_type,
             buffer_size,
         )
         .with_context(|| {
@@ -173,8 +178,8 @@ fn main() -> anyhow::Result<()> {
     }
     eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
 
-    let solvent_name = config.water_type.resname();
-    let nsolvent = placemap.unoccupied_count() as usize * config.water_type.nresidues();
+    let solvent_name = solvent.resname();
+    let nsolvent = placemap.unoccupied_count() as usize * solvent.residue_points();
     let mut topology = vec![(solvent_name, nsolvent)];
     topology.extend(substitutions.iter().map(|s| (s.name(), s.natoms())));
     let mut stdout = io::stdout();

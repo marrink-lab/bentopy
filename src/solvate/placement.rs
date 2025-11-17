@@ -1,11 +1,7 @@
 use eightyseven::structure::Atom;
-use eightyseven::writer::WriteGro;
 use glam::{UVec3, Vec3};
 
-use crate::{
-    convert::Convert,
-    structure::{BoxVecsExtension, Structure},
-};
+use crate::water::Water;
 
 /// Return an index into a linear array that represents items on a 3-dimensional grid in a z-major
 /// ordering.
@@ -24,7 +20,8 @@ pub fn iter_3d(dimensions: UVec3) -> impl Iterator<Item = UVec3> {
 
 #[derive(Clone)]
 pub struct PlaceMap<'s> {
-    pub solvent: &'s Structure,
+    pub solvent: Water,
+    positions: Box<[Vec3]>,
     dimensions: UVec3,
     // Invariant: length = (solvent.natoms() / 8).ceil() * dimensions.product()
     // Invariant: Any wasted bits are always set to zero.
@@ -38,78 +35,75 @@ pub struct PlaceMap<'s> {
     // ******** ******** 0000****
     //                   ^^^^-- Wasted bits.
     placements: Box<[u8]>,
+    _remove: std::marker::PhantomData<&'s ()>,
 }
 
 impl<'s> PlaceMap<'s> {
-    pub fn new(solvent: &'s Structure, size: UVec3) -> Self {
+    /// Creates a new [`PlaceMap`].
+    pub fn new(solvent: Water, size: UVec3) -> Self {
+        let positions = solvent.positions().collect::<Box<[_]>>();
         let n_cells = size.x as usize * size.y as usize * size.z as usize;
-        let n_bytes = solvent.natoms().div_ceil(8);
+        let n_bytes = positions.len().div_ceil(8);
         let placements = vec![0x00; n_bytes * n_cells].into_boxed_slice();
         Self {
             dimensions: size,
             solvent,
+            positions,
             placements,
+            _remove: std::marker::PhantomData,
         }
     }
 
+    /// Returns the number of cells that make up this [`PlaceMap`]
     pub fn n_cells(&self) -> usize {
         self.dimensions.x as usize * self.dimensions.y as usize * self.dimensions.z as usize
     }
 
+    /// Returns the number of positions to be considered for solvent-structure collisions.
+    const fn npositions(&self) -> usize {
+        self.positions.len()
+    }
+
+    /// Returns a reference to all solvent positions available in this [`PlaceMap`].
+    pub fn all_positions(&self) -> &[Vec3] {
+        &self.positions
+    }
+
+    // TODO: Revisit, because there's some wasteful go-around, here. We're first creating Atoms
+    // from positions which then get turned back into positions.
+    pub fn iter_positions(&self) -> impl Iterator<Item = eightyseven::structure::Vec3> + '_ {
+        self.iter_atoms().map(|atom| atom.position)
+    }
+
+    fn iter_atoms(&self) -> impl Iterator<Item = Atom> + '_ {
+        // TODO: Consider if these are hard-equivalent or soft-equivalent in terms of performance.
+        //      self.iter_atoms_chunks().flatten()
+        // My worry is that the flatten version will still allocate more than the one below.
+        self.iter_placements()
+            .flat_map(|(translation, placement)| self.solvent.spray(placement, translation))
+    }
+
+    pub fn iter_atoms_chunks(&self) -> impl Iterator<Item = Box<[Atom]>> + '_ {
+        self.iter_placements()
+            .map(|(translation, placement)| self.solvent.spray(placement, translation).collect())
+    }
+
+    /// Returns iterator over the [`Placement`]s with their associated translations stored in this
+    /// [`PlaceMap`].
     pub fn iter_placements(&'_ self) -> impl Iterator<Item = (Vec3, Placement<'_>)> {
         iter_3d(self.dimensions).map(|cell_pos| {
-            let translation = cell_pos.as_vec3() * self.solvent.boxvecs.as_vec3();
+            let translation = cell_pos.as_vec3() * self.solvent.dimensions();
             let placement = self.get(cell_pos).unwrap();
             (translation, placement)
         })
     }
 
     pub fn iter_placements_mut(&'_ mut self) -> impl Iterator<Item = PlacementMut<'_>> {
-        let n_beads = self.solvent.natoms();
+        let n_beads = self.npositions();
         let n_bytes = n_beads.div_ceil(8);
         self.placements
             .chunks_exact_mut(n_bytes)
             .map(move |bytes| PlacementMut::new(bytes, n_beads))
-    }
-
-    pub fn iter_atoms_chunks(&self) -> impl Iterator<Item = Box<[Atom]>> + '_ {
-        self.iter_placements().map(|(translation, placement)| {
-            let solvent_positions =
-                self.solvent
-                    .atoms()
-                    .zip(placement)
-                    .filter_map(move |(&sb, occupied)| {
-                        if occupied {
-                            None
-                        } else {
-                            let mut sb = sb; // Copy the solvent bead.
-                            sb.position += translation.convert();
-                            Some(sb)
-                        }
-                    });
-            solvent_positions.collect::<Box<[_]>>()
-        })
-    }
-
-    pub fn iter_atoms(&self) -> impl Iterator<Item = Atom> + '_ {
-        self.iter_placements().flat_map(|(translation, placement)| {
-            self.solvent
-                .atoms()
-                .zip(placement)
-                .filter_map(move |(&sb, occupied)| {
-                    if occupied {
-                        None
-                    } else {
-                        let mut sb = sb; // Copy the solvent bead.
-                        sb.position += translation.convert();
-                        Some(sb)
-                    }
-                })
-        })
-    }
-
-    pub fn iter_positions(&self) -> impl Iterator<Item = eightyseven::structure::Vec3> + '_ {
-        self.iter_atoms().map(|atom| atom.position)
     }
 
     pub fn get_mut(&'_ mut self, pos: UVec3) -> Option<PlacementMut<'_>> {
@@ -118,7 +112,7 @@ impl<'s> PlaceMap<'s> {
         }
 
         // TODO: Is it wasteful to 'compute' this here? Or does it reduce down well?
-        let n_beads = self.solvent.natoms();
+        let n_beads = self.npositions();
         let n_bytes = n_beads.div_ceil(8);
         let idx = index_3d(pos, self.dimensions);
         // This unwrap should be safe, since we checked at the start of the function.
@@ -132,8 +126,7 @@ impl<'s> PlaceMap<'s> {
             return None;
         }
 
-        // TODO: Is it wasteful to 'compute' this here? Or does it reduce down well?
-        let n_beads = self.solvent.natoms();
+        let n_beads = self.npositions();
         let n_bytes = n_beads.div_ceil(8);
         let idx = index_3d(pos, self.dimensions);
         // This unwrap should be safe, since we checked at the start of the function.
@@ -153,13 +146,13 @@ impl<'s> PlaceMap<'s> {
 
     /// Return the count of unoccupied positions.
     pub fn unoccupied_count(&self) -> u64 {
-        let total = self.solvent.natoms() * self.n_cells();
+        let total = self.npositions() * self.n_cells();
         total as u64 - self.occupied_count()
     }
 
     /// Repair all wasted bits in the type.
     fn repair(&mut self) {
-        let n_beads = self.solvent.natoms();
+        let n_beads = self.npositions();
         let n_bytes = n_beads.div_ceil(8);
         self.placements
             .chunks_exact_mut(n_bytes)
@@ -330,8 +323,6 @@ impl<'ps> PlacementMut<'ps> {
 
 #[cfg(test)]
 mod tests {
-    use eightyseven::{reader::ReadGro, structure::Structure};
-
     use super::*;
 
     #[test]
@@ -352,14 +343,15 @@ mod tests {
     /// the not.
     #[test]
     fn check_not_repair() {
-        let mut solvent = Structure::open_gro("templates/water.gro").unwrap();
-        // Make sure we have a structure size that does neatly fit in some number of bytes.
-        if solvent.natoms() % 8 == 0 {
-            solvent.atoms.pop();
-        }
-        let natoms = solvent.natoms();
+        let solvent = Water::Martini;
+        // TODO: Currently, we're testing a trivially easy case.
+        // // Make sure we have a structure size that does not neatly fit in some number of bytes.
+        // if solvent.positions().count() % 8 == 0 {
+        //     solvent.atoms.pop();
+        // }
+        let natoms = solvent.positions().count();
         let size = UVec3::new(3, 5, 7);
-        let mut placemap = PlaceMap::new(&solvent, size);
+        let mut placemap = PlaceMap::new(solvent, size);
         let natoms_total = (natoms * placemap.n_cells()) as u64;
         let n_occupied = 0;
 
