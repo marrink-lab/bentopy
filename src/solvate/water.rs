@@ -73,9 +73,14 @@ impl Water {
         // atomnum: &'a mut u32,
         translation: Vec3,
     ) -> impl Iterator<Item = Atom> + use<'w, A> {
+        let mut atomnum = 1;
+        let mut resnum = 1;
         // TODO: Add the whole resnum atomnum thing back in!
         self.residues()
-            .map(move |res| res.atoms(translation).collect::<Box<[_]>>())
+            .map(move |res| {
+                res.atoms(&mut atomnum, &mut resnum, translation)
+                    .collect::<Box<[_]>>()
+            })
             .filter(move |_atom| {
                 // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
                 // that impossible far before this function is executed. Otherwise, can we make it
