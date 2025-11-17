@@ -22,17 +22,23 @@ pub struct Args {
     ///
     /// This is the minimum allowable center-to-center distance when checking for a collision
     /// between a solvent bead and a structure bead.
-    #[arg(long, default_value_t = 0.43)]
-    pub cutoff: f32,
+    ///
+    /// For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
+    ///
+    /// For Martini solvation, the default cutoff is 0.43 nm. For atomistic solvation, the default
+    /// cutoff is 0.28.
+    #[arg(long)]
+    pub cutoff: Option<f32>,
 
     /// Lowest allowable distance between solvent beads (nm).
     ///
     /// This is the minimum allowable center-to-center distance between solvent beads when cutting
     /// the sides to fit in the specified output structure box.
     ///
-    /// For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
-    #[arg(long, default_value_t = 0.21)]
-    pub solvent_cutoff: f32,
+    /// For Martini solvation, the default cutoff is 0.21 nm. For atomistic solvation, the default
+    /// cutoff is 0.21.
+    #[arg(long)]
+    pub solvent_cutoff: Option<f32>,
 
     /// List of resnames to ignore when checking against structure-solvent collisions.
     #[arg(long, value_delimiter = ',')]
@@ -121,6 +127,22 @@ pub enum WaterType {
     #[default]
     Martini,
     Tip3P,
+}
+
+impl WaterType {
+    pub const fn default_cutoff(&self) -> f32 {
+        match self {
+            WaterType::Martini => 0.43,
+            WaterType::Tip3P => 0.28,
+        }
+    }
+
+    pub const fn default_solvent_cutoff(&self) -> f32 {
+        match self {
+            WaterType::Martini => 0.21,
+            WaterType::Tip3P => 0.21,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, ValueEnum, PartialEq, Eq)]

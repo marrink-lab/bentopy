@@ -24,6 +24,13 @@ mod water;
 
 fn main() -> anyhow::Result<()> {
     let config = Args::parse();
+    let cutoff = config.cutoff.unwrap_or(config.water_type.default_cutoff());
+    let solvent_cutoff = config
+        .solvent_cutoff
+        .unwrap_or(config.water_type.default_solvent_cutoff());
+    eprintln!("Solvent-structure cutoff is set to {cutoff} nm.");
+    eprintln!("Solvent-solvent cutoff is set to   {solvent_cutoff} nm.");
+
     if config.template.is_some() {
         todo!(
             "loading custom water box templates is temporarily unsupported, \
@@ -78,8 +85,8 @@ fn main() -> anyhow::Result<()> {
     let mut placemap = solvate(
         &mut structure,
         solvent,
-        config.cutoff,
-        config.solvent_cutoff,
+        cutoff,
+        solvent_cutoff,
         &config.ignore,
         config.center,
         config.boundary_mode,

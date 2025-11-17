@@ -71,7 +71,7 @@ pub fn solvate<'sol>(
         ignore,
         cookie_size,
         dimensions,
-        cutoff, // TODO: Should the cutoff depend on the water-type?
+        cutoff,
         periodic_mode,
     );
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
