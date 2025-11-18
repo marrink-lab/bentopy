@@ -186,7 +186,7 @@ fn main() -> anyhow::Result<()> {
     eprintln!("Writing took {:.3} s", start.elapsed().as_secs_f32());
 
     let solvent_name = solvent.resname();
-    let nsolvent = placemap.unoccupied_count() as usize * solvent.residue_points();
+    let nsolvent = placemap.unoccupied_count() as usize;
     let mut topology = vec![(solvent_name, nsolvent)];
     topology.extend(substitutions.iter().map(|s| (s.name(), s.natoms())));
     let mut stdout = io::stdout();
