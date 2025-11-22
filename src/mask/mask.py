@@ -89,6 +89,7 @@ def mask(args):
     containment = Containment(
         selection,
         resolution=args.containment_resolution,
+        closure=args.closing,
         slab=args.slab,
         verbose=args.verbose,
     )
