@@ -7,8 +7,8 @@ name = "bentopy"
 version = "0.1.0a1"
 authors = [
   { name="Marieke Westendorp", email="ma3ke.cyber@gmail.com" },
-  { name="Bart Bruininks", email="bartbruininks@gmail.com" },
   { name="Jan Stevens", email="j.a.stevens@rug.nl" },
+  { name="Bart Bruininks", email="bartbruininks@gmail.com" },
 ]
 description = "Packs stuff in boxes"
 readme = "README.md"
