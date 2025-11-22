@@ -1,7 +1,7 @@
 [package]
 name = "bentopy"
-version = "0.1.0"
 edition = "2021"
+version = "0.1.0-alpha.1"
 authors = ["Marieke Westendorp <ma3ke.cyber@gmail.com>"]
 repository = "https://github.com/marrink-lab/bentopy"
 

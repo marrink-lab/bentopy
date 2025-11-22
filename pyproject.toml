@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bentopy"
-version = "0.0.1"
+version = "0.1.0a1"
 authors = [
   { name="Marieke Westendorp", email="ma3ke.cyber@gmail.com" },
   { name="Bart Bruininks", email="bartbruininks@gmail.com" },
@@ -12,17 +12,17 @@ authors = [
 ]
 description = "Packs stuff in boxes"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy",
-    "scipy",
-    "freud-analysis",
-    "MDAnalysis",
-    "mdvcontainment @ git+https://github.com/BartBruininks/mdvcontainment.git",
+    "numpy>=2.2.3",
+    "scipy>=1.15",
+    "freud-analysis>=3.2.0",
+    "MDAnalysis>=2.8",
+    "mdvcontainment>=0.1.2",
 ]
 
 [project.urls]
