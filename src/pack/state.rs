@@ -379,7 +379,7 @@ impl State {
         let seed = args
             .seed
             .or(config.general.seed)
-            .unwrap_or_else(|| Rng::from_entropy().next_u64());
+            .unwrap_or_else(|| Rng::from_os_rng().next_u64());
         let rng = Rng::seed_from_u64(seed);
 
         let bead_radius = args.bead_radius.unwrap_or(config.general.bead_radius);
@@ -711,7 +711,7 @@ impl State {
                     tries += 1;
 
                     // What about another rotation?
-                    let rotation = Mat3::from_quat(state.rng.gen());
+                    let rotation = Mat3::from_quat(state.rng.random());
                     segment.set_rotation(rotation);
                     tries_per_rotation = 0; // Reset the counter.
                     if state.verbose {
@@ -759,7 +759,7 @@ impl State {
                     tries += 1;
                     tries_per_rotation += 1;
                     if tries_per_rotation >= max_tries_per_rotation {
-                        let rotation = Mat3::from_quat(state.rng.gen());
+                        let rotation = Mat3::from_quat(state.rng.random());
                         segment.set_rotation(rotation);
                         tries_per_rotation = 0; // Reset the counter.
                     }
@@ -777,7 +777,7 @@ impl State {
                 placement.push(batch);
                 batch_positions.clear();
 
-                let rotation = Mat3::from_quat(state.rng.gen());
+                let rotation = Mat3::from_quat(state.rng.random());
                 segment.set_rotation(rotation);
                 tries_per_rotation = 0; // Reset the counter.
 

@@ -100,7 +100,7 @@ fn main() -> anyhow::Result<()> {
         let start = std::time::Instant::now();
         let mut rng = match config.seed {
             Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
-            None => rand::rngs::StdRng::from_entropy(),
+            None => rand::rngs::StdRng::from_os_rng(),
         };
 
         let mut subs = substitute(&mut rng, &mut placemap, &substitutes);
