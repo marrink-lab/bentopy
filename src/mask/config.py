@@ -45,6 +45,13 @@ def setup_parser(parser=None):
         (normally interactive)""",
     )
     parser.add_argument(
+        "--closing",
+        action="store_true",
+        help="""Use binary closing to fill small holes in compartments. For analysis
+        of CG structures with a voxel resolution <1.0 nm this is highly recommended.
+        """,
+    )
+    parser.add_argument(
         "--slab",
         action="store_true",
         help="""Determine the containment according to slab periodicity.
