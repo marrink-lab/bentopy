@@ -4,10 +4,10 @@
 //! <ma3ke.cyber@gmail.com>
 use std::path::PathBuf;
 
-use clap::{command, Parser};
+use clap::{Parser, command};
 
 use crate::limits::Limits;
-use crate::render::{render, Mode, ResnumMode};
+use crate::render::{Mode, ResnumMode, render};
 
 mod limits;
 mod render;

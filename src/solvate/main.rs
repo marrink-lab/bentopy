@@ -10,7 +10,7 @@ use rand::SeedableRng;
 use crate::args::Args;
 pub(crate) use crate::args::{BoundaryMode, PeriodicMode};
 use crate::solvate::solvate;
-use crate::structure::{write_structure, BoxVecsExtension, Structure};
+use crate::structure::{BoxVecsExtension, Structure, write_structure};
 use crate::substitute::substitute;
 use crate::water::WaterType;
 

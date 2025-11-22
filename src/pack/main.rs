@@ -59,7 +59,9 @@ impl Summary {
         }
         let perc = percentage(hits_tot, target_tot);
         let ok = if hits_tot == target_tot { " " } else { "<" };
-        println!( "    \t          \t{perc:>5.1}%\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}")
+        println!(
+            "    \t          \t{perc:>5.1}%\t{target_tot:>6}\t{hits_tot:>6}\t{packing_duration:8.2}\t{ok}"
+        )
     }
 }
 

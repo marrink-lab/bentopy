@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 
 use eightyseven::reader::{ParseList, ReadGro};
 use eightyseven::structure::{AtomName, AtomNum, ResName, ResNum};
-use eightyseven::writer::{format_atom_line, WriteGro};
+use eightyseven::writer::{WriteGro, format_atom_line};
 use glam::Vec3;
 
 pub type Atom = Vec3;

@@ -4,7 +4,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use eightyseven::reader::ReadGro;
 use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
@@ -15,13 +15,13 @@ use crate::config::{
     CombinationExpression, Compartment as ConfigCompartment, Configuration, Mask as ConfigMask,
     Quantity, RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
-use crate::mask::{distance_mask_grow, Dimensions, Mask};
+use crate::mask::{Dimensions, Mask, distance_mask_grow};
 use crate::placement::{Batch, Placement};
 use crate::rules::{self, ParseRuleError, Rule};
 use crate::session::{Locations, Session};
 use crate::structure::Structure;
 use crate::voxelize::voxelize;
-use crate::{Summary, CLEAR_LINE};
+use crate::{CLEAR_LINE, Summary};
 
 const ORDER: EulerRot = EulerRot::XYZ;
 
@@ -390,7 +390,9 @@ impl State {
                 format!("Max tries multiplier should be a valid unsigned integer, found {s:?}")
             })?;
             eprintln!("\tMax tries multiplier set to {n}.");
-            eprintln!("\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated.");
+            eprintln!(
+                "\tWARNING: Setting max_tries_mult using the BENTOPY_TRIES environment variable will be deprecated."
+            );
             eprintln!("\t         Use --max-tries-mult instead.");
             n
         } else {
@@ -402,7 +404,9 @@ impl State {
                 format!("Rotation divisor should be a valid unsigned integer, found {s:?}")
             })?;
             eprintln!("\tMax tries per rotation divisor set to {n}.");
-            eprintln!("\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated.");
+            eprintln!(
+                "\tWARNING: Setting max_tries_divisor using the BENTOPY_ROT_DIV environment variable will be deprecated."
+            );
             eprintln!("\t         Use --max-tries-rot-div instead.");
             n
         } else {
