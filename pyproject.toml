@@ -22,7 +22,7 @@ dependencies = [
     "scipy",
     "freud-analysis",
     "MDAnalysis",
-    "mdvcontainment",
+    "mdvcontainment @ git+https://github.com/BartBruininks/mdvcontainment.git",
 ]
 
 [project.urls]
