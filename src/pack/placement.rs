@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use glam::Mat3;
 use serde::Serialize;
 
-use crate::config::TopolIncludes;
 use crate::state::{Size, State};
+
+use bentopy::core::config::legacy::TopolIncludes;
 
 type Rotation = Mat3;
 type Position = [f32; 3];

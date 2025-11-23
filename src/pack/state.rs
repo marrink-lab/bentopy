@@ -10,11 +10,14 @@ use eightyseven::writer::WriteGro;
 use glam::{EulerRot, Mat3, Quat, U64Vec3, UVec3, Vec3};
 use rand::{Rng as _, RngCore, SeedableRng};
 
-use crate::args::{Args, RearrangeMethod};
-use crate::config::{
-    CombinationExpression, Compartment as ConfigCompartment, Configuration, Mask as ConfigMask,
-    Quantity, RuleExpression, Shape as ConfigShape, TopolIncludes,
+use bentopy::core::config::Axes;
+pub use bentopy::core::config::CompartmentID;
+use bentopy::core::config::legacy::{
+    CombinationExpression, Compartment as ConfigCompartment, Config, Mask as ConfigMask, Quantity,
+    RuleExpression, Shape as ConfigShape, TopolIncludes,
 };
+
+use crate::args::{Args, RearrangeMethod};
 use crate::mask::{Dimensions, Mask, distance_mask_grow};
 use crate::placement::{Batch, Placement};
 use crate::rules::{self, ParseRuleError, Rule};
@@ -25,7 +28,6 @@ use crate::{CLEAR_LINE, Summary};
 
 const ORDER: EulerRot = EulerRot::XYZ;
 
-pub type CompartmentID = String;
 pub type Compartments = Vec<Compartment>;
 pub type Size = [f32; 3];
 pub type Rotation = Mat3;
@@ -250,41 +252,6 @@ impl Space {
     }
 }
 
-pub struct Axes {
-    x: bool,
-    y: bool,
-    z: bool,
-}
-
-impl Default for Axes {
-    fn default() -> Self {
-        Self {
-            x: true,
-            y: true,
-            z: true,
-        }
-    }
-}
-
-impl FromStr for Axes {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let len = s.len();
-        if len > 3 {
-            return Err(format!(
-                "an axes string may consist of at most 3 characters, '{s}' has {len} characters"
-            ));
-        }
-
-        Ok(Self {
-            x: s.contains('x'),
-            y: s.contains('y'),
-            z: s.contains('z'),
-        })
-    }
-}
-
 pub struct Segment {
     pub name: String,
     pub tag: Option<String>,
@@ -371,7 +338,7 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(args: Args, config: Configuration) -> anyhow::Result<Self> {
+    pub fn new(args: Args, config: Config) -> anyhow::Result<Self> {
         // Read values from the general section of the config. If a command line argument is given,
         // it overwrites the config value. (And the deprecated env vars have the highest priority.)
 

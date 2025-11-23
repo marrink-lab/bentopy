@@ -2,10 +2,8 @@ use std::{path::PathBuf, str::FromStr};
 
 use serde::Deserialize;
 
-use crate::state::{Axes, CompartmentID, Size};
-pub use compartment_combinations::Expression as CombinationExpression;
-
-mod compartment_combinations;
+pub use super::compartment_combinations::Expression as CombinationExpression;
+use crate::core::config::{Axes, CompartmentID, Dimensions};
 
 impl<'de> Deserialize<'de> for CombinationExpression {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -58,7 +56,7 @@ impl Default for General {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Shape {
+pub enum Shape {
     Spherical,
     Cuboid,
     None,
@@ -77,7 +75,7 @@ impl std::fmt::Display for Shape {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Mask {
+pub enum Mask {
     Shape(Shape),
     Analytical {
         shape: Shape,
@@ -112,7 +110,7 @@ pub(crate) fn true_by_default() -> bool {
 
 #[derive(Deserialize)]
 pub struct Space {
-    pub size: Size,
+    pub size: Dimensions,
     pub resolution: f32,
     pub compartments: Vec<Compartment>,
     #[serde(default = "true_by_default")]
@@ -214,7 +212,7 @@ pub struct Output {
 }
 
 #[derive(Deserialize)]
-pub struct Configuration {
+pub struct Config {
     #[serde(default)]
     pub general: General,
     pub space: Space,

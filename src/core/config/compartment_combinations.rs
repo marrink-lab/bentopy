@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::state::CompartmentID as Id;
+use super::CompartmentID as Id;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Token {

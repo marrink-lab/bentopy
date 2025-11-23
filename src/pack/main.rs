@@ -3,12 +3,12 @@ use std::io;
 use anyhow::Context;
 use args::Args;
 use clap::Parser;
-use config::Configuration;
+
+use bentopy::core::config::legacy::Config;
 use placement::PlacementList;
 use state::State;
 
 mod args;
-mod config;
 mod mask;
 mod placement;
 mod rules;
@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
     let config_path = &args.config;
     let file = std::fs::File::open(config_path)
         .with_context(|| format!("Failed to open the configuration file {config_path:?}"))?;
-    let config: Configuration = serde_json::from_reader(file)
+    let config: Config = serde_json::from_reader(file)
         .with_context(|| format!("Failed to process configuration from {config_path:?}"))?;
     let mut state = State::new(args, config).context("Failed to set up program state")?;
 
