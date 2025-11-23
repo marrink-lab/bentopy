@@ -46,20 +46,20 @@ impl Config {
 }
 
 #[derive(Debug)]
-struct Compartment {
-    id: String,
-    mask: Mask,
+pub struct Compartment {
+    pub id: String,
+    pub mask: Mask,
 }
 
 #[derive(Debug)]
-enum Mask {
+pub enum Mask {
     Voxels(PathBuf),
     Shape(Shape),
 }
 
 #[derive(Debug)]
 // TODO: This name is not appropriate.
-enum Shape {
+pub enum Shape {
     Sphere { center: Center, radius: f64 },
     Cuboid { start: [f32; 3], end: [f32; 3] },
     Combination { expression: Expression },
@@ -82,22 +82,22 @@ impl Shape {
 }
 
 #[derive(Debug)]
-enum Center {
+pub enum Center {
     Center,
     Point(Point),
 }
 
 #[derive(Debug)]
-struct Segment {
-    name: String,
-    tag: Option<String>, // Should be 5-character ArrayString.
-    path: PathBuf,
-    compartment_ids: Box<[String]>,
-    quantity: Quantity,
+pub struct Segment {
+    pub name: String,
+    pub tag: Option<String>, // Should be 5-character ArrayString.
+    pub path: PathBuf,
+    pub compartment_ids: Box<[String]>,
+    pub quantity: Quantity,
 }
 
 #[derive(Debug)]
-enum Quantity {
+pub enum Quantity {
     /// Copy number.
     Number(u64),
     /// Molarity (mol/L).
