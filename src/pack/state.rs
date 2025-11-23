@@ -525,7 +525,7 @@ impl State {
                         // TODO: Perhaps we can reverse _during_ the sorting operation with some trick?
                         segments.reverse();
                     }
-                    RearrangeMethod::MomentOfInertia => {
+                    RearrangeMethod::Moment => {
                         segments.sort_by_cached_key(|seg| {
                             (seg.structure.moment_of_inertia() * 1e6) as i64
                         });

@@ -13,7 +13,9 @@ pub struct Args {
     pub output: PathBuf,
 
     /// Sort the input structures by approximate size to optimize packing.
-    #[arg(long, default_value = "moment-of-inertia")]
+    ///
+    /// Different heuristics are available.
+    #[arg(long, default_value = "moment")]
     pub rearrange: RearrangeMethod,
 
     /// Random number generator seed.
