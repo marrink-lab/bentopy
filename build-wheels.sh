@@ -7,7 +7,7 @@ set -ex
 # cython support for *t python versions, but I'm not entirely sure.
 # (Marieke, 2025-03-05)
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y
 export PATH="$HOME/.cargo/bin:$PATH"
 
 # Compile wheels

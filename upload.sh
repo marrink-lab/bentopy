@@ -26,4 +26,4 @@ if [[ "$confirmation" != "yes" ]]; then
 fi
 
 set -x
-twine upload $wheels $sources --repository=$repository
+twine upload --verbose $wheels $sources --repository=$repository
