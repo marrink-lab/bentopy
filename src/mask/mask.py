@@ -104,8 +104,7 @@ def mask(args):
     log(f"        root:\t{npc(containment.voxel_containment.root_nodes)}")
     log(f"        leaf:\t{npc(containment.voxel_containment.leaf_nodes)}")
     # And show it as a tree of containments.
-    # TODO: This has got to change on Bart's end. I just want a string that I can print at my own leisure. @Bart
-    containment.voxel_containment.print_containment()
+    print(containment.voxel_containment.format_containment())
 
     # Write the plot of the containments if desired.
     show_plot = args.plot
