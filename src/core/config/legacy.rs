@@ -219,3 +219,132 @@ pub struct Config {
     pub segments: Vec<Segment>,
     pub output: Output,
 }
+
+mod convert {
+    use super::*;
+    use crate::core::config;
+
+    impl Into<config::Mask> for Mask {
+        fn into(self) -> config::Mask {
+            match self {
+                Mask::Shape(shape) => config::Mask::Shape(match shape {
+                    Shape::Spherical => config::Shape::space_filling_sphere(),
+                    Shape::Cuboid | Shape::None => config::Shape::space_filling_cuboid(),
+                }),
+                Mask::Analytical {
+                    shape: Shape::Spherical,
+                    center,
+                    radius,
+                } => config::Mask::Shape(config::Shape::Sphere {
+                    center: match center {
+                        None => config::Center::Center,
+                        Some(center) => config::Center::Point(center),
+                    },
+                    radius: radius.expect("TODO") as f64,
+                }),
+                Mask::Analytical {
+                    shape: Shape::Cuboid | Shape::None,
+                    center: _, // TODO: Error if not None.
+                    radius: _, // TODO: Error if not None.
+                } => config::Mask::Shape(config::Shape::space_filling_cuboid()),
+                Mask::Voxels { path } => config::Mask::Voxels(path),
+                Mask::Combination(expression) => {
+                    // TODO: This conversion sucks and will be changed.
+                    config::Mask::Shape(config::Shape::Combination { expression })
+                }
+            }
+        }
+    }
+
+    impl Into<config::Compartment> for Compartment {
+        fn into(self) -> config::Compartment {
+            let Self { id, mask } = self;
+            config::Compartment {
+                id,
+                mask: mask.into(),
+            }
+        }
+    }
+
+    impl Into<config::Segment> for Segment {
+        fn into(self) -> config::Segment {
+            let Self {
+                name,
+                tag,
+                quantity,
+                path,
+                compartments,
+                rules,
+                rotation_axes,
+                initial_rotation,
+            } = self;
+            // TODO: Implement parsing for these segment properties.
+            if !rules.is_empty() {
+                todo!("implement segment rules for bent")
+            }
+            if rotation_axes == Default::default() {
+                todo!("implement segment rotation axes for bent")
+            }
+            if initial_rotation == <[f32; 3]>::default() {
+                todo!("implement segment initial rotation for bent")
+            }
+            config::Segment {
+                name,
+                tag,
+                path,
+                compartment_ids: compartments.into_boxed_slice(),
+                quantity: quantity.into(),
+            }
+        }
+    }
+
+    impl Into<config::Quantity> for Quantity {
+        fn into(self) -> config::Quantity {
+            match self {
+                Quantity::Number(n) => config::Quantity::Number(n as u64),
+                Quantity::Concentration(c) => config::Quantity::Concentration(c),
+            }
+        }
+    }
+
+    impl Into<config::Config> for Config {
+        fn into(self) -> config::Config {
+            let Self {
+                general:
+                    General {
+                        seed,
+                        bead_radius,
+                        max_tries_mult,
+                        max_tries_rot_div,
+                    },
+                space:
+                    Space {
+                        size: dimensions,
+                        resolution,
+                        compartments,
+                        periodic,
+                    },
+                segments,
+                output:
+                    Output {
+                        title,
+                        topol_includes,
+                    },
+            } = self;
+
+            config::Config {
+                title,
+                seed,
+                bead_radius,
+                max_tries_mult,
+                max_tries_rot_div,
+                dimensions,
+                resolution,
+                periodic,
+                compartments: compartments.into_iter().map(Into::into).collect(),
+                topol_includes: topol_includes.unwrap_or_default(),
+                segments: segments.into_iter().map(Into::into).collect(),
+            }
+        }
+    }
+}

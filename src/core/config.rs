@@ -65,6 +65,22 @@ enum Shape {
     Combination { expression: Expression },
 }
 
+impl Shape {
+    fn space_filling_cuboid() -> Self {
+        Self::Cuboid {
+            start: Default::default(),
+            end: todo!(),
+        }
+    }
+
+    fn space_filling_sphere() -> Shape {
+        Self::Sphere {
+            center: Center::Center,
+            radius: todo!(),
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Center {
     Center,
@@ -88,6 +104,7 @@ enum Quantity {
     Concentration(f64),
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Axes {
     pub x: bool,
     pub y: bool,
