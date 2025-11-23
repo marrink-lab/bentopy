@@ -24,7 +24,7 @@ mod version {
         git_version: git_version::git_version!(
             args = ["--broken", "--always", "--exclude", "*"],
             prefix = "git:",
-            fallback = "?"
+            fallback = "release"
         ),
     };
 }
