@@ -323,16 +323,20 @@ pub struct Output {
     pub topol_includes: Option<TopolIncludes>,
 }
 
+pub struct General {
+    pub seed: u64,
+    pub max_tries_multiplier: u64,
+    pub max_tries_per_rotation_divisor: u64,
+    pub bead_radius: f32,
+}
+
 pub struct State {
+    pub general: General,
     pub space: Space,
     pub segments: Vec<Segment>,
     pub output: Output,
 
     pub rng: Rng,
-    pub seed: u64,
-    pub max_tries_multiplier: u64,
-    pub max_tries_per_rotation_divisor: u64,
-    pub bead_radius: f32,
     pub verbose: bool,
     pub summary: bool,
 }
@@ -554,16 +558,20 @@ impl State {
             topol_includes: config.output.topol_includes,
         };
 
+        let general = General {
+            seed,
+            max_tries_multiplier,
+            max_tries_per_rotation_divisor,
+            bead_radius,
+        };
+
         Ok(Self {
+            general,
             space,
             segments,
             output,
 
             rng,
-            seed,
-            max_tries_multiplier,
-            max_tries_per_rotation_divisor,
-            bead_radius,
             verbose,
             summary: !args.no_summary,
         })
@@ -652,9 +660,9 @@ impl State {
             let mut tries = 0; // The number of unsuccessful tries.
             let mut tries_per_rotation = 0;
             // The maximum number of unsuccessful tries.
-            let max_tries = state.max_tries_multiplier * session.target() as u64;
+            let max_tries = state.general.max_tries_multiplier * session.target() as u64;
             // The number of
-            let max_tries_per_rotation = max_tries / state.max_tries_per_rotation_divisor;
+            let max_tries_per_rotation = max_tries / state.general.max_tries_per_rotation_divisor;
             let mut batch_positions = Vec::new();
             'placement: while hits < session.target() {
                 if tries >= max_tries {
@@ -670,7 +678,7 @@ impl State {
                 let voxels = match segment.voxels() {
                     Some(voxels) => voxels,
                     None => {
-                        segment.voxelize(resolution, state.bead_radius);
+                        segment.voxelize(resolution, state.general.bead_radius);
                         segment.voxels().unwrap() // We just voxelized.
                     }
                 };
