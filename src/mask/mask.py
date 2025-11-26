@@ -256,7 +256,7 @@ def resolve_cache_path(structure_path):
     Determine what the cache path for the provided structure path is.
     """
     structure_name = structure_path.name
-    cached_name = f".cached_{structure_name}.pickle"
+    cached_name = f"#cached_{structure_name}.pickle"
     return structure_path.with_name(cached_name)
 
 
