@@ -51,9 +51,13 @@ def mask(args):
     if caching:
         cached_path = resolve_cache_path(structure_path)
 
+        # We need to check if the requested structure file actually exists.
+        # We don't want to end up using a cached file for a structure file that
+        # does not exist anymore.
+        structure_exists = structure_path.is_file()
         # Try to find a cached equivalent to the structure.
         cache_exists = cached_path.is_file()
-        if cache_exists:
+        if structure_exists and cache_exists:
             log(f"Reading in cached structure from {cached_path}...")
             log("You can reload a changed structure by removing the cached file.")
             log("Caching can be disabled with --no-cache.")
