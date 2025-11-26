@@ -125,7 +125,7 @@ def mask(args):
         labels_path = args.inspect_labels_path
     if labels_path is not None:
         log(f"Writing labels voxels debug file to {labels_path}... ", end="")
-        voxels_to_gro(labels_path, label_array)
+        voxels_to_gro(labels_path, label_array, scale=args.containment_resolution)
         log("done.")
 
     # Let's select our labels.
@@ -208,7 +208,7 @@ def mask(args):
         voxels_path = args.debug_voxels
     if voxels_path is not None:
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
-        voxels_to_gro(voxels_path, zoomed)
+        voxels_to_gro(voxels_path, zoomed, scale=args.mask_resolution)
         log("done.")
 
     # Determine the voxel mask output path.
