@@ -89,10 +89,13 @@ def mask(args):
     containment = Containment(
         selection,
         resolution=args.containment_resolution,
-        closure=args.closing,
+        closing=args.closing,
         slab=args.slab,
         max_offset=0, # We accept any result of voxelization.
         verbose=args.verbose,
+        no_mapping=True, # Mapping takes some time and is not used at all in this context.
+        betafactors=False, # Betafactors are not used in this context and are pretty slow to instantiate.
+        
     )
     duration = time() - start
     log(f"Done in {duration:.3} s.")
@@ -102,8 +105,7 @@ def mask(args):
     log(f"        root:\t{npc(containment.voxel_containment.root_nodes)}")
     log(f"        leaf:\t{npc(containment.voxel_containment.leaf_nodes)}")
     # And show it as a tree of containments.
-    # TODO: This has got to change on Bart's end. I just want a string that I can print at my own leisure. @Bart
-    containment.voxel_containment.print_containment()
+    print(containment.voxel_containment.format_containment())
 
     # Write the plot of the containments if desired.
     show_plot = args.plot
