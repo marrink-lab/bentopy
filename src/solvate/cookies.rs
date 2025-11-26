@@ -1,10 +1,10 @@
 use eightyseven::structure::ResName;
 use glam::{BVec3, IVec3, UVec3, Vec3, Vec3A};
 
+use crate::PeriodicMode;
 use crate::convert::Convert;
 use crate::placement::{index_3d, iter_3d};
 use crate::structure::{BoxVecsExtension, Structure};
-use crate::PeriodicMode;
 
 /// A simple spatial data structure that is used to accelerate solvent-structure collision checks.
 ///
@@ -53,7 +53,9 @@ impl Cookies {
                 }
                 PeriodicMode::Deny => {
                     if pos.cmplt(Vec3::ZERO).any() || pos.cmpgt(box_dimensions).any() {
-                        eprintln!("ERROR: Atom {i} with position {pos} lies outside the box {box_dimensions}.");
+                        eprintln!(
+                            "ERROR: Atom {i} with position {pos} lies outside the box {box_dimensions}."
+                        );
                         // FIXME: It's rather gross to me to exit from inside this function. A nice
                         // improvement could be to bubble it up as an Err to the caller.
                         std::process::exit(2);

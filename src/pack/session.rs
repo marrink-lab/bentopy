@@ -1,9 +1,9 @@
 use glam::U64Vec3;
 use rand::seq::SliceRandom;
 
+use crate::Location;
 use crate::mask::{Dimensions, Position};
 use crate::state::{Rng, Space, Voxels};
-use crate::Location;
 
 pub struct Session<'s> {
     inner: &'s mut Space,

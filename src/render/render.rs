@@ -9,7 +9,7 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 use serde::Deserialize;
 
 use crate::limits::Limits;
-use crate::structure::{load_molecule, rotate_molecule, Atom, Molecule};
+use crate::structure::{Atom, Molecule, load_molecule, rotate_molecule};
 
 /// A space with a set of [`Placement`]s.
 #[derive(Debug, Clone, Deserialize)]

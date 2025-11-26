@@ -10,7 +10,7 @@ use rand::SeedableRng;
 use crate::args::Args;
 pub(crate) use crate::args::{BoundaryMode, PeriodicMode};
 use crate::solvate::solvate;
-use crate::structure::{write_structure, BoxVecsExtension, Structure};
+use crate::structure::{BoxVecsExtension, Structure, write_structure};
 use crate::substitute::substitute;
 use crate::water::WaterType;
 
@@ -100,7 +100,7 @@ fn main() -> anyhow::Result<()> {
         let start = std::time::Instant::now();
         let mut rng = match config.seed {
             Some(seed) => rand::rngs::StdRng::seed_from_u64(seed),
-            None => rand::rngs::StdRng::from_entropy(),
+            None => rand::rngs::StdRng::from_os_rng(),
         };
 
         let mut subs = substitute(&mut rng, &mut placemap, &substitutes);

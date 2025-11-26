@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use glam::Mat3;
 use serde::Serialize;
 
-use crate::config::TopolIncludes;
 use crate::state::{Size, State};
+
+use bentopy::core::config::legacy::TopolIncludes;
 
 type Rotation = Mat3;
 type Position = [f32; 3];
@@ -75,10 +76,10 @@ impl PlacementList {
         Self {
             title: state.output.title.to_string(),
             size: state.space.size,
-            seed: state.seed,
-            max_tries_mult: state.max_tries_multiplier,
-            max_tries_per_rotation_divisor: state.max_tries_per_rotation_divisor,
-            bead_radius: state.bead_radius,
+            seed: state.general.seed,
+            max_tries_mult: state.general.max_tries_multiplier,
+            max_tries_per_rotation_divisor: state.general.max_tries_per_rotation_divisor,
+            bead_radius: state.general.bead_radius,
             topol_includes: state.output.topol_includes.clone().unwrap_or_default(),
             placements: placements.into_iter().collect(),
         }

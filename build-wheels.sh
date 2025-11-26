@@ -7,22 +7,22 @@ set -ex
 # cython support for *t python versions, but I'm not entirely sure.
 # (Marieke, 2025-03-05)
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y
 export PATH="$HOME/.cargo/bin:$PATH"
 
 # Compile wheels
-for PYBIN in /opt/python/cp{310,311,312,313}*[!t]/bin; do
+for PYBIN in /opt/python/cp{312,313,314}*[!t]/bin; do
     rm -rf /io/build/
     "${PYBIN}/pip" install -U setuptools setuptools-rust
     "${PYBIN}/pip" wheel /io/ -w /io/dist/ --no-deps
 done
 
 # Bundle external shared libraries into the wheels
-for whl in /io/dist/*{cp310,cp311,cp312,cp313}*[!t].whl; do
+for whl in /io/dist/*{cp312,cp313,314}*[!t].whl; do
     auditwheel repair "$whl" -w /io/dist/
 done
 
 # Install packages and test
-for PYBIN in /opt/python/cp{310,311,312,313}*[!t]/bin; do
+for PYBIN in /opt/python/cp{312,313,314}*[!t]/bin; do
     "${PYBIN}/pip" install bentopy -f /io/dist/
 done

@@ -4,8 +4,8 @@ use glam::{UVec3, Vec3};
 
 use crate::convert::Convert;
 use crate::cookies::Cookies;
-use crate::placement::iter_3d;
 use crate::placement::PlaceMap;
+use crate::placement::iter_3d;
 use crate::structure::{BoxVecsExtension, Structure};
 use crate::{BoundaryMode, PeriodicMode};
 

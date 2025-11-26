@@ -3,10 +3,40 @@ use std::num::NonZeroUsize;
 
 use eightyseven::reader::{ParseList, ReadGro};
 use eightyseven::structure::{AtomName, AtomNum, ResName, ResNum};
-use eightyseven::writer::{format_atom_line, WriteGro};
+use eightyseven::writer::{WriteGro, format_atom_line};
 use glam::Vec3;
 
 pub type Atom = Vec3;
+
+/// Load a [`Structure`] from a structure file.
+///
+/// This function will return an error if the structure is empty. Downstream functions may assume
+/// that a [`Structure`] has at least one atom.
+pub fn load_molecule<P: AsRef<std::path::Path> + std::fmt::Debug>(
+    path: P,
+) -> anyhow::Result<Structure> {
+    use anyhow::{Context, bail};
+
+    let file = std::fs::File::open(&path)?;
+
+    let structure = match path.as_ref().extension().and_then(|s| s.to_str()) {
+        Some("gro") => Structure::read_from_file(file)
+            .with_context(|| format!("Failed to parse gro file {path:?}"))?,
+        Some("pdb") => Structure::read_from_pdb_file(file)
+            .with_context(|| format!("Failed to parse PDB file {path:?}"))?,
+        None | Some(_) => {
+            eprintln!("WARNING: Assuming {path:?} is a PDB file.");
+            Structure::read_from_pdb_file(file)
+                .with_context(|| format!("Failed to parse the file {path:?} as PDB"))?
+        }
+    };
+
+    if structure.natoms() == 0 {
+        bail!("Structure from {path:?} contains no atoms")
+    }
+
+    Ok(structure)
+}
 
 /// A structure type that stores its atoms as simple positions.
 ///

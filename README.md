@@ -4,40 +4,34 @@
 
 ## Installation
 
-### Prerequisites
+_Bentopy_ can be installed through `pip`.
 
-_bentopy_ is built on a [Rust][rust] core.
-A Rust compiler is required during installation. To check whether one is
-present, you can run
+```console
+pip install bentopy
+```
+
+For most linux platforms, pre-built binaries are available and will be
+installed automatically through `pip`. For other platforms, such as MacOS, a
+Rust compiler is required.
+
+<details>
+<summary><h3>Install on other platforms</h3></summary>
+
+First, you can check if Rust's build system `cargo` is installed.
 
 ```console
 cargo --version
 ```
 
 If it is not present, [you can install it][rust-installation] by any means you
-prefer. Installation through [_rustup_][rust-rustup] is very convenient.
+prefer. Installation through [_rustup_][rust-rustup] is very easy!
 
-### Install _bentopy_ through _pip_ directly
-
-If you don't care about peeking into the sources and just want access to the
-program, this is the quickest option.
-
-```console
-pip3 install git+https://github.com/marrink-lab/bentopy
-```
-
-### From source
-
-```console
-git clone https://github.com/marrink-lab/bentopy
-cd bentopy
-python3 -m venv venv && source venv/bin/activate # Not required, but often convenient.
-pip3 install .
-```
+Once `cargo` is installed, installing _bentopy_ using `pip` should work.
+</details>
 
 ## Usage
 
-_bentopy_ currently features five subcommands,
+_Bentopy_ currently features five subcommands,
 [_pack_](#pack),
 [_render_](#render),
 [_mask_](#mask),

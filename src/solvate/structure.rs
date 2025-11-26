@@ -103,7 +103,9 @@ pub fn write_structure<const PAR: bool>(
         let percentage = progress * 100.0;
         let delta = std::time::Instant::now() - start;
         let time_left = delta.as_secs_f32() * (progress.recip() - 1.0);
-        eprint!("\r({percentage:>4.1}%) Wrote {n:>9}/{natoms_solvent} solvent atoms. (ETA {time_left:>4.0} s) ");
+        eprint!(
+            "\r({percentage:>4.1}%) Wrote {n:>9}/{natoms_solvent} solvent atoms. (ETA {time_left:>4.0} s) "
+        );
     }
     eprintln!();
     eprintln!(
