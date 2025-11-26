@@ -91,6 +91,7 @@ def mask(args):
         resolution=args.containment_resolution,
         closure=args.closing,
         slab=args.slab,
+        max_offset=0, # We accept any result of voxelization.
         verbose=args.verbose,
     )
     duration = time() - start
