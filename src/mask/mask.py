@@ -106,26 +106,6 @@ def mask(args):
     # And show it as a tree of containments.
     print(containment.voxel_containment.format_containment())
 
-    # Write the plot of the containments if desired.
-    show_plot = args.plot
-    if show_plot is None and args.interactive:
-        log("Do you want to inspect a plot of the containments?")
-        while True:
-            answer = input("[y/N] -> ").strip()
-            if len(answer) == 0 or answer.lower() == "n":
-                break
-            if answer == "y":
-                show_plot = True
-                break
-    elif isinstance(args.plot, Path):
-        # TODO: Write the plot to a file. @Bart
-        log("WARNING: This is not implemented, yet.")
-        log(f"Writing the containment plot to {args.plot}.")
-        containment.voxel_containment.draw(file=args.plot)
-    if show_plot:
-        log("Showing the containment plot.")
-        containment.voxel_containment.draw()
-
     # Get the label array.
     label_array = containment.voxel_containment.components_grid
     # Write the labels to a gro file if desired.

@@ -89,14 +89,6 @@ def setup_parser(parser=None):
         help="Automatically select the leaf nodes from the containment graph, which commonly represent the 'insides' of the system.",
     )
     parser.add_argument(
-        "--plot",
-        action="store_true",
-        default=None,
-        help="""Set without a value to display a plot of the containment. 
-        To store the plot to a path, provide that path as this flag's value. 
-        (when used, default: %(default)s).""",
-    )
-    parser.add_argument(
         "-b",
         "--inspect-labels-path",
         type=Path,
