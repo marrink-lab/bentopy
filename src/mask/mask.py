@@ -95,7 +95,6 @@ def mask(args):
         verbose=args.verbose,
         no_mapping=True, # Mapping takes some time and is not used at all in this context.
         betafactors=False, # Betafactors are not used in this context and are pretty slow to instantiate.
-        
     )
     duration = time() - start
     log(f"Done in {duration:.3} s.")
