@@ -34,6 +34,7 @@ pub enum Token<'s> {
     Concentration(f64),
     String(&'s str),
     Section(&'s str),
+    Placeholder(&'s str),
 
     // Interpunction
     ParenOpen,
@@ -59,6 +60,7 @@ impl std::fmt::Display for Token<'_> {
             Token::String(path) => write!(f, "string {path:?}"),
             Token::Concentration(conc) => write!(f, "concentration ({conc}M)"),
             Token::Section(header) => write!(f, "section header {header:?}"),
+            Token::Placeholder(name) => write!(f, "placeholder {name:?}"),
             Token::ParenOpen => write!(f, "("),
             Token::ParenClose => write!(f, ")"),
             Token::Comma => write!(f, ","),
@@ -142,9 +144,15 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         .padded()
         .delimited_by(just('['), just(']'))
         .map(Token::Section);
+    let placeholder = components::identifier()
+        .padded()
+        .delimited_by(just('<'), just('>'))
+        .map(Token::Placeholder);
     let point = components::point().map(Token::Point).boxed();
 
     choice((
+        // Unparseable
+        placeholder,
         // Operators
         operator("not").to(Token::Not),
         operator("and").to(Token::And),
