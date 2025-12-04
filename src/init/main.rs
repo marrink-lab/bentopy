@@ -5,9 +5,12 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, command};
 
 use bentopy::core::config::{Config, legacy};
+use bentopy::core::version::VERSION;
+
+const BIN_NAME: &str = env!("CARGO_BIN_NAME");
 
 #[derive(Debug, Parser)]
-#[command(about, version = bentopy::core::version::VERSION)]
+#[command(about, version = VERSION)]
 struct Args {
     #[command(subcommand)]
     command: Command,
@@ -48,6 +51,7 @@ fn main() -> Result<()> {
 fn example(output: PathBuf) -> Result<()> {
     let example = include_str!("example.bent");
     let mut file = std::fs::File::create(&output)?;
+    writeln!(file, "# Created by {BIN_NAME}, version {VERSION}.")?;
     file.write_all(example.as_bytes())?;
     Ok(())
 }
@@ -111,8 +115,9 @@ fn convert(input: PathBuf, output: PathBuf) -> Result<()> {
     };
 
     eprintln!("Writing to {output:?}.");
-    let out = std::fs::File::create(output)?;
+    let out = std::fs::File::create(&output)?;
     let mut out = BufWriter::new(out);
+    writeln!(out, "# Converted {input:?} to {output:?} using {BIN_NAME}.")?;
     bentopy::core::config::bent::write(&config, &mut out)?;
 
     Ok(())
