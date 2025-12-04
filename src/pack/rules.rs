@@ -1,10 +1,22 @@
 use std::num::ParseFloatError;
 use std::str::FromStr;
 
+use bentopy::core::config::legacy::RuleExpression;
+
 use crate::mask::{Dimensions, Mask};
 use crate::state::{Compartment, CompartmentID};
 
 type Scalar = f32;
+
+// TODO: This should be part of the config parsing.
+pub fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
+    match expr {
+        RuleExpression::Rule(s) => Rule::from_str(s),
+        RuleExpression::Or(exprs) => Ok(Rule::Or(
+            exprs.iter().map(parse_rule).collect::<Result<_, _>>()?,
+        )),
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rule {

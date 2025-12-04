@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use anyhow::{Context, bail};
 pub(crate) use glam::{EulerRot, Mat3, Vec3};
@@ -8,12 +7,12 @@ use rand::{RngCore, SeedableRng};
 pub use bentopy::core::config::CompartmentID;
 use bentopy::core::config::legacy::{
     Compartment as LegacyConfigCompartment, Config as LegacyConfig, Mask as LegacyConfigMask,
-    RuleExpression, TopolIncludes,
+    TopolIncludes,
 };
 
 use crate::args::{Args, RearrangeMethod};
 use crate::mask::Mask;
-use crate::rules::{self, ParseRuleError, Rule};
+use crate::rules;
 pub use crate::state::compartment::Compartment;
 use crate::state::segment::Segment;
 pub use crate::state::space::Space;
@@ -204,8 +203,8 @@ impl State {
                     let rules = seg
                         .rules
                         .iter()
-                        .map(parse_rule)
-                        .collect::<Result<Vec<Rule>, _>>()?;
+                        .map(rules::parse_rule)
+                        .collect::<Result<Vec<rules::Rule>, _>>()?;
                     let initial_rotation = {
                         let [ax, ay, az] = seg.initial_rotation.map(f32::to_radians);
                         Rotation::from_euler(ORDER, ax, ay, az)
@@ -324,15 +323,5 @@ impl State {
         }
 
         Ok(())
-    }
-}
-
-// TODO: This should be part of the config parsing.
-fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
-    match expr {
-        RuleExpression::Rule(s) => Rule::from_str(s),
-        RuleExpression::Or(exprs) => Ok(Rule::Or(
-            exprs.iter().map(parse_rule).collect::<Result<_, _>>()?,
-        )),
     }
 }
