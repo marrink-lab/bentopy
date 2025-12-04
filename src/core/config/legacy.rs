@@ -3,7 +3,7 @@ use std::{path::PathBuf, str::FromStr};
 use serde::Deserialize;
 
 pub use super::compartment_combinations::Expression as CombinationExpression;
-use crate::core::config::{Axes, CompartmentID, Dimensions};
+use crate::core::config::{Axes, CompartmentID, Dimensions, defaults};
 
 impl<'de> Deserialize<'de> for CombinationExpression {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -21,15 +21,15 @@ const N_A: f64 = 6.0221415e23;
 // TODO: I think it's cursed that we store these defaults here. I'd like to create a file
 // collecting all of these consts, one day.
 fn bead_radius_default() -> f32 {
-    0.20 // nm
+    defaults::BEAD_RADIUS as f32 // nm
 }
 
 fn max_tries_mult_default() -> u64 {
-    1000
+    defaults::MAX_TRIES_MULT
 }
 
 fn max_tries_rot_div_default() -> u64 {
-    100
+    defaults::MAX_TRIES_ROT_DIV
 }
 
 #[derive(Deserialize)]
@@ -221,14 +221,45 @@ pub struct Config {
 }
 
 mod convert {
+    use std::collections::HashSet;
+
     use super::*;
-    use crate::core::config;
+    use crate::core::config::{self, legacy::convert::rule::parse_rule};
+
+    impl Into<config::Expr<CompartmentID>> for CombinationExpression {
+        fn into(self) -> config::Expr<CompartmentID> {
+            type Expr = config::Expr<CompartmentID>;
+            fn unflatten(
+                expressions: Vec<CombinationExpression>,
+                binary: impl Fn(Box<Expr>, Box<Expr>) -> Expr,
+            ) -> Expr {
+                // We recursively convert the children first.
+                let exprs: Vec<config::Expr<CompartmentID>> = expressions
+                    .into_iter()
+                    .map(|expression| expression.into())
+                    .collect();
+                // Then, we stitch them together into a tree.
+                let flat = exprs;
+                flat.into_iter()
+                    .reduce(|acc, item| binary(Box::new(acc), Box::new(item)))
+                    .expect("TODO")
+            }
+
+            match self {
+                Self::Id(id) => config::Expr::Term(id),
+                Self::Not(expression) => config::Expr::Not(Box::new((*expression).into())),
+                Self::Union(expressions) => unflatten(expressions, config::Expr::Or),
+                Self::Intersect(expressions) => unflatten(expressions, config::Expr::And),
+            }
+        }
+    }
 
     impl Into<config::Mask> for Mask {
         fn into(self) -> config::Mask {
             match self {
                 Mask::Shape(shape) => config::Mask::Shape(match shape {
-                    Shape::Spherical => config::Shape::space_filling_sphere(),
+                    // TODO: This sucks but is true.
+                    Shape::Spherical => panic!("a sphere without a radius is an undefined shape"),
                     Shape::Cuboid | Shape::None => config::Shape::space_filling_cuboid(),
                 }),
                 Mask::Analytical {
@@ -240,7 +271,7 @@ mod convert {
                         None => config::Center::Center,
                         Some(center) => config::Center::Point(center),
                     },
-                    radius: radius.expect("TODO") as f64,
+                    radius: radius.expect("TODO"),
                 }),
                 Mask::Analytical {
                     shape: Shape::Cuboid | Shape::None,
@@ -250,7 +281,7 @@ mod convert {
                 Mask::Voxels { path } => config::Mask::Voxels(path),
                 Mask::Combination(expression) => {
                     // TODO: This conversion sucks and will be changed.
-                    config::Mask::Shape(config::Shape::Combination { expression })
+                    config::Mask::Combination(expression.into())
                 }
             }
         }
@@ -278,22 +309,40 @@ mod convert {
                 rotation_axes,
                 initial_rotation,
             } = self;
-            // TODO: Implement parsing for these segment properties.
-            if !rules.is_empty() {
-                todo!("implement segment rules for bent")
-            }
+            // TODO: Implement parsing for rotation_axes properties.
             if rotation_axes == Default::default() {
                 todo!("implement segment rotation axes for bent")
             }
-            if initial_rotation == <[f32; 3]>::default() {
-                todo!("implement segment initial rotation for bent")
+            if initial_rotation != <[f32; 3]>::default() {
+                unimplemented!("segment initial rotation is deprecated")
             }
+
+            let rules = if rules.is_empty() {
+                None
+            } else {
+                // This is a bit complicated. We need to
+                // (1) come up with a label for each unique RuleExpression in the file,
+                // (2) those rule expressions need to be formulated as a constraint and
+                //     pushed to the constraints list. This is done in the conversion of
+                //     legacy::Config to config::Config.
+                let ids = rules
+                    .iter()
+                    .map(|re| {
+                        let legacy_rule = parse_rule(re).expect("TODO");
+                        rule::canonical_id(&legacy_rule)
+                    })
+                    // Only retain unique rules.
+                    .collect::<HashSet<_>>();
+                Some(ids.into_iter().collect())
+            };
+
             config::Segment {
                 name,
                 tag,
+                quantity: quantity.into(),
                 path,
                 compartment_ids: compartments.into_boxed_slice(),
-                quantity: quantity.into(),
+                rules,
             }
         }
     }
@@ -301,8 +350,8 @@ mod convert {
     impl Into<config::Quantity> for Quantity {
         fn into(self) -> config::Quantity {
             match self {
-                Quantity::Number(n) => config::Quantity::Number(n as u64),
-                Quantity::Concentration(c) => config::Quantity::Concentration(c),
+                Self::Number(n) => config::Quantity::Number(n as u64),
+                Self::Concentration(c) => config::Quantity::Concentration(c),
             }
         }
     }
@@ -319,7 +368,7 @@ mod convert {
                     },
                 space:
                     Space {
-                        size: dimensions,
+                        size,
                         resolution,
                         compartments,
                         periodic,
@@ -332,18 +381,207 @@ mod convert {
                     },
             } = self;
 
+            let constraints = segments
+                .iter()
+                .flat_map(|s| &s.rules)
+                .map(|re| {
+                    // First, we do a legacy parse of the rule.
+                    let legacy_rule = parse_rule(re).expect("TODO");
+                    // Come up with a unique id for this rule that will match how a segment converts
+                    // the rule into the same id.
+                    let id = rule::canonical_id(&legacy_rule);
+                    // And convert the RuleExpression into a Rule.
+                    let rule = legacy_rule.into();
+                    config::Constraint { id, rule }
+                })
+                .collect();
+
             config::Config {
-                title,
-                seed,
-                bead_radius,
-                max_tries_mult,
-                max_tries_rot_div,
-                dimensions,
-                resolution,
-                periodic,
+                general: config::General {
+                    title: if title.is_empty() { None } else { Some(title) },
+                    seed,
+                    bead_radius: Some(bead_radius as f64),
+                    max_tries_mult: Some(max_tries_mult),
+                    max_tries_rot_div: Some(max_tries_rot_div),
+                    rearrange_method: None,
+                },
+                space: config::Space {
+                    dimensions: Some(size),
+                    resolution: Some(resolution as f64),
+                    periodic: Some(periodic),
+                },
+                includes: topol_includes
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
+                constraints,
                 compartments: compartments.into_iter().map(Into::into).collect(),
-                topol_includes: topol_includes.unwrap_or_default(),
                 segments: segments.into_iter().map(Into::into).collect(),
+            }
+        }
+    }
+
+    // We're vendoring the Rule stuff until that can all be refactored out.
+    mod rule {
+        use std::num::ParseFloatError;
+        use std::str::FromStr;
+
+        use crate::core::config::{self, Axis, Limit, Op};
+
+        use super::{CompartmentID, RuleExpression};
+
+        // TODO: This should be part of the config parsing.
+        pub fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
+            match expr {
+                RuleExpression::Rule(s) => Rule::from_str(s),
+                RuleExpression::Or(exprs) => Ok(Rule::Or(
+                    exprs.iter().map(parse_rule).collect::<Result<_, _>>()?,
+                )),
+            }
+        }
+
+        pub fn canonical_id(rule: &Rule) -> String {
+            match rule {
+                Rule::Position(Limit { axis, op, value }) => {
+                    let op = match op {
+                        Op::SmallerThan => "lt",
+                        Op::GreaterThan => "gt",
+                    };
+                    format!("{{lim/{axis:?}'{op}'{value}}}")
+                }
+                Rule::IsCloser(id, distance) => {
+                    format!("{{win/{id}'{distance}}}")
+                }
+                Rule::Or(rules) => {
+                    let ids = rules
+                        .iter()
+                        .map(|r| canonical_id(r))
+                        .collect::<Vec<_>>()
+                        .join("'");
+                    format!("{{or/{ids}}}")
+                }
+            }
+        }
+
+        impl Into<config::Rule> for Rule {
+            fn into(self) -> config::Rule {
+                match self {
+                    Rule::Position(limit) => config::Rule::Limits(config::Expr::Term(limit)),
+                    Rule::IsCloser(id, distance) => config::Rule::Within { distance, id },
+                    Rule::Or(_rules) => {
+                        // TODO: This is quite easy to implement. Along the lines of
+                        // compartment combinations, but just for rule ids.
+                        todo!("rule combinations have not been implemented")
+                    }
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        pub enum Rule {
+            Position(Limit),
+            IsCloser(CompartmentID, f32),
+
+            /// A set of rules where any of them can be true for this [`Rule`] to apply.
+            Or(Vec<Rule>),
+        }
+
+        impl FromStr for Rule {
+            type Err = ParseRuleError;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                let trimmed = s.trim();
+                let mut words = trimmed.split_whitespace();
+                let keyword = words.next().ok_or(ParseRuleError::Empty)?;
+                match keyword {
+                    kind @ ("less_than" | "greater_than") => {
+                        let axis = words
+                            .next()
+                            .ok_or(ParseRuleError::SyntaxError("expected axis".to_string()))?
+                            .parse()
+                            .map_err(ParseRuleError::ParseAxisError)?;
+                        let value = words
+                            .next()
+                            .ok_or(ParseRuleError::SyntaxError(
+                                "expected scalar value".to_string(),
+                            ))?
+                            .parse()
+                            .map_err(ParseRuleError::ParseScalarError)?;
+
+                        let poscon = match kind {
+                            "greater_than" => Limit {
+                                axis,
+                                op: Op::GreaterThan,
+                                value,
+                            },
+                            "less_than" => Limit {
+                                axis,
+                                op: Op::SmallerThan,
+                                value,
+                            },
+                            _ => unreachable!(), // By virtue of this branch's pattern.
+                        };
+                        Ok(Rule::Position(poscon))
+                    }
+                    "is_closer_to" => {
+                        let compartment_id = words.next().ok_or(ParseRuleError::SyntaxError(
+                            "expected compartment id".to_string(),
+                        ))?;
+                        let distance = words
+                            .next()
+                            .ok_or(ParseRuleError::SyntaxError(
+                                "expected scalar value".to_string(),
+                            ))?
+                            .parse()
+                            .map_err(ParseRuleError::ParseScalarError)?;
+
+                        Ok(Rule::IsCloser(compartment_id.to_string(), distance))
+                    }
+                    unknown => Err(ParseRuleError::UnknownKeyword(unknown.to_string())),
+                }
+            }
+        }
+
+        #[derive(Debug, Clone)]
+        pub enum ParseRuleError {
+            Empty,
+            UnknownKeyword(String),
+            SyntaxError(String),
+            ParseScalarError(ParseFloatError),
+            ParseAxisError(String),
+        }
+
+        impl std::fmt::Display for ParseRuleError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    ParseRuleError::Empty => write!(f, "no rule keyword was provided"),
+                    ParseRuleError::UnknownKeyword(unknown) => {
+                        write!(f, "encountered an unknown keyword: {unknown:?}")
+                    }
+                    ParseRuleError::SyntaxError(err) => write!(f, "syntax error: {err}"),
+                    ParseRuleError::ParseScalarError(err) => {
+                        write!(f, "could not parse float: {err}")
+                    }
+                    ParseRuleError::ParseAxisError(err) => write!(f, "could not parse axis: {err}"),
+                }
+            }
+        }
+
+        impl std::error::Error for ParseRuleError {}
+
+        impl FromStr for Axis {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    "x" => Ok(Self::X),
+                    "y" => Ok(Self::Y),
+                    "z" => Ok(Self::Z),
+                    weird => Err(format!(
+                        "expected one of 'x', 'y', or 'z', but found {weird:?}"
+                    )),
+                }
             }
         }
     }
