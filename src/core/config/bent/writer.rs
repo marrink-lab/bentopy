@@ -78,12 +78,14 @@ pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
         writeln!(w)?; // Spacing newline.
     }
 
-    // Includes section.
-    section(w, "includes")?;
-    for include in includes {
-        include_entry(w, include)?;
+    if !includes.is_empty() {
+        // Includes section.
+        section(w, "includes")?;
+        for include in includes {
+            include_entry(w, include)?;
+        }
+        writeln!(w)?; // Spacing newline.
     }
-    writeln!(w)?; // Spacing newline.
 
     // Compartments section.
     section(w, "compartments")?;
@@ -92,12 +94,14 @@ pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
     }
     writeln!(w)?; // Spacing newline.
 
-    // Constraints section.
-    section(w, "constraints")?;
-    for constraint in constraints {
-        constraint_entry(w, constraint)?;
+    if !constraints.is_empty() {
+        // Constraints section.
+        section(w, "constraints")?;
+        for constraint in constraints {
+            constraint_entry(w, constraint)?;
+        }
+        writeln!(w)?; // Spacing newline.
     }
-    writeln!(w)?; // Spacing newline.
 
     // Segments section.
     section(w, "segments")?;

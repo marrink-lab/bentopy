@@ -398,19 +398,41 @@ mod convert {
                 })
                 .collect();
 
+            let bead_radius = if bead_radius != defaults::BEAD_RADIUS as f32 {
+                Some(bead_radius as f64)
+            } else {
+                None
+            };
+            let max_tries_mult = if max_tries_mult != defaults::MAX_TRIES_MULT {
+                Some(max_tries_mult)
+            } else {
+                None
+            };
+            let max_tries_rot_div = if max_tries_rot_div != defaults::MAX_TRIES_ROT_DIV {
+                Some(max_tries_rot_div)
+            } else {
+                None
+            };
+            // Bit silly, but let's match this already ugly structure for clarity.
+            let periodic = if periodic != true {
+                Some(periodic)
+            } else {
+                None
+            };
+
             config::Config {
                 general: config::General {
                     title: if title.is_empty() { None } else { Some(title) },
                     seed,
-                    bead_radius: Some(bead_radius as f64),
-                    max_tries_mult: Some(max_tries_mult),
-                    max_tries_rot_div: Some(max_tries_rot_div),
+                    bead_radius,
+                    max_tries_mult,
+                    max_tries_rot_div,
                     rearrange_method: None,
                 },
                 space: config::Space {
                     dimensions: Some(size),
                     resolution: Some(resolution as f64),
-                    periodic: Some(periodic),
+                    periodic,
                 },
                 includes: topol_includes
                     .unwrap_or_default()
