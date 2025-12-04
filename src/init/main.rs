@@ -1,10 +1,10 @@
 use std::io::{BufWriter, Read, Write};
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, command};
 
-use bentopy::core::config::Config;
+use bentopy::core::config::{Config, legacy};
 
 #[derive(Debug, Parser)]
 #[command(about, version = bentopy::core::version::VERSION)]
@@ -65,12 +65,51 @@ fn check(input: PathBuf) -> Result<()> {
 }
 
 fn convert(input: PathBuf, output: PathBuf) -> Result<()> {
+    enum Kind {
+        Bent,
+        Json,
+    }
+
+    let kind = match input.extension().and_then(|s| s.to_str()) {
+        Some("bent") => Kind::Bent,
+        Some("json") => Kind::Json,
+        _ => bail!(
+            "Cannot read {input:?}. \
+                The convert subcommand only supports reading .bent and .json files.",
+        ),
+    };
+
+    if output.extension().is_some_and(|s| s != "bent") {
+        bail!(
+            "Cannot write configuration to {output:?}. \
+                The convert subcommand only supports writing .bent files.",
+        );
+    }
+
     let mut file = std::fs::File::open(&input)?;
     let mut s = String::new();
     file.read_to_string(&mut s)?;
 
-    let config = Config::parse_bent(&input.to_string_lossy(), &s)?;
-    eprintln!("Successfully parsed {input:?}.");
+    let path = &input.to_string_lossy();
+    let config = match kind {
+        Kind::Bent => {
+            let config = Config::parse_bent(path, &s)
+                .context(format!("could not parse {path:?} as a bentopy input file"))?;
+            eprintln!("Successfully parsed {path:?}.");
+            config
+        }
+        Kind::Json => {
+            let config: legacy::Config = serde_json::from_str(&s).context(format!(
+                "could not parse {path:?} as a legacy json input file"
+            ))?;
+            eprintln!("Successfully parsed {path:?} (legacy input file).");
+            eprintln!("Attempting to convert to new input configuration format...");
+            let config = config.into();
+            eprintln!("Done!");
+            config
+        }
+    };
+
     eprintln!("Writing to {output:?}.");
     let out = std::fs::File::create(output)?;
     let mut out = BufWriter::new(out);

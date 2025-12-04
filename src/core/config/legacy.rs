@@ -271,12 +271,14 @@ mod convert {
                         None => config::Center::Center,
                         Some(center) => config::Center::Point(center),
                     },
-                    radius: radius.expect("TODO"),
+                    // TODO: This sucks but is true.
+                    radius: radius.expect("a sphere without a radius is an undefined shape"),
                 }),
                 Mask::Analytical {
                     shape: Shape::Cuboid | Shape::None,
-                    center: _, // TODO: Error if not None.
-                    radius: _, // TODO: Error if not None.
+                    // Cursed that these could be set, but we'll just keep quit about it.
+                    center: _,
+                    radius: _,
                 } => config::Mask::Shape(config::Shape::space_filling_cuboid()),
                 Mask::Voxels { path } => config::Mask::Voxels(path),
                 Mask::Combination(expression) => {
@@ -310,8 +312,8 @@ mod convert {
                 initial_rotation,
             } = self;
             // TODO: Implement parsing for rotation_axes properties.
-            if rotation_axes == Default::default() {
-                todo!("implement segment rotation axes for bent")
+            if rotation_axes != Default::default() {
+                todo!("segment rotation axes for bent (this is planned!!)")
             }
             if initial_rotation != <[f32; 3]>::default() {
                 unimplemented!("segment initial rotation is deprecated")

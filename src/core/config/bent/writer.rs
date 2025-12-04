@@ -39,7 +39,9 @@ pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
             field(w, "seed", val)?
         }
         if let Some(val) = bead_radius {
-            field(w, "bead-radius", val)?
+            // FIXME: This is a bit cursed, I guess. It's just to make sure we don't print ugly
+            // insignificant digits.
+            field(w, "bead-radius", *val as f32)?
         }
         if let Some(val) = max_tries_mult {
             field(w, "max-tries-mult", val)?
@@ -102,7 +104,6 @@ pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
     for segment in segments {
         segment_entry(w, segment)?;
     }
-    writeln!(w)?; // Spacing newline.
 
     Ok(())
 }
