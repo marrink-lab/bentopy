@@ -124,7 +124,7 @@ pub fn parse_config(path: &str, src: &str) -> anyhow::Result<Config> {
         // Display a nice report.
         let summary = report::error(path, src, &errs[0]);
         // Communicate the error upstream.
-        anyhow::anyhow!("encountered an error while lexing {path:?}: {summary}")
+        anyhow::anyhow!("could not lex {path:?}: {summary}")
     })?;
 
     if std::env::var("BENTOPY_SHOW_TOKENS").is_ok_and(|v| v.parse::<bool>().unwrap_or_default()) {
@@ -143,7 +143,7 @@ pub fn parse_config(path: &str, src: &str) -> anyhow::Result<Config> {
             // Display a nice report.
             let summary = report::error(path, src, &errs[0]);
             // Communicate the error upstream.
-            anyhow::anyhow!("encountered an error while parsing {path:?}: {summary}")
+            anyhow::anyhow!("could not parse {path:?}: {summary}")
         })?;
     Ok(config)
 }
