@@ -19,7 +19,7 @@ mod structure;
 /// Structures specified in the placement list are retrieved from their pdb or gro
 /// files and placed into a gro file according to their rotations and positions.
 #[derive(Debug, Parser)]
-#[command(version, about)]
+#[command(about, version = bentopy::core::version::VERSION)]
 struct Args {
     /// Path to the placement list.
     ///

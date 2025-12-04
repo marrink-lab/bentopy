@@ -8,6 +8,7 @@ use crate::water::WaterType;
 
 /// Solvate.
 #[derive(Debug, Parser)]
+#[command(about, version = bentopy::core::version::VERSION)]
 pub struct Args {
     /// Structure input path.
     #[arg(short, long)]

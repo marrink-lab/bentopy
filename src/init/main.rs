@@ -7,7 +7,7 @@ use clap::{Parser, Subcommand, command};
 use bentopy::core::config::Config;
 
 #[derive(Debug, Parser)]
-#[command(version, about)]
+#[command(about, version = bentopy::core::version::VERSION)]
 struct Args {
     #[command(subcommand)]
     command: Command,

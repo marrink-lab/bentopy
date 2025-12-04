@@ -46,7 +46,7 @@ pub fn write_structure<const PAR: bool>(
         writer,
         "solvated by {} (v{})",
         env!("CARGO_BIN_NAME"),
-        env!("CARGO_PKG_VERSION")
+        bentopy::core::version::VERSION
     )?;
     writeln!(writer, "{natoms}")?;
 
