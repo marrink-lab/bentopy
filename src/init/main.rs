@@ -29,6 +29,8 @@ enum Command {
     Check {
         #[arg(short, long)]
         input: PathBuf,
+        #[arg(short, long, default_value_t)]
+        verbose: bool,
     },
     Convert {
         #[arg(short, long)]
@@ -43,7 +45,7 @@ fn main() -> Result<()> {
     match command {
         Command::Example { output } => example(output),
         // Command::Create { output } => todo!(),
-        Command::Check { input } => check(input),
+        Command::Check { input, verbose } => check(input, verbose),
         Command::Convert { input, output } => convert(input, output),
     }
 }
@@ -56,14 +58,19 @@ fn example(output: PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn check(input: PathBuf) -> Result<()> {
+fn check(input: PathBuf, verbose: bool) -> Result<()> {
     let mut file = std::fs::File::open(&input)?;
     let mut s = String::new();
     file.read_to_string(&mut s)?;
 
     let config = Config::parse_bent(&input.to_string_lossy(), &s)?;
     eprintln!("Successfully parsed {input:?}.");
-    println!("{config:#?}");
+
+    // If desired, print a crazy expanded debug struct.
+    if verbose {
+        eprintln!("Printing debug representation of this configuration:");
+        println!("{config:#?}");
+    }
 
     Ok(())
 }
