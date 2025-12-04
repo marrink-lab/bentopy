@@ -33,3 +33,5 @@ npyz = { version = "0.8.3", features = ["npz"] }
 rayon = "1.10.0"
 anyhow = "1.0.97"
 git-version = "0.3.9"
+chumsky = { version = "0.11.2", features = ["pratt", "regex"] }
+ariadne = "0.6.0"
