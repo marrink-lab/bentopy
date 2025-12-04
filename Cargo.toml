@@ -10,6 +10,10 @@ authors = [
 repository = "https://github.com/marrink-lab/bentopy"
 
 [[bin]]
+name = "bentopy-init"
+path = "src/init/main.rs"
+
+[[bin]]
 name = "bentopy-pack"
 path = "src/pack/main.rs"
 

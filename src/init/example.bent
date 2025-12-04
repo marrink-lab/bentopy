@@ -1,0 +1,72 @@
+# This is an example of a bentopy input file.
+# Change the <placeholders> to the values relevant for your system.
+
+[ general ]
+title <system-description>
+seed  <seed>
+
+[ space ]
+# Points or dimensions are given as comma-separated tuples of three numbers.
+# Whitespace between the commas and the numbers is optional.
+dimensions <x>, <y>, <z> 
+# All dimensions and sizes in bentopy are given in nanometers.
+resolution <voxel-size>
+
+[ includes ]
+# You can list the itp files that should be included in the topology files.
+# This is optional. For example:
+#   forcefield/forcefield.itp
+#   forcefield/forcefield_solvents.itp
+#   structures/*.itp
+<itp-include...>
+
+[ compartments ]
+# At least one compartment must be defined.
+# Load from existing voxel mask (npz).
+<id> from <voxel-mask-path>
+# Or create them using analytical functions.
+<id> as sphere at center with radius <radius>
+<id> as sphere at <x>, <y>, <z> with radius <radius>
+<id> as cuboid from <x>, <y>, <z> to <x>, <y>, <z>
+# Compartments can be combined.
+# The available operators are `and`, `or`, and `not`.
+# Expressions can be grouped using parentheses. For example:
+#   not a or (b and c)
+<id> as combination <combination-expression>  
+
+[ constraints ]
+# Using constraints, placements can be further restricted.
+# Placements can be limited to a certain distance from some compartment.
+<rule-id> within 5.0 of <compartment-id>
+# Placements can be limited to geometric limits. These can be phrased as a
+# single inequality, such as:
+#   x > 40
+# or using boolean expressions (just like compartment combinations):
+#   20 < x and x < 80 and not z > 20
+<rule-id> where <limits-expression>
+# Finally, the rotational axes of a placement can be restricted. Axes are
+# provided as a comma-separated list. Random rotations are only applied to the
+# listed axes. The rotation over the axes that are not listed will be the same
+# as in the original structure file.
+<rule-id> rotates <axes>
+# Rules can be combined, just like compartments.
+<rule-id> as combination <combination-expression>  
+
+[ segments ]
+# On each line, a segment is defined as follows:
+# - Name (should match naming in itp files).
+# - Tag (optional, max 5 characters, preceded by a colon).
+# - Quantity:
+#   - concentration (molar, with 'M' suffix),
+#   - copy number (no suffix).
+# - Path to the structure file (gro, pdb).
+# - Names of its compartments (comma-separated).
+# - Names of the rules it should uphold (comma-separated)
+<name>:<tag> <quantity> from <structure-path> in <compartment-ids> satisfies <rules>
+# If desired, newlines (and other whitespace) between fields is allowed, making
+# it possible to write segment declarations like this.
+<name>:<tag>
+	<quantity>
+	from <structure-path>
+	in <compartment-ids>
+	satisfies <rules>
