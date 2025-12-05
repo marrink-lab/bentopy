@@ -257,11 +257,11 @@ mod convert {
     impl Into<config::Mask> for Mask {
         fn into(self) -> config::Mask {
             match self {
-                Mask::Shape(shape) => config::Mask::Shape(match shape {
+                Mask::Shape(shape) => match shape {
                     // TODO: This sucks but is true.
                     Shape::Spherical => panic!("a sphere without a radius is an undefined shape"),
-                    Shape::Cuboid | Shape::None => config::Shape::space_filling_cuboid(),
-                }),
+                    Shape::Cuboid | Shape::None => config::Mask::All,
+                },
                 Mask::Analytical {
                     shape: Shape::Spherical,
                     center,
@@ -279,7 +279,7 @@ mod convert {
                     // Cursed that these could be set, but we'll just keep quit about it.
                     center: _,
                     radius: _,
-                } => config::Mask::Shape(config::Shape::space_filling_cuboid()),
+                } => config::Mask::All,
                 Mask::Voxels { path } => config::Mask::Voxels(path),
                 Mask::Combination(expression) => {
                     // TODO: This conversion sucks and will be changed.

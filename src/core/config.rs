@@ -205,15 +205,6 @@ pub enum Shape {
     Cuboid { start: Anchor, end: Anchor },
 }
 
-impl Shape {
-    fn space_filling_cuboid() -> Self {
-        Self::Cuboid {
-            start: Anchor::Start,
-            end: Anchor::End,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Center {
     Center,
