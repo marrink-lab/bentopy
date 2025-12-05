@@ -80,7 +80,7 @@ impl PlacementList {
             max_tries_mult: state.general.max_tries_multiplier,
             max_tries_per_rotation_divisor: state.general.max_tries_per_rotation_divisor,
             bead_radius: state.general.bead_radius,
-            topol_includes: state.output.topol_includes.clone().unwrap_or_default(),
+            topol_includes: state.output.topol_includes.clone(),
             placements: placements.into_iter().collect(),
         }
     }

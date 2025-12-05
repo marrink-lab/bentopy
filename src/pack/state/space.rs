@@ -1,10 +1,8 @@
 use std::collections::HashSet;
 
-use bentopy::core::config::CompartmentID;
-use bentopy::core::config::legacy::Quantity as LegacyQuantity;
+use bentopy::core::config::{CompartmentID, Quantity};
 
 use crate::mask::{Dimensions, Mask};
-use crate::rules::{self, Rule};
 use crate::session::{Locations, Session};
 use crate::state::{Size, compartment::Compartment};
 
@@ -25,19 +23,16 @@ pub struct Space {
     /// When set to `None`, a renewal of locations is due for the next session, regardless of the
     /// previous session's compartment IDs.
     pub(crate) previous_compartments: Option<HashSet<CompartmentID>>,
-    pub(crate) previous_rules: Option<Vec<Rule>>,
 }
 
 impl Space {
     pub fn enter_session<'s>(
         &'s mut self,
         compartment_ids: impl IntoIterator<Item = CompartmentID>,
-        rules: impl IntoIterator<Item = Rule>,
         locations: &'s mut Locations,
-        quantity: LegacyQuantity,
+        quantity: Quantity,
     ) -> Session<'s> {
         let compartment_ids = HashSet::from_iter(compartment_ids);
-        let rules = Vec::from_iter(rules);
 
         // TODO: Consider caching this volume like we do for the same compartments below.
         //       The volume can just be associated with a set of previous compartments.
@@ -51,11 +46,7 @@ impl Space {
             .previous_compartments
             .as_ref()
             .is_some_and(|prev| prev == &compartment_ids);
-        let same_previous_rules = self
-            .previous_rules
-            .as_ref()
-            .is_some_and(|prev| prev == &rules);
-        if !same_previous_compartments || !same_previous_rules {
+        if !same_previous_compartments {
             // Clone the global background, which has all structures stamped onto it.
             self.session_background = self.global_background.clone();
 
@@ -74,17 +65,17 @@ impl Space {
             }
             self.previous_compartments = Some(compartment_ids);
 
-            // Apply the rules to the background.
-            let rule_mask =
-                rules::distill(&rules, self.dimensions, self.resolution, &self.compartments);
-            self.session_background |= !rule_mask;
-            self.previous_rules = Some(rules);
-
             // We must renew the locations as well, based on the newly masked session background.
             locations.renew(self.session_background.linear_indices_where::<false>());
         }
 
-        Session::new(self, locations, target)
+        Session::new(
+            self,
+            locations,
+            target
+                .try_into()
+                .expect("target cannot not exceed system word size"),
+        )
     }
 
     /// Determine the free voxel volume for the specified compartments.

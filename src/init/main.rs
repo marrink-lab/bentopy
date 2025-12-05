@@ -135,7 +135,7 @@ fn check(input: PathBuf, verbose: bool) -> Result<()> {
     // Segments should refer to rules that exist.
     for segment in &config.segments {
         let name = segment.name();
-        for id in segment.rules.iter().flatten() {
+        for id in segment.rules.iter() {
             if !rules.contains(id.as_str()) {
                 println!("Error: Segment {name} refers to an undeclared constraint: {id}.");
                 problems += 1;

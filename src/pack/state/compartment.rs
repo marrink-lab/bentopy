@@ -1,36 +1,44 @@
-use std::{cell::RefCell, collections::HashMap};
+use bentopy::core::config::{CompartmentID, Expr, Limit};
 
-use bentopy::core::config::CompartmentID;
-
-use crate::mask::{Mask, distance_mask_grow};
-
-type DistanceMasksKey = u64;
+use crate::mask::{Dimensions, Mask};
 
 pub struct Compartment {
     pub id: CompartmentID,
     pub mask: Mask,
-    // We make use of some internal mutability, here, through the RefCell. This allows us to lazily
-    // set up the distance masks, such that they are created only once we need them.
-    pub(crate) distance_masks: RefCell<HashMap<DistanceMasksKey, Mask>>,
 }
 
-impl Compartment {
-    /// Get or create and return a cloned distance mask for some voxel distance.
-    ///
-    /// Note that the distance is in terms of voxels, not in nm.
-    pub fn get_distance_mask(&self, distance: f32) -> Mask {
-        let key = distance as u64;
-        {
-            // In this scope, we mutably borrow the distance_masks. At the end of the scope, the
-            // mutable borrow is dropped, and we are okay to perform a non-mutable borrow after it.
-            let mut distance_masks = self.distance_masks.borrow_mut();
-            distance_masks
-                .entry(key)
-                .or_insert_with(|| distance_mask_grow(&self.mask, distance as u64));
+pub fn distill_limits(expr: &Expr<Limit>, dimensions: Dimensions, resolution: f64) -> Mask {
+    fn apply_limit(mut mask: Mask, limit: &Limit, resolution: f64) -> Mask {
+        let &Limit { axis, op, value } = limit;
+        match op {
+            bentopy::core::config::Op::SmallerThan => {
+                mask.apply_function(|pos| value < pos[axis as usize] as f64 * resolution)
+            }
+            bentopy::core::config::Op::GreaterThan => {
+                mask.apply_function(|pos| value > pos[axis as usize] as f64 * resolution)
+            }
         }
-        // We can safely get at the `key` because if it was empty, we have inserted it above.
-        // We clone here because we can't guarantee that the value is not moved by a resize of
-        // the HashMap.
-        self.distance_masks.borrow().get(&key).unwrap().clone()
+
+        mask
     }
+
+    // TODO: This is naive. Also wrong perhaps. Let's test this thuroughly.
+    fn d(expr: &Expr<Limit>, dimensions: Dimensions, resolution: f64) -> Mask {
+        match expr {
+            Expr::Term(limit) => apply_limit(Mask::new(dimensions), limit, resolution),
+            Expr::Not(expr) => !d(expr, dimensions, resolution),
+            Expr::Or(lhs, rhs) => {
+                let mut m = d(lhs, dimensions, resolution);
+                m &= d(rhs, dimensions, resolution);
+                m
+            }
+            Expr::And(lhs, rhs) => {
+                let mut m = d(lhs, dimensions, resolution);
+                m |= d(rhs, dimensions, resolution);
+                m
+            }
+        }
+    }
+
+    d(expr, dimensions, resolution)
 }

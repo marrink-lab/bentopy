@@ -167,6 +167,8 @@ fn compartment_entry<W: Write>(w: &mut W, compartment: &Compartment) -> Result<(
         Mask::Shape(Shape::Cuboid { start, end }) => {
             format!("as cuboid from {start} to {end}")
         }
+        Mask::Limits(expr) => format!("where {expr}"),
+        Mask::Within { distance, id } => format!("within {distance} of {id}"),
         Mask::Combination(expr) => format!("is combination {expr}"),
     };
     writeln!(w, "{id} {mask}")
@@ -175,10 +177,7 @@ fn compartment_entry<W: Write>(w: &mut W, compartment: &Compartment) -> Result<(
 fn constraint_entry<W: Write>(w: &mut W, constraint: &Constraint) -> Result<()> {
     let Constraint { id, rule } = constraint;
     let rule = match rule {
-        Rule::Limits(expr) => format!("where {expr}"),
-        Rule::Within { distance, id } => format!("within {distance} of {id}"),
         Rule::RotationAxes(axes) => format!("rotates {}", list(&axes.list())),
-        Rule::Combination(expr) => format!("is combination {expr}"),
     };
     writeln!(w, "{id} {rule}")
 }
@@ -198,9 +197,9 @@ fn segment_entry<W: Write>(w: &mut W, segment: &Segment) -> Result<()> {
     };
     let path = format_path(path);
     let compartment_ids = list(compartment_ids);
-    let rules = match rules {
-        Some(rules) => format!(" satisfies {}", list(rules)),
-        None => Default::default(),
+    let rules = match rules[..] {
+        [] => Default::default(),
+        _ => format!(" satisfies {}", list(rules)),
     };
     writeln!(w, "{id} {quantity} from {path} in {compartment_ids}{rules}")
 }

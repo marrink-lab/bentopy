@@ -390,7 +390,6 @@ mod blocks {
             positions: impl Iterator<Item = U64Vec3>,
         ) -> Self {
             let size = dimensions.map(|v| (v / radius) as usize + 1);
-            dbg!(size);
             let [w, h, _] = size;
             let mut blocks = vec![Vec::new(); size.iter().product()];
             for pos in positions {

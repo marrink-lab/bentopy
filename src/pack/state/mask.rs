@@ -1,9 +1,8 @@
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
-use bentopy::core::config::Shape;
-use bentopy::core::config::legacy::Shape as LegacyConfigShape;
-use glam::{U64Vec3, UVec3};
+use bentopy::core::config::{self, legacy::Shape as LegacyConfigShape};
+use glam::{U64Vec3, UVec3, Vec3};
 
 use crate::mask::{Dimensions, Mask};
 
@@ -51,9 +50,100 @@ impl Mask {
         Self::from_cells(dimensions, &cells)
     }
 
-    /// All dimensions in terms of voxels.
-    pub(crate) fn _create_from_shape(_dimensions: Dimensions, _shape: Shape) -> Self {
-        todo!()
+    // TODO: Still shitty version. Will be better with a rewrite.
+    pub(crate) fn create_cuboid(
+        dimensions: [u64; 3],
+        resolution: f32,
+        start: config::Anchor,
+        end: config::Anchor,
+    ) -> Self {
+        let [w, h, d] = dimensions.map(|v| v as usize);
+        let dimensions = U64Vec3::from_array(dimensions);
+
+        let start = match start {
+            config::Anchor::Start => U64Vec3::ZERO,
+            config::Anchor::Center => dimensions / 2,
+            config::Anchor::End => dimensions,
+            config::Anchor::Point(point) => (Vec3::from(point) / resolution).as_u64vec3(),
+        };
+        let end = match end {
+            config::Anchor::Start => U64Vec3::ZERO,
+            config::Anchor::Center => dimensions / 2,
+            config::Anchor::End => dimensions,
+            config::Anchor::Point(point) => (Vec3::from(point) / resolution).as_u64vec3(),
+        };
+        // TODO: Consider if we want to do this here, or make the correct ordering an invariant.
+        let (start, end) = (U64Vec3::min(start, end), U64Vec3::max(start, end));
+
+        assert!(
+            dimensions.cmpge(start).all(),
+            "start ({start}) must be within the space dimensions ({dimensions})"
+        );
+        assert!(
+            dimensions.cmpge(end).all(),
+            "end ({end}) must be within the space dimensions ({dimensions})"
+        );
+
+        // TODO: We can use some nice iterator tricks to avoid allocating a big Vec<bool> here.
+        // TODO: Profile to see whether we can help the inlining along.
+        let mut cells = vec![true; w * h * d];
+        for z in 0..d {
+            for y in 0..h {
+                for x in 0..w {
+                    let idx = x + w * y + w * h * z;
+                    let free = (start.x..end.x).contains(&(x as u64))
+                        && (start.y..end.y).contains(&(y as u64))
+                        && (start.z..end.z).contains(&(z as u64));
+                    cells[idx] = !free;
+                }
+            }
+        }
+        let cells = cells.into_boxed_slice();
+
+        Self::from_cells(dimensions.into(), &cells)
+
+        // TODO: Go with something along these lines. Likely faster and more memory efficient.
+        // let mut mask = Self::new(dimensions);
+        // mask.apply_function(|[x,y,z]| );
+    }
+
+    pub(crate) fn create_from_shape(
+        dimensions: [u64; 3],
+        resolution: f32,
+        shape: config::Shape,
+    ) -> Mask {
+        // TODO: The current implementation just giving the helm over to legacy_create_from_shape
+        // is very sad and will be corrected.
+        match shape {
+            config::Shape::Sphere { center, radius } => {
+                let center = match center {
+                    config::Center::Center => (U64Vec3::from(dimensions) / 2).as_uvec3(),
+                    config::Center::Point(point) => (Vec3::from(point) / resolution).as_uvec3(),
+                };
+                let radius = (radius / resolution) as u32;
+                Self::legacy_create_from_shape(
+                    LegacyConfigShape::Spherical,
+                    dimensions,
+                    Some(center),
+                    Some(radius),
+                )
+            }
+            config::Shape::Cuboid { start, end } => {
+                Self::create_cuboid(dimensions, resolution, start, end)
+            }
+        }
+        // LegacyConfigMask::Analytical {
+        //     shape,
+        //     center,
+        //     radius,
+        // } => {
+        //     if verbose {
+        //         eprintln!("\tConstructing a {shape} mask...");
+        //     }
+        //     let center = center.map(|c| (Vec3::from_array(c) / resolution).as_uvec3());
+        //     let radius = radius.map(|r| (r / resolution) as u32);
+        //     Mask::legacy_create_from_shape(shape, dimensions, center, radius)
+        // }
     }
 
     pub(crate) fn load_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {

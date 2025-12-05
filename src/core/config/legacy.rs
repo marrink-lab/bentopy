@@ -306,14 +306,24 @@ mod convert {
                 tag,
                 quantity,
                 path,
-                compartments,
+                mut compartments,
                 rules,
                 rotation_axes,
                 initial_rotation,
             } = self;
+
+            // As you can judge from the comments in the upcoming section, some non-trivial things
+            // are happening here. For context, we need to do some juggling between the different
+            // data types. This is a complex affair that is coordinated over the other conversion
+            // functions as well. So, to understand this, make sure you also grasp how canonical
+            // ids are used in the root Into<config::Config> section as well.
+
+            // We don't support this, anymore. It is still possible to rotate the contents of the
+            // structure file, of course.
             if initial_rotation != <[f32; 3]>::default() {
                 unimplemented!("segment initial rotation is deprecated")
             }
+
             // This is a bit complicated. We need to
             // (1) come up with a label for each unique RuleExpression in the file,
             // (2) those rule expressions need to be formulated as a constraint and
@@ -323,37 +333,34 @@ mod convert {
             // convert a legacy format to the new format. It lets us write these conversions in
             // such a way that the functions don't have to coordinate with each other which
             // makes them nice and seperate. That is preferred here.
+            let compartment_ids_from_rules = rules
+                .iter()
+                .map(|re| {
+                    let legacy_rule = parse_rule(re).expect("TODO");
+                    rule::canonical_id_compartment(&legacy_rule)
+                })
+                // Only retain unique rules.
+                .collect::<HashSet<_>>();
+            compartments.extend(compartment_ids_from_rules.into_iter());
+
+            // Same goes for the rotation_axes, if non-default. This notion is now conceived of as
+            // a rule, instead of as a per-segment property. We also come up with an injective id,
+            // here, and we assign it as the sole rule in the rules field.
             let axes_rule = if rotation_axes != Default::default() {
-                Some(rule::canonical_id_rotation_axes(rotation_axes))
+                let id = rule::canonical_id_rotation_axes(rotation_axes);
+                vec![id].into_boxed_slice()
             } else {
-                None
-            };
-            let rules = match (rules.as_slice(), axes_rule) {
-                ([], None) => None,
-                ([], Some(axes_rule)) => Some(vec![axes_rule].into_boxed_slice()),
-                ([rules @ ..], axes_rule) => {
-                    let mut ids = rules
-                        .iter()
-                        .map(|re| {
-                            let legacy_rule = parse_rule(re).expect("TODO");
-                            rule::canonical_id(&legacy_rule)
-                        })
-                        // Only retain unique rules.
-                        .collect::<HashSet<_>>();
-                    if let Some(axes_rule) = axes_rule {
-                        ids.insert(axes_rule);
-                    }
-                    Some(ids.into_iter().collect::<Box<[_]>>())
-                }
+                Default::default()
             };
 
+            // Pfhew... that sucked. But we're here now.
             config::Segment {
                 name,
                 tag,
                 quantity: quantity.into(),
                 path,
                 compartment_ids: compartments.into_boxed_slice(),
-                rules,
+                rules: axes_rule,
             }
         }
     }
@@ -392,38 +399,70 @@ mod convert {
                     },
             } = self;
 
+            // happy monolithic family. Consider.
             // More cursed canonical rule id logic.
-            // We make the assumption here that we created id-constraint pairs in an injective
-            // manner. That is, one id has a single, unique rule associated with it, and vice
-            // versa. The management of the rule keys throughout this conversion code aims to
-            // uphold that.
-            let constraints = {
-                // Here we get crazy. Well not really. But, we need to create rotation axes rules
-                // from the per-segment settings. This is where the legacy::Config ontology differs
-                // quite a bit from Config.
-                let mut constraints = HashMap::new();
-                for seg in &segments {
-                    for re in &seg.rules {
+            // Together with the juggling in Into<config::Segment>, the following constitutes a
+            // certified 'tricky bit'. We make the assumption here that we created id-constraint
+            // pairs in an injective manner. That is, one id has a single, unique rule associated
+            // with it, and vice versa. The management of the rule keys throughout this conversion
+            // code aims to uphold that.
+            // TODO: This can all be made less.. unclear if we just move it all together into one
+
+            // The legacy rules are now considered compartment declarations. We go through the
+            // segments and collect all of their rules into a set and for each of those items we
+            // come up with the canonical id the Into<config::Segment> implementation also
+            // generated, along with the compartment mask definition that fits the bill.
+            // let rule_expressions = segments.iter
+            //     .iter()
+            //     .map(|re| {
+            //         let legacy_rule = parse_rule(re).expect("TODO");
+            //         rule::canonical_id_compartment(&legacy_rule)
+            //     })
+            //     // Only retain unique rules.
+            //     .collect::<HashSet<_>>();
+            // compartments.extend(compartment_ids_from_rules.into_iter());
+
+            let legacy_rule_compartments = {
+                let mut legacy_rules = HashMap::new();
+                for segment in &segments {
+                    for re in &segment.rules {
                         // First, we do a legacy parse of the rule.
                         let legacy_rule = parse_rule(re).expect("TODO");
                         // Come up with a unique id for this rule that will match how a segment
                         // converts the rule into the same id.
-                        let id = rule::canonical_id(&legacy_rule);
-                        // And convert the RuleExpression into a Rule.
-                        let rule = legacy_rule.into();
-                        constraints.insert(id.clone(), config::Constraint { id, rule });
-                    }
-                    let ras = seg.rotation_axes;
-                    if ras != Default::default() {
-                        let id = rule::canonical_id_rotation_axes(ras);
-                        let rule = config::Rule::RotationAxes(ras);
-                        constraints.insert(id.clone(), config::Constraint { id, rule });
+                        let id = rule::canonical_id_compartment(&legacy_rule);
+                        legacy_rules.insert(id, legacy_rule);
                     }
                 }
-
-                constraints.into_values().collect()
+                legacy_rules.into_iter().map(|(id, legacy_rule)| {
+                    // And convert the legacy Rule into a Mask.
+                    let mask = legacy_rule.into_mask();
+                    config::Compartment { id, mask }
+                })
             };
 
+            // Currently, constraints can only be rotation axes declarations. Look through all the
+            // segments to see if there are non-default rotation axes set. For each of those,
+            // create a constraint with its canonical id that will also be generated by
+            // Into<config::Segment> and the appropriate Rule. We collect them in a set to
+            // automatically retain only unique constraints.
+            let constraints = {
+                let mut constraints = HashSet::new();
+                for segment in &segments {
+                    let rotation_axes = segment.rotation_axes;
+                    if rotation_axes != Default::default() {
+                        let id = rule::canonical_id_rotation_axes(rotation_axes);
+                        let constraint = config::Constraint {
+                            id,
+                            rule: config::Rule::RotationAxes(rotation_axes),
+                        };
+                        constraints.insert(constraint);
+                    }
+                }
+                constraints.into_iter().collect()
+            };
+
+            // Run through some defaults for the general and space sections.
             let bead_radius = if bead_radius != defaults::BEAD_RADIUS as f32 {
                 Some(bead_radius as f64)
             } else {
@@ -440,7 +479,7 @@ mod convert {
                 None
             };
             // Bit silly, but let's match this already ugly structure for clarity.
-            let periodic = if periodic != true {
+            let periodic = if periodic != defaults::PERIODIC {
                 Some(periodic)
             } else {
                 None
@@ -466,7 +505,11 @@ mod convert {
                     .map(Into::into)
                     .collect(),
                 constraints,
-                compartments: compartments.into_iter().map(Into::into).collect(),
+                compartments: compartments
+                    .into_iter()
+                    .map(Into::into)
+                    .chain(legacy_rule_compartments)
+                    .collect(),
                 segments: segments.into_iter().map(Into::into).collect(),
             }
         }
@@ -491,7 +534,7 @@ mod convert {
             }
         }
 
-        pub fn canonical_id(rule: &Rule) -> String {
+        pub fn canonical_id_compartment(rule: &Rule) -> String {
             match rule {
                 Rule::Position(Limit { axis, op, value }) => {
                     let op = match op {
@@ -506,7 +549,7 @@ mod convert {
                 Rule::Or(rules) => {
                     let ids = rules
                         .iter()
-                        .map(|r| canonical_id(r))
+                        .map(|r| canonical_id_compartment(r))
                         .collect::<Vec<_>>()
                         .join("'");
                     format!("{{or/{ids}}}")
@@ -523,23 +566,6 @@ mod convert {
             format!("{{axes/{axes}}}")
         }
 
-        impl Into<config::Rule> for Rule {
-            fn into(self) -> config::Rule {
-                use config::Expr;
-                match self {
-                    Rule::Position(limit) => config::Rule::Limits(config::Expr::Term(limit)),
-                    Rule::IsCloser(id, distance) => config::Rule::Within { distance, id },
-                    Rule::Or(rules) => config::Rule::Combination(
-                        rules
-                            .into_iter()
-                            .map(|rule| Expr::Term(canonical_id(&rule)))
-                            .reduce(|acc, r| Expr::Or(Box::new(acc), Box::new(r)))
-                            .expect("a rules combination expression cannot be empty"),
-                    ),
-                }
-            }
-        }
-
         #[derive(Debug, Clone, PartialEq)]
         pub enum Rule {
             Position(Limit),
@@ -547,6 +573,23 @@ mod convert {
 
             /// A set of rules where any of them can be true for this [`Rule`] to apply.
             Or(Vec<Rule>),
+        }
+
+        impl Rule {
+            pub(crate) fn into_mask(self) -> config::Mask {
+                use config::Expr;
+                match self {
+                    Rule::Position(limit) => config::Mask::Limits(config::Expr::Term(limit)),
+                    Rule::IsCloser(id, distance) => config::Mask::Within { distance, id },
+                    Rule::Or(rules) => config::Mask::Combination(
+                        rules
+                            .into_iter()
+                            .map(|rule| Expr::Term(canonical_id_compartment(&rule)))
+                            .reduce(|acc, r| Expr::Or(Box::new(acc), Box::new(r)))
+                            .expect("a rules combination expression cannot be empty"),
+                    ),
+                }
+            }
         }
 
         impl FromStr for Rule {

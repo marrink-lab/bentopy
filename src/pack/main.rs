@@ -1,17 +1,16 @@
-use std::io;
+use std::io::{self, Read};
 
 use anyhow::Context;
 use args::Args;
 use clap::Parser;
 
-use bentopy::core::config::legacy::Config;
+use bentopy::core::config::{Config, bent};
 use placement::PlacementList;
 use state::State;
 
 mod args;
 mod mask;
 mod placement;
-mod rules;
 mod session;
 mod state;
 mod structure;
@@ -68,17 +67,22 @@ impl Summary {
 fn main() -> anyhow::Result<()> {
     // Preparation.
     let args = Args::parse();
-    let config_path = &args.config;
-    let file = std::fs::File::open(config_path)
-        .with_context(|| format!("Failed to open the configuration file {config_path:?}"))?;
-    let config: Config = serde_json::from_reader(file)
-        .with_context(|| format!("Failed to process configuration from {config_path:?}"))?;
-    let mut state = State::new(args, config).context("Failed to set up program state")?;
+    let mut state = {
+        let config_path = &args.config;
+        let mut file = std::fs::File::open(config_path)
+            .with_context(|| format!("Failed to open the configuration file {config_path:?}"))?;
+        let mut buf = String::new();
+        file.read_to_string(&mut buf)?;
+        let config: Config = bent::parse_config(config_path.to_str().unwrap(), &buf)
+            .with_context(|| format!("Failed to process configuration from {config_path:?}"))?;
 
-    // Check whether the rules make any sense.
+        State::new(args, config).context("Failed to set up program state")?
+    };
+
+    // Check whether the compartment masks make any sense.
     state
-        .check_rules()
-        .with_context(|| format!("Encountered a problem while checking the rules"))?;
+        .check_masks()
+        .with_context(|| format!("Encountered a problem while checking the compartment masks"))?;
 
     // Packing.
     let packing_start = std::time::Instant::now();

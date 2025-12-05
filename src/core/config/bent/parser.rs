@@ -127,6 +127,7 @@ where
 {
     let number = select! { Token::Number(n) => n.as_float() as f32 }.boxed();
     let point = select! { Token::Point(point) => point }.boxed();
+    let id = select! { Token::Ident(id) => id.to_string() };
 
     let sphere = {
         let sphere_center = point
@@ -169,6 +170,19 @@ where
         .ignore_then(choice((sphere, cuboid)))
         .map(Mask::Shape)
         .boxed();
+    let limits = components::ident("where")
+        .ignore_then(limits_parser())
+        .map(Mask::Limits)
+        .boxed();
+    let within = components::ident("within")
+        .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
+        .then_ignore(components::ident("of"))
+        .then(id.clone().labelled("compartment id"))
+        .map(|(distance, id)| Mask::Within {
+            distance: distance as f32,
+            id,
+        })
+        .boxed();
     let combination = group(["is", "combination"].map(components::ident))
         .ignore_then(terms_parser())
         .map(Mask::Combination)
@@ -178,8 +192,7 @@ where
         .to(Mask::All)
         .boxed();
 
-    select! { Token::Ident(id) => id.to_owned() }
-        .then(choice((voxels, shape, combination, all)))
+    id.then(choice((voxels, shape, limits, within, combination, all)))
         .map(|(id, mask)| Compartment { id, mask })
         .labelled("compartment declaration")
         .as_context()
@@ -190,19 +203,6 @@ where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
     let id = select! { Token::Ident(id) => id.to_string() };
-    let limits = components::ident("where")
-        .ignore_then(limits_parser())
-        .map(Rule::Limits)
-        .boxed();
-    let within = components::ident("within")
-        .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
-        .then_ignore(components::ident("of"))
-        .then(id.labelled("compartment id"))
-        .map(|(distance, id)| Rule::Within {
-            distance: distance as f32,
-            id,
-        })
-        .boxed();
     let rotation_axes = components::ident("rotates")
         .ignore_then(
             components::axis()
@@ -216,13 +216,8 @@ where
         )
         .map(Rule::RotationAxes)
         .boxed();
-    let combination = group(["is", "combination"].map(components::ident))
-        .ignore_then(terms_parser())
-        .map(Rule::Combination)
-        .labelled("constraint combination expression")
-        .boxed();
 
-    id.then(choice((limits, within, rotation_axes, combination)))
+    id.then(rotation_axes)
         .map(|(id, rule)| Constraint { id, rule })
         .labelled("constraint declaration")
         .as_context()
@@ -247,7 +242,10 @@ where
         .map(Into::into);
     let compartments = components::ident("in").ignore_then(ids.clone());
     let satisfies = components::ident("satisfies");
-    let rules = satisfies.ignore_then(ids).or_not();
+    let rules = satisfies
+        .ignore_then(ids.labelled("rule names").as_context())
+        .or_not()
+        .map(Option::unwrap_or_default);
 
     group((id, quantity, path, compartments, rules))
         .map(

@@ -43,9 +43,7 @@ impl State {
             // Prepare the session.
             let start_session = std::time::Instant::now();
             let mut session = state.space.enter_session(
-                // FIXME: This cloned stuff does not sit right with me.
                 segment.compartments.iter().cloned(),
-                segment.rules.iter().cloned(),
                 &mut locations,
                 segment.quantity,
             );

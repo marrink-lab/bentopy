@@ -27,7 +27,7 @@ pub struct Args {
     /// If set, this value overwrites any value provided in the input file.
     /// If this value is not provided in the input file, the default value is 0.20 nm.
     #[arg(long)]
-    pub bead_radius: Option<f32>,
+    pub bead_radius: Option<f64>,
 
     /// Set the multiplier for determining the maximum number of tries for placing a segment.
     ///

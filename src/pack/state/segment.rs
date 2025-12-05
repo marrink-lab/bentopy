@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
-use bentopy::core::config::legacy::Quantity as LegacyQuantity;
-use bentopy::core::config::{Axes, CompartmentID};
+use bentopy::core::config::{Axes, CompartmentID, Quantity};
 use glam::{Mat3, Quat};
 
-use crate::rules::Rule;
 use crate::state::{ORDER, Rotation, Voxels};
 use crate::structure::Structure;
 use crate::voxelize::voxelize;
@@ -12,9 +10,8 @@ use crate::voxelize::voxelize;
 pub struct Segment {
     pub name: String,
     pub tag: Option<String>,
-    pub quantity: LegacyQuantity,
-    pub compartments: Vec<CompartmentID>,
-    pub rules: Vec<Rule>,
+    pub quantity: Quantity,
+    pub compartments: Box<[CompartmentID]>,
     pub path: PathBuf,
     pub rotation_axes: Axes,
     pub(crate) structure: Structure,

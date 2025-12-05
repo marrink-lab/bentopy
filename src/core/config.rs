@@ -7,11 +7,16 @@ mod compartment_combinations;
 pub mod legacy;
 
 pub mod defaults {
-    /// Bead radius in nm.
+    pub const TITLE: &str = "Bentopy system";
+    /// Bead radius for voxelization in nm.
     pub const BEAD_RADIUS: f64 = 0.20;
+    pub const PERIODIC: bool = true;
     pub const MAX_TRIES_MULT: u64 = 1000;
     pub const MAX_TRIES_ROT_DIV: u64 = 100;
 }
+
+/// Avogadro's number (per mol).
+const N_A: f64 = 6.0221415e23;
 
 pub type CompartmentID = String;
 pub type Dimensions = [f32; 3];
@@ -165,6 +170,41 @@ pub enum Quantity {
     Concentration(f64),
 }
 
+impl Quantity {
+    /// Determine the number of segments that is implied by this [`Quantity`].
+    ///
+    /// In case this `Quantity` is a [`Quantity::Concentration`], the number of segments is
+    /// lazily determined from the provided `volume`, and rounded.
+    ///
+    /// The value returned by `volume` must be in cubic nanometers (nm³).
+    pub fn bake<F: Fn() -> f64>(&self, volume: F) -> u64 {
+        match *self {
+            Quantity::Number(n) => n,
+            Quantity::Concentration(c) => {
+                let v = volume() * 1e-24; // From nm³ to L.
+                let n = N_A * c * v;
+                f64::round(n) as u64
+            }
+        }
+    }
+
+    /// Returns whether the contained value can be interpreted as resulting in zero placements.
+    ///
+    /// When the quantity is a `Number(0)` or `Concentration(0.0)`, the baked number is certainly
+    /// zero. When `Number(n)` for `n > 0`, the baked number is certainly not zero.
+    ///
+    /// But, in case of a positive concentration, whether the final number is zero or not depends
+    /// on the associated volume.
+    ///
+    /// If the concentration is smaller than zero, it is treated as a zero.
+    pub fn is_zero(&self) -> bool {
+        match *self {
+            Quantity::Number(n) => n == 0,
+            Quantity::Concentration(c) => c <= 0.0,
+        }
+    }
+}
+
 impl std::fmt::Display for Quantity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -181,13 +221,23 @@ pub struct Segment {
     pub quantity: Quantity,
     pub path: PathBuf,
     pub compartment_ids: Box<[String]>,
-    pub rules: Option<Box<[String]>>,
+    pub rules: Box<[String]>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Compartment {
-    pub id: String,
+    pub id: CompartmentID,
     pub mask: Mask,
+}
+
+impl Compartment {
+    /// Returns whether this [`Compartment`] is dependent on other compartments.
+    pub fn is_predefined(&self) -> bool {
+        match &self.mask {
+            Mask::All | Mask::Voxels(_) | Mask::Shape(_) | Mask::Limits(_) => true,
+            Mask::Within { .. } | Mask::Combination(_) => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -195,14 +245,28 @@ pub enum Mask {
     All,
     Voxels(PathBuf),
     Shape(Shape),
-    Combination(Expr<String>),
+    Limits(Expr<Limit>),
+    // These are constructed by referencing previously defined masks.
+    Within { distance: f32, id: CompartmentID },
+    Combination(Expr<CompartmentID>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-// TODO: This name is not appropriate.
 pub enum Shape {
     Sphere { center: Center, radius: f32 }, // Consider the f64 situation.
     Cuboid { start: Anchor, end: Anchor },
+    // TODO: More?
+}
+
+impl std::fmt::Display for Shape {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Sphere { center, radius } => {
+                write!(f, "sphere at {center} with radius {radius}")
+            }
+            Self::Cuboid { start, end } => write!(f, "cuboid from {start} to {end}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -239,18 +303,15 @@ impl std::fmt::Display for Anchor {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Constraint {
     pub id: String,
     pub rule: Rule,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Rule {
-    Limits(Expr<Limit>),
-    Within { distance: f32, id: String },
     RotationAxes(Axes),
-    Combination(Expr<String>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -263,7 +324,7 @@ pub struct Config {
     pub segments: Vec<Segment>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Axes {
     pub x: bool,
     pub y: bool,
