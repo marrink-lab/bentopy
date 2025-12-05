@@ -2,10 +2,16 @@
 	"space": {
 		"size": [20, 20, 20],
 		"resolution": 0.5,
-		"mask": {
-			"padding": 0,
-			"shape": "spherical"
-		}
+		"compartments": [
+			{
+				"id": "main",
+				"analytical": {
+					"shape": "spherical",
+					"radius": 10,
+					"center": [10.0, 10.0, 10.0]
+				}
+			}
+		]
 	},
 	"output": {
 		"title": "smol",
@@ -21,2287 +27,2744 @@
 		{
 			"name": "syn1",
 			"number": 1,
-			"path": "structures/syn1.pdb"
+			"path": "structures/syn1.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn10",
 			"number": 1,
-			"path": "structures/syn10.pdb"
+			"path": "structures/syn10.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn105",
 			"number": 1,
-			"path": "structures/syn105.pdb"
+			"path": "structures/syn105.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn106",
 			"number": 1,
-			"path": "structures/syn106.pdb"
+			"path": "structures/syn106.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn107",
 			"number": 1,
-			"path": "structures/syn107.pdb"
+			"path": "structures/syn107.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn108",
 			"number": 1,
-			"path": "structures/syn108.pdb"
+			"path": "structures/syn108.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn109",
 			"number": 1,
-			"path": "structures/syn109.pdb"
+			"path": "structures/syn109.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn11",
 			"number": 1,
-			"path": "structures/syn11.pdb"
+			"path": "structures/syn11.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn113",
 			"number": 1,
-			"path": "structures/syn113.pdb"
+			"path": "structures/syn113.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn114",
 			"number": 1,
-			"path": "structures/syn114.pdb"
+			"path": "structures/syn114.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn115",
 			"number": 1,
-			"path": "structures/syn115.pdb"
+			"path": "structures/syn115.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn116",
 			"number": 1,
-			"path": "structures/syn116.pdb"
+			"path": "structures/syn116.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn117",
 			"number": 1,
-			"path": "structures/syn117.pdb"
+			"path": "structures/syn117.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn12",
 			"number": 1,
-			"path": "structures/syn12.pdb"
+			"path": "structures/syn12.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn126",
 			"number": 1,
-			"path": "structures/syn126.pdb"
+			"path": "structures/syn126.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn127",
 			"number": 1,
-			"path": "structures/syn127.pdb"
+			"path": "structures/syn127.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn128",
 			"number": 1,
-			"path": "structures/syn128.pdb"
+			"path": "structures/syn128.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn129",
 			"number": 1,
-			"path": "structures/syn129.pdb"
+			"path": "structures/syn129.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn131",
 			"number": 1,
-			"path": "structures/syn131.pdb"
+			"path": "structures/syn131.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn132",
 			"number": 1,
-			"path": "structures/syn132.pdb"
+			"path": "structures/syn132.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn133",
 			"number": 1,
-			"path": "structures/syn133.pdb"
+			"path": "structures/syn133.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn137",
 			"number": 1,
-			"path": "structures/syn137.pdb"
+			"path": "structures/syn137.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn138",
 			"number": 1,
-			"path": "structures/syn138.pdb"
+			"path": "structures/syn138.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn139",
 			"number": 1,
-			"path": "structures/syn139.pdb"
+			"path": "structures/syn139.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn140",
 			"number": 1,
-			"path": "structures/syn140.pdb"
+			"path": "structures/syn140.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn141",
 			"number": 1,
-			"path": "structures/syn141.pdb"
+			"path": "structures/syn141.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn142",
 			"number": 1,
-			"path": "structures/syn142.pdb"
+			"path": "structures/syn142.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn143",
 			"number": 1,
-			"path": "structures/syn143.pdb"
+			"path": "structures/syn143.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn144",
 			"number": 1,
-			"path": "structures/syn144.pdb"
+			"path": "structures/syn144.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn145",
 			"number": 1,
-			"path": "structures/syn145.pdb"
+			"path": "structures/syn145.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn146",
 			"number": 1,
-			"path": "structures/syn146.pdb"
+			"path": "structures/syn146.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn147",
 			"number": 1,
-			"path": "structures/syn147.pdb"
+			"path": "structures/syn147.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn148",
 			"number": 1,
-			"path": "structures/syn148.pdb"
+			"path": "structures/syn148.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn149",
 			"number": 1,
-			"path": "structures/syn149.pdb"
+			"path": "structures/syn149.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn150",
 			"number": 1,
-			"path": "structures/syn150.pdb"
+			"path": "structures/syn150.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn151",
 			"number": 1,
-			"path": "structures/syn151.pdb"
+			"path": "structures/syn151.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn154",
 			"number": 1,
-			"path": "structures/syn154.pdb"
+			"path": "structures/syn154.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn163",
 			"number": 1,
-			"path": "structures/syn163.pdb"
+			"path": "structures/syn163.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn164",
 			"number": 1,
-			"path": "structures/syn164.pdb"
+			"path": "structures/syn164.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn165",
 			"number": 1,
-			"path": "structures/syn165.pdb"
+			"path": "structures/syn165.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn166",
 			"number": 1,
-			"path": "structures/syn166.pdb"
+			"path": "structures/syn166.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn167",
 			"number": 1,
-			"path": "structures/syn167.pdb"
+			"path": "structures/syn167.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn168",
 			"number": 1,
-			"path": "structures/syn168.pdb"
+			"path": "structures/syn168.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn169",
 			"number": 1,
-			"path": "structures/syn169.pdb"
+			"path": "structures/syn169.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn195",
 			"number": 1,
-			"path": "structures/syn195.pdb"
+			"path": "structures/syn195.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn196",
 			"number": 1,
-			"path": "structures/syn196.pdb"
+			"path": "structures/syn196.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn197",
 			"number": 1,
-			"path": "structures/syn197.pdb"
+			"path": "structures/syn197.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn198",
 			"number": 1,
-			"path": "structures/syn198.pdb"
+			"path": "structures/syn198.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn199",
 			"number": 1,
-			"path": "structures/syn199.pdb"
+			"path": "structures/syn199.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn2",
 			"number": 1,
-			"path": "structures/syn2.pdb"
+			"path": "structures/syn2.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn200",
 			"number": 1,
-			"path": "structures/syn200.pdb"
+			"path": "structures/syn200.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn201",
 			"number": 1,
-			"path": "structures/syn201.pdb"
+			"path": "structures/syn201.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn202",
 			"number": 1,
-			"path": "structures/syn202.pdb"
+			"path": "structures/syn202.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn203",
 			"number": 1,
-			"path": "structures/syn203.pdb"
+			"path": "structures/syn203.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn213",
 			"number": 1,
-			"path": "structures/syn213.pdb"
+			"path": "structures/syn213.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn214",
 			"number": 1,
-			"path": "structures/syn214.pdb"
+			"path": "structures/syn214.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn215",
 			"number": 1,
-			"path": "structures/syn215.pdb"
+			"path": "structures/syn215.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn216",
 			"number": 1,
-			"path": "structures/syn216.pdb"
+			"path": "structures/syn216.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn218",
 			"number": 1,
-			"path": "structures/syn218.pdb"
+			"path": "structures/syn218.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn220",
 			"number": 1,
-			"path": "structures/syn220.pdb"
+			"path": "structures/syn220.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn221",
 			"number": 1,
-			"path": "structures/syn221.pdb"
+			"path": "structures/syn221.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn222",
 			"number": 1,
-			"path": "structures/syn222.pdb"
+			"path": "structures/syn222.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn227",
 			"number": 1,
-			"path": "structures/syn227.pdb"
+			"path": "structures/syn227.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn228",
 			"number": 1,
-			"path": "structures/syn228.pdb"
+			"path": "structures/syn228.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn229",
 			"number": 1,
-			"path": "structures/syn229.pdb"
+			"path": "structures/syn229.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn230",
 			"number": 1,
-			"path": "structures/syn230.pdb"
+			"path": "structures/syn230.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn233",
 			"number": 1,
-			"path": "structures/syn233.pdb"
+			"path": "structures/syn233.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn234",
 			"number": 1,
-			"path": "structures/syn234.pdb"
+			"path": "structures/syn234.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn235",
 			"number": 1,
-			"path": "structures/syn235.pdb"
+			"path": "structures/syn235.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn238",
 			"number": 1,
-			"path": "structures/syn238.pdb"
+			"path": "structures/syn238.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn239",
 			"number": 1,
-			"path": "structures/syn239.pdb"
+			"path": "structures/syn239.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn240",
 			"number": 1,
-			"path": "structures/syn240.pdb"
+			"path": "structures/syn240.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn247",
 			"number": 1,
-			"path": "structures/syn247.pdb"
+			"path": "structures/syn247.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn248",
 			"number": 1,
-			"path": "structures/syn248.pdb"
+			"path": "structures/syn248.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn249",
 			"number": 1,
-			"path": "structures/syn249.pdb"
+			"path": "structures/syn249.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn25",
 			"number": 1,
-			"path": "structures/syn25.pdb"
+			"path": "structures/syn25.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn250",
 			"number": 1,
-			"path": "structures/syn250.pdb"
+			"path": "structures/syn250.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn253",
 			"number": 1,
-			"path": "structures/syn253.pdb"
+			"path": "structures/syn253.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn254",
 			"number": 1,
-			"path": "structures/syn254.pdb"
+			"path": "structures/syn254.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn257",
 			"number": 1,
-			"path": "structures/syn257.pdb"
+			"path": "structures/syn257.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn259",
 			"number": 1,
-			"path": "structures/syn259.pdb"
+			"path": "structures/syn259.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn26",
 			"number": 1,
-			"path": "structures/syn26.pdb"
+			"path": "structures/syn26.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn260",
 			"number": 1,
-			"path": "structures/syn260.pdb"
+			"path": "structures/syn260.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn262",
 			"number": 1,
-			"path": "structures/syn262.pdb"
+			"path": "structures/syn262.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn263",
 			"number": 1,
-			"path": "structures/syn263.pdb"
+			"path": "structures/syn263.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn264",
 			"number": 1,
-			"path": "structures/syn264.pdb"
+			"path": "structures/syn264.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn27",
 			"number": 1,
-			"path": "structures/syn27.pdb"
+			"path": "structures/syn27.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn270",
 			"number": 1,
-			"path": "structures/syn270.pdb"
+			"path": "structures/syn270.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn271",
 			"number": 1,
-			"path": "structures/syn271.pdb"
+			"path": "structures/syn271.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn281",
 			"number": 1,
-			"path": "structures/syn281.pdb"
+			"path": "structures/syn281.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn282",
 			"number": 1,
-			"path": "structures/syn282.pdb"
+			"path": "structures/syn282.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn283",
 			"number": 1,
-			"path": "structures/syn283.pdb"
+			"path": "structures/syn283.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn285",
 			"number": 1,
-			"path": "structures/syn285.pdb"
+			"path": "structures/syn285.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn286",
 			"number": 1,
-			"path": "structures/syn286.pdb"
+			"path": "structures/syn286.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn287",
 			"number": 1,
-			"path": "structures/syn287.pdb"
+			"path": "structures/syn287.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn288",
 			"number": 1,
-			"path": "structures/syn288.pdb"
+			"path": "structures/syn288.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn289",
 			"number": 1,
-			"path": "structures/syn289.pdb"
+			"path": "structures/syn289.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn29",
 			"number": 1,
-			"path": "structures/syn29.pdb"
+			"path": "structures/syn29.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn290",
 			"number": 1,
-			"path": "structures/syn290.pdb"
+			"path": "structures/syn290.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn291",
 			"number": 1,
-			"path": "structures/syn291.pdb"
+			"path": "structures/syn291.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn294",
 			"number": 1,
-			"path": "structures/syn294.pdb"
+			"path": "structures/syn294.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn296",
 			"number": 1,
-			"path": "structures/syn296.pdb"
+			"path": "structures/syn296.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn297",
 			"number": 1,
-			"path": "structures/syn297.pdb"
+			"path": "structures/syn297.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn298",
 			"number": 1,
-			"path": "structures/syn298.pdb"
+			"path": "structures/syn298.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn299",
 			"number": 1,
-			"path": "structures/syn299.pdb"
+			"path": "structures/syn299.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn3",
 			"number": 1,
-			"path": "structures/syn3.pdb"
+			"path": "structures/syn3.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn30",
 			"number": 1,
-			"path": "structures/syn30.pdb"
+			"path": "structures/syn30.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn300",
 			"number": 1,
-			"path": "structures/syn300.pdb"
+			"path": "structures/syn300.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn301",
 			"number": 1,
-			"path": "structures/syn301.pdb"
+			"path": "structures/syn301.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn302",
 			"number": 1,
-			"path": "structures/syn302.pdb"
+			"path": "structures/syn302.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn303",
 			"number": 1,
-			"path": "structures/syn303.pdb"
+			"path": "structures/syn303.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn304",
 			"number": 1,
-			"path": "structures/syn304.pdb"
+			"path": "structures/syn304.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn305",
 			"number": 1,
-			"path": "structures/syn305.pdb"
+			"path": "structures/syn305.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn308",
 			"number": 1,
-			"path": "structures/syn308.pdb"
+			"path": "structures/syn308.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn314",
 			"number": 1,
-			"path": "structures/syn314.pdb"
+			"path": "structures/syn314.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn315",
 			"number": 1,
-			"path": "structures/syn315.pdb"
+			"path": "structures/syn315.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn316",
 			"number": 1,
-			"path": "structures/syn316.pdb"
+			"path": "structures/syn316.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn317",
 			"number": 1,
-			"path": "structures/syn317.pdb"
+			"path": "structures/syn317.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn325",
 			"number": 1,
-			"path": "structures/syn325.pdb"
+			"path": "structures/syn325.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn326",
 			"number": 1,
-			"path": "structures/syn326.pdb"
+			"path": "structures/syn326.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn327",
 			"number": 1,
-			"path": "structures/syn327.pdb"
+			"path": "structures/syn327.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn328",
 			"number": 1,
-			"path": "structures/syn328.pdb"
+			"path": "structures/syn328.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn329",
 			"number": 1,
-			"path": "structures/syn329.pdb"
+			"path": "structures/syn329.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn33",
 			"number": 1,
-			"path": "structures/syn33.pdb"
+			"path": "structures/syn33.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn330",
 			"number": 1,
-			"path": "structures/syn330.pdb"
+			"path": "structures/syn330.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn332",
 			"number": 1,
-			"path": "structures/syn332.pdb"
+			"path": "structures/syn332.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn338",
 			"number": 1,
-			"path": "structures/syn338.pdb"
+			"path": "structures/syn338.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn34",
 			"number": 1,
-			"path": "structures/syn34.pdb"
+			"path": "structures/syn34.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn344",
 			"number": 1,
-			"path": "structures/syn344.pdb"
+			"path": "structures/syn344.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn345",
 			"number": 1,
-			"path": "structures/syn345.pdb"
+			"path": "structures/syn345.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn346",
 			"number": 1,
-			"path": "structures/syn346.pdb"
+			"path": "structures/syn346.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn347",
 			"number": 1,
-			"path": "structures/syn347.pdb"
+			"path": "structures/syn347.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn348",
 			"number": 1,
-			"path": "structures/syn348.pdb"
+			"path": "structures/syn348.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn350",
 			"number": 1,
-			"path": "structures/syn350.pdb"
+			"path": "structures/syn350.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn352",
 			"number": 1,
-			"path": "structures/syn352.pdb"
+			"path": "structures/syn352.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn353",
 			"number": 1,
-			"path": "structures/syn353.pdb"
+			"path": "structures/syn353.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn359",
 			"number": 1,
-			"path": "structures/syn359.pdb"
+			"path": "structures/syn359.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn360",
 			"number": 1,
-			"path": "structures/syn360.pdb"
+			"path": "structures/syn360.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn361",
 			"number": 1,
-			"path": "structures/syn361.pdb"
+			"path": "structures/syn361.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn362",
 			"number": 1,
-			"path": "structures/syn362.pdb"
+			"path": "structures/syn362.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn363",
 			"number": 1,
-			"path": "structures/syn363.pdb"
+			"path": "structures/syn363.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn364",
 			"number": 1,
-			"path": "structures/syn364.pdb"
+			"path": "structures/syn364.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn365",
 			"number": 1,
-			"path": "structures/syn365.pdb"
+			"path": "structures/syn365.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn366",
 			"number": 1,
-			"path": "structures/syn366.pdb"
+			"path": "structures/syn366.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn371",
 			"number": 1,
-			"path": "structures/syn371.pdb"
+			"path": "structures/syn371.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn372",
 			"number": 1,
-			"path": "structures/syn372.pdb"
+			"path": "structures/syn372.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn373",
 			"number": 1,
-			"path": "structures/syn373.pdb"
+			"path": "structures/syn373.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn375",
 			"number": 1,
-			"path": "structures/syn375.pdb"
+			"path": "structures/syn375.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn376",
 			"number": 1,
-			"path": "structures/syn376.pdb"
+			"path": "structures/syn376.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn377",
 			"number": 1,
-			"path": "structures/syn377.pdb"
+			"path": "structures/syn377.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn378",
 			"number": 1,
-			"path": "structures/syn378.pdb"
+			"path": "structures/syn378.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn379",
 			"number": 1,
-			"path": "structures/syn379.pdb"
+			"path": "structures/syn379.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn380",
 			"number": 1,
-			"path": "structures/syn380.pdb"
+			"path": "structures/syn380.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn381",
 			"number": 1,
-			"path": "structures/syn381.pdb"
+			"path": "structures/syn381.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn382",
 			"number": 1,
-			"path": "structures/syn382.pdb"
+			"path": "structures/syn382.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn387",
 			"number": 1,
-			"path": "structures/syn387.pdb"
+			"path": "structures/syn387.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn388",
 			"number": 1,
-			"path": "structures/syn388.pdb"
+			"path": "structures/syn388.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn389",
 			"number": 1,
-			"path": "structures/syn389.pdb"
+			"path": "structures/syn389.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn39",
 			"number": 1,
-			"path": "structures/syn39.pdb"
+			"path": "structures/syn39.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn390",
 			"number": 1,
-			"path": "structures/syn390.pdb"
+			"path": "structures/syn390.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn391",
 			"number": 1,
-			"path": "structures/syn391.pdb"
+			"path": "structures/syn391.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn392",
 			"number": 1,
-			"path": "structures/syn392.pdb"
+			"path": "structures/syn392.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn394",
 			"number": 1,
-			"path": "structures/syn394.pdb"
+			"path": "structures/syn394.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn398",
 			"number": 1,
-			"path": "structures/syn398.pdb"
+			"path": "structures/syn398.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn399",
 			"number": 1,
-			"path": "structures/syn399.pdb"
+			"path": "structures/syn399.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn4",
 			"number": 1,
-			"path": "structures/syn4.pdb"
+			"path": "structures/syn4.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn40",
 			"number": 1,
-			"path": "structures/syn40.pdb"
+			"path": "structures/syn40.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn400",
 			"number": 1,
-			"path": "structures/syn400.pdb"
+			"path": "structures/syn400.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn401",
 			"number": 1,
-			"path": "structures/syn401.pdb"
+			"path": "structures/syn401.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn402",
 			"number": 1,
-			"path": "structures/syn402.pdb"
+			"path": "structures/syn402.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn403",
 			"number": 1,
-			"path": "structures/syn403.pdb"
+			"path": "structures/syn403.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn404",
 			"number": 1,
-			"path": "structures/syn404.pdb"
+			"path": "structures/syn404.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn405",
 			"number": 1,
-			"path": "structures/syn405.pdb"
+			"path": "structures/syn405.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn406",
 			"number": 1,
-			"path": "structures/syn406.pdb"
+			"path": "structures/syn406.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn407",
 			"number": 1,
-			"path": "structures/syn407.pdb"
+			"path": "structures/syn407.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn408",
 			"number": 1,
-			"path": "structures/syn408.pdb"
+			"path": "structures/syn408.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn409",
 			"number": 1,
-			"path": "structures/syn409.pdb"
+			"path": "structures/syn409.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn410",
 			"number": 1,
-			"path": "structures/syn410.pdb"
+			"path": "structures/syn410.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn411",
 			"number": 1,
-			"path": "structures/syn411.pdb"
+			"path": "structures/syn411.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn412",
 			"number": 1,
-			"path": "structures/syn412.pdb"
+			"path": "structures/syn412.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn413",
 			"number": 1,
-			"path": "structures/syn413.pdb"
+			"path": "structures/syn413.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn414",
 			"number": 1,
-			"path": "structures/syn414.pdb"
+			"path": "structures/syn414.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn415",
 			"number": 1,
-			"path": "structures/syn415.pdb"
+			"path": "structures/syn415.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn416",
 			"number": 1,
-			"path": "structures/syn416.pdb"
+			"path": "structures/syn416.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn418",
 			"number": 1,
-			"path": "structures/syn418.pdb"
+			"path": "structures/syn418.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn419",
 			"number": 1,
-			"path": "structures/syn419.pdb"
+			"path": "structures/syn419.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn42",
 			"number": 1,
-			"path": "structures/syn42.pdb"
+			"path": "structures/syn42.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn420",
 			"number": 1,
-			"path": "structures/syn420.pdb"
+			"path": "structures/syn420.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn421",
 			"number": 1,
-			"path": "structures/syn421.pdb"
+			"path": "structures/syn421.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn422",
 			"number": 1,
-			"path": "structures/syn422.pdb"
+			"path": "structures/syn422.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn424",
 			"number": 1,
-			"path": "structures/syn424.pdb"
+			"path": "structures/syn424.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn425",
 			"number": 1,
-			"path": "structures/syn425.pdb"
+			"path": "structures/syn425.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn426",
 			"number": 1,
-			"path": "structures/syn426.pdb"
+			"path": "structures/syn426.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn427",
 			"number": 1,
-			"path": "structures/syn427.pdb"
+			"path": "structures/syn427.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn428",
 			"number": 1,
-			"path": "structures/syn428.pdb"
+			"path": "structures/syn428.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn429",
 			"number": 1,
-			"path": "structures/syn429.pdb"
+			"path": "structures/syn429.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn43",
 			"number": 1,
-			"path": "structures/syn43.pdb"
+			"path": "structures/syn43.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn430",
 			"number": 1,
-			"path": "structures/syn430.pdb"
+			"path": "structures/syn430.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn431",
 			"number": 1,
-			"path": "structures/syn431.pdb"
+			"path": "structures/syn431.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn432",
 			"number": 1,
-			"path": "structures/syn432.pdb"
+			"path": "structures/syn432.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn433",
 			"number": 1,
-			"path": "structures/syn433.pdb"
+			"path": "structures/syn433.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn434",
 			"number": 1,
-			"path": "structures/syn434.pdb"
+			"path": "structures/syn434.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn435",
 			"number": 1,
-			"path": "structures/syn435.pdb"
+			"path": "structures/syn435.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn437",
 			"number": 1,
-			"path": "structures/syn437.pdb"
+			"path": "structures/syn437.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn438",
 			"number": 1,
-			"path": "structures/syn438.pdb"
+			"path": "structures/syn438.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn439",
 			"number": 1,
-			"path": "structures/syn439.pdb"
+			"path": "structures/syn439.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn44",
 			"number": 1,
-			"path": "structures/syn44.pdb"
+			"path": "structures/syn44.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn440",
 			"number": 1,
-			"path": "structures/syn440.pdb"
+			"path": "structures/syn440.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn441",
 			"number": 1,
-			"path": "structures/syn441.pdb"
+			"path": "structures/syn441.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn442",
 			"number": 1,
-			"path": "structures/syn442.pdb"
+			"path": "structures/syn442.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn443",
 			"number": 1,
-			"path": "structures/syn443.pdb"
+			"path": "structures/syn443.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn444",
 			"number": 1,
-			"path": "structures/syn444.pdb"
+			"path": "structures/syn444.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn445",
 			"number": 1,
-			"path": "structures/syn445.pdb"
+			"path": "structures/syn445.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn447",
 			"number": 1,
-			"path": "structures/syn447.pdb"
+			"path": "structures/syn447.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn448",
 			"number": 1,
-			"path": "structures/syn448.pdb"
+			"path": "structures/syn448.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn45",
 			"number": 1,
-			"path": "structures/syn45.pdb"
+			"path": "structures/syn45.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn451",
 			"number": 1,
-			"path": "structures/syn451.pdb"
+			"path": "structures/syn451.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn452",
 			"number": 1,
-			"path": "structures/syn452.pdb"
+			"path": "structures/syn452.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn453",
 			"number": 1,
-			"path": "structures/syn453.pdb"
+			"path": "structures/syn453.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn46",
 			"number": 1,
-			"path": "structures/syn46.pdb"
+			"path": "structures/syn46.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn47",
 			"number": 1,
-			"path": "structures/syn47.pdb"
+			"path": "structures/syn47.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn475",
 			"number": 1,
-			"path": "structures/syn475.pdb"
+			"path": "structures/syn475.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn478",
 			"number": 1,
-			"path": "structures/syn478.pdb"
+			"path": "structures/syn478.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn479",
 			"number": 1,
-			"path": "structures/syn479.pdb"
+			"path": "structures/syn479.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn481",
 			"number": 1,
-			"path": "structures/syn481.pdb"
+			"path": "structures/syn481.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn482",
 			"number": 1,
-			"path": "structures/syn482.pdb"
+			"path": "structures/syn482.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn493",
 			"number": 1,
-			"path": "structures/syn493.pdb"
+			"path": "structures/syn493.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn494",
 			"number": 1,
-			"path": "structures/syn494.pdb"
+			"path": "structures/syn494.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn495",
 			"number": 1,
-			"path": "structures/syn495.pdb"
+			"path": "structures/syn495.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn499",
 			"number": 1,
-			"path": "structures/syn499.pdb"
+			"path": "structures/syn499.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn5",
 			"number": 1,
-			"path": "structures/syn5.pdb"
+			"path": "structures/syn5.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn500",
 			"number": 1,
-			"path": "structures/syn500.pdb"
+			"path": "structures/syn500.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn501",
 			"number": 1,
-			"path": "structures/syn501.pdb"
+			"path": "structures/syn501.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn503",
 			"number": 1,
-			"path": "structures/syn503.pdb"
+			"path": "structures/syn503.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn504",
 			"number": 1,
-			"path": "structures/syn504.pdb"
+			"path": "structures/syn504.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn505",
 			"number": 1,
-			"path": "structures/syn505.pdb"
+			"path": "structures/syn505.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn511",
 			"number": 1,
-			"path": "structures/syn511.pdb"
+			"path": "structures/syn511.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn512",
 			"number": 1,
-			"path": "structures/syn512.pdb"
+			"path": "structures/syn512.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn513",
 			"number": 1,
-			"path": "structures/syn513.pdb"
+			"path": "structures/syn513.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn515",
 			"number": 1,
-			"path": "structures/syn515.pdb"
+			"path": "structures/syn515.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn516",
 			"number": 1,
-			"path": "structures/syn516.pdb"
+			"path": "structures/syn516.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn517",
 			"number": 1,
-			"path": "structures/syn517.pdb"
+			"path": "structures/syn517.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn518",
 			"number": 1,
-			"path": "structures/syn518.pdb"
+			"path": "structures/syn518.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn519",
 			"number": 1,
-			"path": "structures/syn519.pdb"
+			"path": "structures/syn519.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn520",
 			"number": 1,
-			"path": "structures/syn520.pdb"
+			"path": "structures/syn520.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn521",
 			"number": 1,
-			"path": "structures/syn521.pdb"
+			"path": "structures/syn521.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn522",
 			"number": 1,
-			"path": "structures/syn522.pdb"
+			"path": "structures/syn522.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn523",
 			"number": 1,
-			"path": "structures/syn523.pdb"
+			"path": "structures/syn523.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn524",
 			"number": 1,
-			"path": "structures/syn524.pdb"
+			"path": "structures/syn524.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn525",
 			"number": 1,
-			"path": "structures/syn525.pdb"
+			"path": "structures/syn525.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn526",
 			"number": 1,
-			"path": "structures/syn526.pdb"
+			"path": "structures/syn526.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn527",
 			"number": 1,
-			"path": "structures/syn527.pdb"
+			"path": "structures/syn527.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn528",
 			"number": 1,
-			"path": "structures/syn528.pdb"
+			"path": "structures/syn528.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn529",
 			"number": 1,
-			"path": "structures/syn529.pdb"
+			"path": "structures/syn529.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn530",
 			"number": 1,
-			"path": "structures/syn530.pdb"
+			"path": "structures/syn530.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn535",
 			"number": 1,
-			"path": "structures/syn535.pdb"
+			"path": "structures/syn535.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn536",
 			"number": 1,
-			"path": "structures/syn536.pdb"
+			"path": "structures/syn536.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn537",
 			"number": 1,
-			"path": "structures/syn537.pdb"
+			"path": "structures/syn537.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn538",
 			"number": 1,
-			"path": "structures/syn538.pdb"
+			"path": "structures/syn538.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn539",
 			"number": 1,
-			"path": "structures/syn539.pdb"
+			"path": "structures/syn539.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn54",
 			"number": 1,
-			"path": "structures/syn54.pdb"
+			"path": "structures/syn54.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn540",
 			"number": 1,
-			"path": "structures/syn540.pdb"
+			"path": "structures/syn540.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn541",
 			"number": 1,
-			"path": "structures/syn541.pdb"
+			"path": "structures/syn541.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn542",
 			"number": 1,
-			"path": "structures/syn542.pdb"
+			"path": "structures/syn542.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn543",
 			"number": 1,
-			"path": "structures/syn543.pdb"
+			"path": "structures/syn543.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn544",
 			"number": 1,
-			"path": "structures/syn544.pdb"
+			"path": "structures/syn544.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn545",
 			"number": 1,
-			"path": "structures/syn545.pdb"
+			"path": "structures/syn545.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn546",
 			"number": 1,
-			"path": "structures/syn546.pdb"
+			"path": "structures/syn546.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn548",
 			"number": 1,
-			"path": "structures/syn548.pdb"
+			"path": "structures/syn548.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn549",
 			"number": 1,
-			"path": "structures/syn549.pdb"
+			"path": "structures/syn549.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn592",
 			"number": 1,
-			"path": "structures/syn592.pdb"
+			"path": "structures/syn592.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn593",
 			"number": 1,
-			"path": "structures/syn593.pdb"
+			"path": "structures/syn593.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn599",
 			"number": 1,
-			"path": "structures/syn599.pdb"
+			"path": "structures/syn599.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn6",
 			"number": 1,
-			"path": "structures/syn6.pdb"
+			"path": "structures/syn6.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn60",
 			"number": 1,
-			"path": "structures/syn60.pdb"
+			"path": "structures/syn60.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn600",
 			"number": 1,
-			"path": "structures/syn600.pdb"
+			"path": "structures/syn600.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn601",
 			"number": 1,
-			"path": "structures/syn601.pdb"
+			"path": "structures/syn601.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn602",
 			"number": 1,
-			"path": "structures/syn602.pdb"
+			"path": "structures/syn602.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn604",
 			"number": 1,
-			"path": "structures/syn604.pdb"
+			"path": "structures/syn604.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn605",
 			"number": 1,
-			"path": "structures/syn605.pdb"
+			"path": "structures/syn605.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn606",
 			"number": 1,
-			"path": "structures/syn606.pdb"
+			"path": "structures/syn606.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn607",
 			"number": 1,
-			"path": "structures/syn607.pdb"
+			"path": "structures/syn607.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn608",
 			"number": 1,
-			"path": "structures/syn608.pdb"
+			"path": "structures/syn608.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn609",
 			"number": 1,
-			"path": "structures/syn609.pdb"
+			"path": "structures/syn609.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn61",
 			"number": 1,
-			"path": "structures/syn61.pdb"
+			"path": "structures/syn61.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn610",
 			"number": 1,
-			"path": "structures/syn610.pdb"
+			"path": "structures/syn610.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn611",
 			"number": 1,
-			"path": "structures/syn611.pdb"
+			"path": "structures/syn611.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn612",
 			"number": 1,
-			"path": "structures/syn612.pdb"
+			"path": "structures/syn612.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn613",
 			"number": 1,
-			"path": "structures/syn613.pdb"
+			"path": "structures/syn613.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn614",
 			"number": 1,
-			"path": "structures/syn614.pdb"
+			"path": "structures/syn614.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn615",
 			"number": 1,
-			"path": "structures/syn615.pdb"
+			"path": "structures/syn615.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn616",
 			"number": 1,
-			"path": "structures/syn616.pdb"
+			"path": "structures/syn616.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn617",
 			"number": 1,
-			"path": "structures/syn617.pdb"
+			"path": "structures/syn617.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn620",
 			"number": 1,
-			"path": "structures/syn620.pdb"
+			"path": "structures/syn620.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn621",
 			"number": 1,
-			"path": "structures/syn621.pdb"
+			"path": "structures/syn621.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn622",
 			"number": 1,
-			"path": "structures/syn622.pdb"
+			"path": "structures/syn622.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn623",
 			"number": 1,
-			"path": "structures/syn623.pdb"
+			"path": "structures/syn623.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn63",
 			"number": 1,
-			"path": "structures/syn63.pdb"
+			"path": "structures/syn63.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn634",
 			"number": 1,
-			"path": "structures/syn634.pdb"
+			"path": "structures/syn634.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn636",
 			"number": 1,
-			"path": "structures/syn636.pdb"
+			"path": "structures/syn636.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn637",
 			"number": 1,
-			"path": "structures/syn637.pdb"
+			"path": "structures/syn637.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn638",
 			"number": 1,
-			"path": "structures/syn638.pdb"
+			"path": "structures/syn638.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn639",
 			"number": 1,
-			"path": "structures/syn639.pdb"
+			"path": "structures/syn639.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn64",
 			"number": 1,
-			"path": "structures/syn64.pdb"
+			"path": "structures/syn64.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn640",
 			"number": 1,
-			"path": "structures/syn640.pdb"
+			"path": "structures/syn640.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn641",
 			"number": 1,
-			"path": "structures/syn641.pdb"
+			"path": "structures/syn641.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn642",
 			"number": 1,
-			"path": "structures/syn642.pdb"
+			"path": "structures/syn642.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn643",
 			"number": 1,
-			"path": "structures/syn643.pdb"
+			"path": "structures/syn643.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn644",
 			"number": 1,
-			"path": "structures/syn644.pdb"
+			"path": "structures/syn644.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn645",
 			"number": 1,
-			"path": "structures/syn645.pdb"
+			"path": "structures/syn645.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn646",
 			"number": 1,
-			"path": "structures/syn646.pdb"
+			"path": "structures/syn646.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn647",
 			"number": 1,
-			"path": "structures/syn647.pdb"
+			"path": "structures/syn647.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn648",
 			"number": 1,
-			"path": "structures/syn648.pdb"
+			"path": "structures/syn648.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn649",
 			"number": 1,
-			"path": "structures/syn649.pdb"
+			"path": "structures/syn649.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn65",
 			"number": 1,
-			"path": "structures/syn65.pdb"
+			"path": "structures/syn65.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn650",
 			"number": 1,
-			"path": "structures/syn650.pdb"
+			"path": "structures/syn650.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn651",
 			"number": 1,
-			"path": "structures/syn651.pdb"
+			"path": "structures/syn651.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn652",
 			"number": 1,
-			"path": "structures/syn652.pdb"
+			"path": "structures/syn652.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn653",
 			"number": 1,
-			"path": "structures/syn653.pdb"
+			"path": "structures/syn653.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn654",
 			"number": 1,
-			"path": "structures/syn654.pdb"
+			"path": "structures/syn654.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn655",
 			"number": 1,
-			"path": "structures/syn655.pdb"
+			"path": "structures/syn655.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn656",
 			"number": 1,
-			"path": "structures/syn656.pdb"
+			"path": "structures/syn656.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn657",
 			"number": 1,
-			"path": "structures/syn657.pdb"
+			"path": "structures/syn657.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn658",
 			"number": 1,
-			"path": "structures/syn658.pdb"
+			"path": "structures/syn658.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn659",
 			"number": 1,
-			"path": "structures/syn659.pdb"
+			"path": "structures/syn659.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn66",
 			"number": 1,
-			"path": "structures/syn66.pdb"
+			"path": "structures/syn66.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn660",
 			"number": 1,
-			"path": "structures/syn660.pdb"
+			"path": "structures/syn660.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn661",
 			"number": 1,
-			"path": "structures/syn661.pdb"
+			"path": "structures/syn661.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn662",
 			"number": 1,
-			"path": "structures/syn662.pdb"
+			"path": "structures/syn662.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn663",
 			"number": 1,
-			"path": "structures/syn663.pdb"
+			"path": "structures/syn663.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn664",
 			"number": 1,
-			"path": "structures/syn664.pdb"
+			"path": "structures/syn664.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn665",
 			"number": 1,
-			"path": "structures/syn665.pdb"
+			"path": "structures/syn665.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn666",
 			"number": 1,
-			"path": "structures/syn666.pdb"
+			"path": "structures/syn666.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn667",
 			"number": 1,
-			"path": "structures/syn667.pdb"
+			"path": "structures/syn667.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn668",
 			"number": 1,
-			"path": "structures/syn668.pdb"
+			"path": "structures/syn668.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn669",
 			"number": 1,
-			"path": "structures/syn669.pdb"
+			"path": "structures/syn669.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn670",
 			"number": 1,
-			"path": "structures/syn670.pdb"
+			"path": "structures/syn670.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn671",
 			"number": 1,
-			"path": "structures/syn671.pdb"
+			"path": "structures/syn671.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn672",
 			"number": 1,
-			"path": "structures/syn672.pdb"
+			"path": "structures/syn672.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn684",
 			"number": 1,
-			"path": "structures/syn684.pdb"
+			"path": "structures/syn684.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn685",
 			"number": 1,
-			"path": "structures/syn685.pdb"
+			"path": "structures/syn685.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn686",
 			"number": 1,
-			"path": "structures/syn686.pdb"
+			"path": "structures/syn686.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn687",
 			"number": 1,
-			"path": "structures/syn687.pdb"
+			"path": "structures/syn687.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn688",
 			"number": 1,
-			"path": "structures/syn688.pdb"
+			"path": "structures/syn688.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn689",
 			"number": 1,
-			"path": "structures/syn689.pdb"
+			"path": "structures/syn689.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn690",
 			"number": 1,
-			"path": "structures/syn690.pdb"
+			"path": "structures/syn690.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn691",
 			"number": 1,
-			"path": "structures/syn691.pdb"
+			"path": "structures/syn691.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn692",
 			"number": 1,
-			"path": "structures/syn692.pdb"
+			"path": "structures/syn692.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn693",
 			"number": 1,
-			"path": "structures/syn693.pdb"
+			"path": "structures/syn693.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn694",
 			"number": 1,
-			"path": "structures/syn694.pdb"
+			"path": "structures/syn694.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn695",
 			"number": 1,
-			"path": "structures/syn695.pdb"
+			"path": "structures/syn695.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn696",
 			"number": 1,
-			"path": "structures/syn696.pdb"
+			"path": "structures/syn696.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn697",
 			"number": 1,
-			"path": "structures/syn697.pdb"
+			"path": "structures/syn697.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn7",
 			"number": 1,
-			"path": "structures/syn7.pdb"
+			"path": "structures/syn7.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn706",
 			"number": 1,
-			"path": "structures/syn706.pdb"
+			"path": "structures/syn706.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn707",
 			"number": 1,
-			"path": "structures/syn707.pdb"
+			"path": "structures/syn707.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn708",
 			"number": 1,
-			"path": "structures/syn708.pdb"
+			"path": "structures/syn708.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn710",
 			"number": 1,
-			"path": "structures/syn710.pdb"
+			"path": "structures/syn710.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn726",
 			"number": 1,
-			"path": "structures/syn726.pdb"
+			"path": "structures/syn726.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn727",
 			"number": 1,
-			"path": "structures/syn727.pdb"
+			"path": "structures/syn727.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn728",
 			"number": 1,
-			"path": "structures/syn728.pdb"
+			"path": "structures/syn728.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn729",
 			"number": 1,
-			"path": "structures/syn729.pdb"
+			"path": "structures/syn729.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn730",
 			"number": 1,
-			"path": "structures/syn730.pdb"
+			"path": "structures/syn730.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn732",
 			"number": 1,
-			"path": "structures/syn732.pdb"
+			"path": "structures/syn732.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn733",
 			"number": 1,
-			"path": "structures/syn733.pdb"
+			"path": "structures/syn733.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn747",
 			"number": 1,
-			"path": "structures/syn747.pdb"
+			"path": "structures/syn747.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn76",
 			"number": 1,
-			"path": "structures/syn76.pdb"
+			"path": "structures/syn76.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn77",
 			"number": 1,
-			"path": "structures/syn77.pdb"
+			"path": "structures/syn77.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn771",
 			"number": 1,
-			"path": "structures/syn771.pdb"
+			"path": "structures/syn771.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn772",
 			"number": 1,
-			"path": "structures/syn772.pdb"
+			"path": "structures/syn772.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn773",
 			"number": 1,
-			"path": "structures/syn773.pdb"
+			"path": "structures/syn773.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn774",
 			"number": 1,
-			"path": "structures/syn774.pdb"
+			"path": "structures/syn774.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn775",
 			"number": 1,
-			"path": "structures/syn775.pdb"
+			"path": "structures/syn775.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn776",
 			"number": 1,
-			"path": "structures/syn776.pdb"
+			"path": "structures/syn776.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn777",
 			"number": 1,
-			"path": "structures/syn777.pdb"
+			"path": "structures/syn777.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn778",
 			"number": 1,
-			"path": "structures/syn778.pdb"
+			"path": "structures/syn778.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn779",
 			"number": 1,
-			"path": "structures/syn779.pdb"
+			"path": "structures/syn779.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn787",
 			"number": 1,
-			"path": "structures/syn787.pdb"
+			"path": "structures/syn787.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn789",
 			"number": 1,
-			"path": "structures/syn789.pdb"
+			"path": "structures/syn789.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn79",
 			"number": 1,
-			"path": "structures/syn79.pdb"
+			"path": "structures/syn79.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn790",
 			"number": 1,
-			"path": "structures/syn790.pdb"
+			"path": "structures/syn790.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn791",
 			"number": 1,
-			"path": "structures/syn791.pdb"
+			"path": "structures/syn791.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn792",
 			"number": 1,
-			"path": "structures/syn792.pdb"
+			"path": "structures/syn792.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn793",
 			"number": 1,
-			"path": "structures/syn793.pdb"
+			"path": "structures/syn793.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn794",
 			"number": 1,
-			"path": "structures/syn794.pdb"
+			"path": "structures/syn794.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn795",
 			"number": 1,
-			"path": "structures/syn795.pdb"
+			"path": "structures/syn795.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn796",
 			"number": 1,
-			"path": "structures/syn796.pdb"
+			"path": "structures/syn796.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn797",
 			"number": 1,
-			"path": "structures/syn797.pdb"
+			"path": "structures/syn797.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn798",
 			"number": 1,
-			"path": "structures/syn798.pdb"
+			"path": "structures/syn798.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn799",
 			"number": 1,
-			"path": "structures/syn799.pdb"
+			"path": "structures/syn799.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn8",
 			"number": 1,
-			"path": "structures/syn8.pdb"
+			"path": "structures/syn8.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn80",
 			"number": 1,
-			"path": "structures/syn80.pdb"
+			"path": "structures/syn80.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn800",
 			"number": 1,
-			"path": "structures/syn800.pdb"
+			"path": "structures/syn800.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn803",
 			"number": 1,
-			"path": "structures/syn803.pdb"
+			"path": "structures/syn803.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn804",
 			"number": 1,
-			"path": "structures/syn804.pdb"
+			"path": "structures/syn804.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn805",
 			"number": 1,
-			"path": "structures/syn805.pdb"
+			"path": "structures/syn805.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn806",
 			"number": 1,
-			"path": "structures/syn806.pdb"
+			"path": "structures/syn806.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn807",
 			"number": 1,
-			"path": "structures/syn807.pdb"
+			"path": "structures/syn807.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn809",
 			"number": 1,
-			"path": "structures/syn809.pdb"
+			"path": "structures/syn809.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn81",
 			"number": 1,
-			"path": "structures/syn81.pdb"
+			"path": "structures/syn81.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn810",
 			"number": 1,
-			"path": "structures/syn810.pdb"
+			"path": "structures/syn810.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn813",
 			"number": 1,
-			"path": "structures/syn813.pdb"
+			"path": "structures/syn813.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn814",
 			"number": 1,
-			"path": "structures/syn814.pdb"
+			"path": "structures/syn814.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn817",
 			"number": 1,
-			"path": "structures/syn817.pdb"
+			"path": "structures/syn817.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn818",
 			"number": 1,
-			"path": "structures/syn818.pdb"
+			"path": "structures/syn818.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn819",
 			"number": 1,
-			"path": "structures/syn819.pdb"
+			"path": "structures/syn819.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn82",
 			"number": 1,
-			"path": "structures/syn82.pdb"
+			"path": "structures/syn82.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn820",
 			"number": 1,
-			"path": "structures/syn820.pdb"
+			"path": "structures/syn820.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn821",
 			"number": 1,
-			"path": "structures/syn821.pdb"
+			"path": "structures/syn821.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn822",
 			"number": 1,
-			"path": "structures/syn822.pdb"
+			"path": "structures/syn822.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn823",
 			"number": 1,
-			"path": "structures/syn823.pdb"
+			"path": "structures/syn823.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn824",
 			"number": 1,
-			"path": "structures/syn824.pdb"
+			"path": "structures/syn824.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn825",
 			"number": 1,
-			"path": "structures/syn825.pdb"
+			"path": "structures/syn825.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn826",
 			"number": 1,
-			"path": "structures/syn826.pdb"
+			"path": "structures/syn826.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn827",
 			"number": 1,
-			"path": "structures/syn827.pdb"
+			"path": "structures/syn827.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn830",
 			"number": 1,
-			"path": "structures/syn830.pdb"
+			"path": "structures/syn830.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn831",
 			"number": 1,
-			"path": "structures/syn831.pdb"
+			"path": "structures/syn831.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn832",
 			"number": 1,
-			"path": "structures/syn832.pdb"
+			"path": "structures/syn832.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn833",
 			"number": 1,
-			"path": "structures/syn833.pdb"
+			"path": "structures/syn833.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn834",
 			"number": 1,
-			"path": "structures/syn834.pdb"
+			"path": "structures/syn834.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn835",
 			"number": 1,
-			"path": "structures/syn835.pdb"
+			"path": "structures/syn835.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn836",
 			"number": 1,
-			"path": "structures/syn836.pdb"
+			"path": "structures/syn836.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn837",
 			"number": 1,
-			"path": "structures/syn837.pdb"
+			"path": "structures/syn837.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn838",
 			"number": 1,
-			"path": "structures/syn838.pdb"
+			"path": "structures/syn838.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn839",
 			"number": 1,
-			"path": "structures/syn839.pdb"
+			"path": "structures/syn839.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn840",
 			"number": 1,
-			"path": "structures/syn840.pdb"
+			"path": "structures/syn840.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn851",
 			"number": 1,
-			"path": "structures/syn851.pdb"
+			"path": "structures/syn851.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn852",
 			"number": 1,
-			"path": "structures/syn852.pdb"
+			"path": "structures/syn852.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn853",
 			"number": 1,
-			"path": "structures/syn853.pdb"
+			"path": "structures/syn853.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn859",
 			"number": 1,
-			"path": "structures/syn859.pdb"
+			"path": "structures/syn859.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn870",
 			"number": 1,
-			"path": "structures/syn870.pdb"
+			"path": "structures/syn870.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn872",
 			"number": 1,
-			"path": "structures/syn872.pdb"
+			"path": "structures/syn872.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn873",
 			"number": 1,
-			"path": "structures/syn873.pdb"
+			"path": "structures/syn873.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn874",
 			"number": 1,
-			"path": "structures/syn874.pdb"
+			"path": "structures/syn874.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn875",
 			"number": 1,
-			"path": "structures/syn875.pdb"
+			"path": "structures/syn875.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn876",
 			"number": 1,
-			"path": "structures/syn876.pdb"
+			"path": "structures/syn876.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn877",
 			"number": 1,
-			"path": "structures/syn877.pdb"
+			"path": "structures/syn877.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn878",
 			"number": 1,
-			"path": "structures/syn878.pdb"
+			"path": "structures/syn878.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn879",
 			"number": 1,
-			"path": "structures/syn879.pdb"
+			"path": "structures/syn879.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn881",
 			"number": 1,
-			"path": "structures/syn881.pdb"
+			"path": "structures/syn881.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn885",
 			"number": 1,
-			"path": "structures/syn885.pdb"
+			"path": "structures/syn885.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn886",
 			"number": 1,
-			"path": "structures/syn886.pdb"
+			"path": "structures/syn886.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn887",
 			"number": 1,
-			"path": "structures/syn887.pdb"
+			"path": "structures/syn887.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn9",
 			"number": 1,
-			"path": "structures/syn9.pdb"
+			"path": "structures/syn9.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn906",
 			"number": 1,
-			"path": "structures/syn906.pdb"
+			"path": "structures/syn906.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn907",
 			"number": 1,
-			"path": "structures/syn907.pdb"
+			"path": "structures/syn907.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn908",
 			"number": 1,
-			"path": "structures/syn908.pdb"
+			"path": "structures/syn908.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn909",
 			"number": 1,
-			"path": "structures/syn909.pdb"
+			"path": "structures/syn909.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn910",
 			"number": 1,
-			"path": "structures/syn910.pdb"
+			"path": "structures/syn910.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn913",
 			"number": 1,
-			"path": "structures/syn913.pdb"
+			"path": "structures/syn913.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn918",
 			"number": 1,
-			"path": "structures/syn918.pdb"
+			"path": "structures/syn918.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn930",
 			"number": 1,
-			"path": "structures/syn930.pdb"
+			"path": "structures/syn930.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn931",
 			"number": 1,
-			"path": "structures/syn931.pdb"
+			"path": "structures/syn931.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn932",
 			"number": 1,
-			"path": "structures/syn932.pdb"
+			"path": "structures/syn932.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn94",
 			"number": 1,
-			"path": "structures/syn94.pdb"
+			"path": "structures/syn94.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn95",
 			"number": 1,
-			"path": "structures/syn95.pdb"
+			"path": "structures/syn95.pdb",
+			"compartments": [ "main" ]
 		},
 		{
 			"name": "syn97",
 			"number": 1,
-			"path": "structures/syn97.pdb"
+			"path": "structures/syn97.pdb",
+			"compartments": [ "main" ]
 		}
 	]
 }
