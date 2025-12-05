@@ -327,6 +327,10 @@ mod convert {
                 // (2) those rule expressions need to be formulated as a constraint and
                 //     pushed to the constraints list. This is done in the conversion of
                 //     legacy::Config to config::Config.
+                // Note that this is inefficient. That does not matter, since this just serves to
+                // convert a legacy format to the new format. It lets us write these conversions in
+                // such a way that the functions don't have to coordinate with each other which
+                // makes them nice and seperate. That is preferred here.
                 let ids = rules
                     .iter()
                     .map(|re| {
@@ -490,14 +494,17 @@ mod convert {
 
         impl Into<config::Rule> for Rule {
             fn into(self) -> config::Rule {
+                use config::Expr;
                 match self {
                     Rule::Position(limit) => config::Rule::Limits(config::Expr::Term(limit)),
                     Rule::IsCloser(id, distance) => config::Rule::Within { distance, id },
-                    Rule::Or(_rules) => {
-                        // TODO: This is quite easy to implement. Along the lines of
-                        // compartment combinations, but just for rule ids.
-                        todo!("rule combinations have not been implemented")
-                    }
+                    Rule::Or(rules) => config::Rule::Combination(
+                        rules
+                            .into_iter()
+                            .map(|rule| Expr::Term(canonical_id(&rule)))
+                            .reduce(|acc, r| Expr::Or(Box::new(acc), Box::new(r)))
+                            .expect("a rules combination expression cannot be empty"),
+                    ),
                 }
             }
         }

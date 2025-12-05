@@ -258,6 +258,7 @@ pub struct Constraint {
 pub enum Rule {
     Limits(Expr<Limit>),
     Within { distance: f32, id: String },
+    Combination(Expr<String>),
 }
 
 #[derive(Debug, PartialEq)]

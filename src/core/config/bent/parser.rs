@@ -96,7 +96,7 @@ where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
     components::expr_parser(select! { Token::Ident(s) => s.to_owned() })
-        .labelled("compartment combination expression")
+        .labelled("combination expression")
         .as_context()
 }
 
@@ -120,8 +120,8 @@ pub(crate) fn compartment_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Compa
 where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
-    let number = select! { Token::Number(n) => n.as_float() as f32 };
-    let point = select! { Token::Point(point) => point };
+    let number = select! { Token::Number(n) => n.as_float() as f32 }.boxed();
+    let point = select! { Token::Point(point) => point }.boxed();
 
     let sphere = {
         let sphere_center = point
@@ -158,14 +158,20 @@ where
     };
     let voxels = components::ident("from")
         .ignore_then(select! { Token::String(s) => s.into() }.labelled("quoted path"))
-        .map(Mask::Voxels);
+        .map(Mask::Voxels)
+        .boxed();
     let shape = components::ident("as")
         .ignore_then(choice((sphere, cuboid)))
-        .map(Mask::Shape);
+        .map(Mask::Shape)
+        .boxed();
     let combination = group(["is", "combination"].map(components::ident))
-        .ignore_then(terms_parser().labelled("combination expression"))
-        .map(Mask::Combination);
-    let all = group(["is", "all"].map(components::ident)).to(Mask::All);
+        .ignore_then(terms_parser())
+        .map(Mask::Combination)
+        .labelled("compartment combination expression")
+        .boxed();
+    let all = group(["is", "all"].map(components::ident))
+        .to(Mask::All)
+        .boxed();
 
     select! { Token::Ident(id) => id.to_owned() }
         .then(choice((voxels, shape, combination, all)))
@@ -192,8 +198,13 @@ where
             id,
         })
         .boxed();
+    let combination = group(["is", "combination"].map(components::ident))
+        .ignore_then(terms_parser())
+        .map(Rule::Combination)
+        .labelled("constraint combination expression")
+        .boxed();
 
-    id.then(choice((limits, within)))
+    id.then(choice((limits, within, combination)))
         .map(|(id, rule)| Constraint { id, rule })
         .labelled("constraint declaration")
         .as_context()
