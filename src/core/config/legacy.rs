@@ -221,7 +221,7 @@ pub struct Config {
 }
 
 mod convert {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     use super::*;
     use crate::core::config::{self, legacy::convert::rule::parse_rule};
@@ -311,35 +311,40 @@ mod convert {
                 rotation_axes,
                 initial_rotation,
             } = self;
-            // TODO: Implement parsing for rotation_axes properties.
-            if rotation_axes != Default::default() {
-                todo!("segment rotation axes for bent (this is planned!!)")
-            }
             if initial_rotation != <[f32; 3]>::default() {
                 unimplemented!("segment initial rotation is deprecated")
             }
-
-            let rules = if rules.is_empty() {
-                None
+            // This is a bit complicated. We need to
+            // (1) come up with a label for each unique RuleExpression in the file,
+            // (2) those rule expressions need to be formulated as a constraint and
+            //     pushed to the constraints list. This is done in the conversion of
+            //     legacy::Config to config::Config.
+            // Note that this is inefficient. That does not matter, since this just serves to
+            // convert a legacy format to the new format. It lets us write these conversions in
+            // such a way that the functions don't have to coordinate with each other which
+            // makes them nice and seperate. That is preferred here.
+            let axes_rule = if rotation_axes != Default::default() {
+                Some(rule::canonical_id_rotation_axes(rotation_axes))
             } else {
-                // This is a bit complicated. We need to
-                // (1) come up with a label for each unique RuleExpression in the file,
-                // (2) those rule expressions need to be formulated as a constraint and
-                //     pushed to the constraints list. This is done in the conversion of
-                //     legacy::Config to config::Config.
-                // Note that this is inefficient. That does not matter, since this just serves to
-                // convert a legacy format to the new format. It lets us write these conversions in
-                // such a way that the functions don't have to coordinate with each other which
-                // makes them nice and seperate. That is preferred here.
-                let ids = rules
-                    .iter()
-                    .map(|re| {
-                        let legacy_rule = parse_rule(re).expect("TODO");
-                        rule::canonical_id(&legacy_rule)
-                    })
-                    // Only retain unique rules.
-                    .collect::<HashSet<_>>();
-                Some(ids.into_iter().collect())
+                None
+            };
+            let rules = match (rules.as_slice(), axes_rule) {
+                ([], None) => None,
+                ([], Some(axes_rule)) => Some(vec![axes_rule].into_boxed_slice()),
+                ([rules @ ..], axes_rule) => {
+                    let mut ids = rules
+                        .iter()
+                        .map(|re| {
+                            let legacy_rule = parse_rule(re).expect("TODO");
+                            rule::canonical_id(&legacy_rule)
+                        })
+                        // Only retain unique rules.
+                        .collect::<HashSet<_>>();
+                    if let Some(axes_rule) = axes_rule {
+                        ids.insert(axes_rule);
+                    }
+                    Some(ids.into_iter().collect::<Box<[_]>>())
+                }
             };
 
             config::Segment {
@@ -387,20 +392,37 @@ mod convert {
                     },
             } = self;
 
-            let constraints = segments
-                .iter()
-                .flat_map(|s| &s.rules)
-                .map(|re| {
-                    // First, we do a legacy parse of the rule.
-                    let legacy_rule = parse_rule(re).expect("TODO");
-                    // Come up with a unique id for this rule that will match how a segment converts
-                    // the rule into the same id.
-                    let id = rule::canonical_id(&legacy_rule);
-                    // And convert the RuleExpression into a Rule.
-                    let rule = legacy_rule.into();
-                    config::Constraint { id, rule }
-                })
-                .collect();
+            // More cursed canonical rule id logic.
+            // We make the assumption here that we created id-constraint pairs in an injective
+            // manner. That is, one id has a single, unique rule associated with it, and vice
+            // versa. The management of the rule keys throughout this conversion code aims to
+            // uphold that.
+            let constraints = {
+                // Here we get crazy. Well not really. But, we need to create rotation axes rules
+                // from the per-segment settings. This is where the legacy::Config ontology differs
+                // quite a bit from Config.
+                let mut constraints = HashMap::new();
+                for seg in &segments {
+                    for re in &seg.rules {
+                        // First, we do a legacy parse of the rule.
+                        let legacy_rule = parse_rule(re).expect("TODO");
+                        // Come up with a unique id for this rule that will match how a segment
+                        // converts the rule into the same id.
+                        let id = rule::canonical_id(&legacy_rule);
+                        // And convert the RuleExpression into a Rule.
+                        let rule = legacy_rule.into();
+                        constraints.insert(id.clone(), config::Constraint { id, rule });
+                    }
+                    let ras = seg.rotation_axes;
+                    if ras != Default::default() {
+                        let id = rule::canonical_id_rotation_axes(ras);
+                        let rule = config::Rule::RotationAxes(ras);
+                        constraints.insert(id.clone(), config::Constraint { id, rule });
+                    }
+                }
+
+                constraints.into_values().collect()
+            };
 
             let bead_radius = if bead_radius != defaults::BEAD_RADIUS as f32 {
                 Some(bead_radius as f64)
@@ -476,7 +498,7 @@ mod convert {
                         Op::SmallerThan => "lt",
                         Op::GreaterThan => "gt",
                     };
-                    format!("{{lim/{axis:?}'{op}'{value}}}")
+                    format!("{{lim/{axis}'{op}'{value}}}")
                 }
                 Rule::IsCloser(id, distance) => {
                     format!("{{win/{id}'{distance}}}")
@@ -490,6 +512,15 @@ mod convert {
                     format!("{{or/{ids}}}")
                 }
             }
+        }
+
+        pub fn canonical_id_rotation_axes(axes: config::Axes) -> String {
+            let axes = axes
+                .list()
+                .iter()
+                .map(ToString::to_string)
+                .collect::<String>();
+            format!("{{axes/{axes}}}")
         }
 
         impl Into<config::Rule> for Rule {

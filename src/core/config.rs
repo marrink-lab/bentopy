@@ -258,6 +258,7 @@ pub struct Constraint {
 pub enum Rule {
     Limits(Expr<Limit>),
     Within { distance: f32, id: String },
+    RotationAxes(Axes),
     Combination(Expr<String>),
 }
 
@@ -271,7 +272,7 @@ pub struct Config {
     pub segments: Vec<Segment>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Axes {
     pub x: bool,
     pub y: bool,
@@ -285,6 +286,22 @@ impl Default for Axes {
             y: true,
             z: true,
         }
+    }
+}
+
+impl Axes {
+    pub fn list(&self) -> Box<[Axis]> {
+        let mut v = Vec::with_capacity(3);
+        if self.x {
+            v.push(Axis::X);
+        }
+        if self.y {
+            v.push(Axis::Y);
+        }
+        if self.z {
+            v.push(Axis::Z);
+        }
+        v.into_boxed_slice()
     }
 }
 

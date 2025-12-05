@@ -177,6 +177,7 @@ fn constraint_entry<W: Write>(w: &mut W, constraint: &Constraint) -> Result<()> 
     let rule = match rule {
         Rule::Limits(expr) => format!("where {expr}"),
         Rule::Within { distance, id } => format!("within {distance} of {id}"),
+        Rule::RotationAxes(axes) => format!("rotates {}", list(&axes.list())),
         Rule::Combination(expr) => format!("is combination {expr}"),
     };
     writeln!(w, "{id} {rule}")

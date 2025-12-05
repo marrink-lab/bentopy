@@ -5,8 +5,8 @@ use chumsky::prelude::*;
 
 use crate::core::config::bent::lexer::{Number, Token};
 use crate::core::config::{
-    Anchor, Axis, Center, Compartment, Config, Constraint, Dimensions, Expr, General, Limit, Mask,
-    Op, Quantity, RearrangeMethod, Rule, Segment, Shape, Space,
+    Anchor, Axes, Axis, Center, Compartment, Config, Constraint, Dimensions, Expr, General, Limit,
+    Mask, Op, Quantity, RearrangeMethod, Rule, Segment, Shape, Space,
 };
 
 /// A shorter alias for this otherwise rather unwieldy type.
@@ -25,17 +25,22 @@ mod components {
         just(Token::Ident(word)).boxed()
     }
 
-    pub(crate) fn limit<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Limit, E<'s, 'ts>>
+    pub(crate) fn axis<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Axis, E<'s, 'ts>>
     where
         I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
     {
-        let axis = select! {
+        select! {
             Token::Ident("x") => Axis::X,
             Token::Ident("y") => Axis::Y,
             Token::Ident("z") => Axis::Z,
         }
-        .labelled("axis");
+        .labelled("axis")
+    }
 
+    pub(crate) fn limit<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Limit, E<'s, 'ts>>
+    where
+        I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
+    {
         let op = select! {
             Token::GreaterThan => Op::GreaterThan,
             Token::LessThan => Op::SmallerThan,
@@ -44,11 +49,11 @@ mod components {
         let value = select! { Token::Number(n) => n.as_float() }.labelled("number");
 
         // For example, x > 10.
-        let axis_op_value = group((axis, op, value))
+        let axis_op_value = group((axis(), op, value))
             .map(|(axis, op, value)| Limit { axis, op, value })
             .boxed();
         // For example, 10 < x.
-        let value_op_axis = group((value, op, axis))
+        let value_op_axis = group((value, op, axis()))
             .map(|(value, rev_op, axis)| Limit {
                 axis,
                 op: rev_op.reverse(),
@@ -198,13 +203,26 @@ where
             id,
         })
         .boxed();
+    let rotation_axes = components::ident("rotates")
+        .ignore_then(
+            components::axis()
+                .separated_by(just(Token::Comma))
+                .collect::<Vec<_>>()
+                .map(|axes| Axes {
+                    x: axes.contains(&Axis::X),
+                    y: axes.contains(&Axis::Y),
+                    z: axes.contains(&Axis::Z),
+                }),
+        )
+        .map(Rule::RotationAxes)
+        .boxed();
     let combination = group(["is", "combination"].map(components::ident))
         .ignore_then(terms_parser())
         .map(Rule::Combination)
         .labelled("constraint combination expression")
         .boxed();
 
-    id.then(choice((limits, within, combination)))
+    id.then(choice((limits, within, rotation_axes, combination)))
         .map(|(id, rule)| Constraint { id, rule })
         .labelled("constraint declaration")
         .as_context()
