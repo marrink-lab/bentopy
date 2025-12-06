@@ -1,7 +1,8 @@
 use std::io::{self, Read};
 
-use anyhow::Context;
+use anyhow::{Context, bail};
 use args::Args;
+use ariadne::{Color, Fmt};
 use clap::Parser;
 
 use bentopy::core::config::{Config, bent};
@@ -69,6 +70,17 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let mut state = {
         let config_path = &args.config;
+        if config_path.extension().is_some_and(|ext| ext == "json") {
+            eprintln!("NOTE: Legacy bentopy input files can be converted to .bent files:");
+            let old_path = config_path.to_str().unwrap().fg(Color::Yellow);
+            let bent_path = config_path.with_extension("bent");
+            let bent_path = bent_path.to_str().unwrap().fg(Color::Cyan);
+            eprintln!("You can convert {old_path} to a bent file using the following command:");
+            eprintln!();
+            eprintln!("\tbentopy-init convert -i {old_path} -o {bent_path}");
+            eprintln!();
+            bail!("Legacy .json bentopy input files are deprecated")
+        }
         let mut file = std::fs::File::open(config_path)
             .with_context(|| format!("Failed to open the configuration file {config_path:?}"))?;
         let mut buf = String::new();

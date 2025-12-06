@@ -6,7 +6,7 @@ use clap::{Parser, ValueEnum};
 #[derive(Debug, Parser)]
 #[command(version = bentopy::core::version::VERSION)]
 pub struct Args {
-    // Configuration input file to define the run (json).
+    // Configuration input file to define the run (bent).
     pub config: PathBuf,
 
     // Placement list output file (json).
