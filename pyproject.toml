@@ -35,6 +35,9 @@ bentopy-mask = "mask:mask.main"
 bentopy-merge = "merge:merge.main"
 
 [[tool.setuptools-rust.bins]]
+target = "bentopy-init"
+
+[[tool.setuptools-rust.bins]]
 target = "bentopy-pack"
 
 [[tool.setuptools-rust.bins]]
