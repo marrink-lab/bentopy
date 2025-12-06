@@ -56,16 +56,15 @@ resolution <voxel-size>
 # - Name (match naming in itp files to write a correct topology file).
 # - Optionally, a tag (max 5 characters, preceded by a colon).
 # - Quantity:
-#   - concentration (molar, with 'M' suffix),
+#   - concentration (number, with M or mM, uM/µM, nM, pM suffix),
 #   - copy number (integer, no suffix).
 # - Path to the structure file (gro, pdb).
 # - Names of its compartments (comma-separated).
 # - Optionally, the names of the rules it should uphold (comma-separated).
 <name>:<tag> <quantity> from <structure-path> in <compartment-ids> satisfies <rules>
 # If desired, newlines (and other whitespace) between fields is allowed, making
-# it possible to write segment declarations like this.
-<name> :<tag>
-	<quantity>
-	from <structure-path>
-	in <compartment-ids>
-	satisfies <rules>
+# it possible to write segment declarations like this example:
+#   3lyz:inside
+#       1uM
+#       from "structures/3lyz.pdb"
+#       in sphere

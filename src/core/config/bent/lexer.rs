@@ -142,14 +142,21 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
     // This is a bit silly, but if we want concentrations like 1M to work like 1.0M, we need a
     // leniant notion of a float that can also match integers. But just for concentrations.
     let leniant_float = regex(r"[-+]?(\d*\.?\d+)")
-        .map(FromStr::from_str)
+        .map(f64::from_str)
         .unwrapped()
         .boxed();
     // TODO: Introduce mM and nM quantities as well.
+    let unit = choice((
+        just('M').to(1.0),
+        just("mM").to(1e-3),
+        just("uM").or(just("µM")).to(1e-6),
+        just("nM").to(1e-9),
+        just("pM").to(1e-12),
+    ));
     let concentration = leniant_float
         .clone()
-        .then_ignore(just('M'))
-        .map(Token::Concentration)
+        .then(unit)
+        .map(|(v, u)| Token::Concentration(v * u))
         .boxed();
     let section = components::identifier()
         .padded()
