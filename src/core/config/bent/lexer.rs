@@ -132,22 +132,35 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         // alphabetic character.
         .then_ignore(any().filter(|c: &char| c.is_alphabetic()).not())
         .boxed();
-    let float = regex(r"[-+]?(\d*\.\d+)").map(FromStr::from_str).unwrapped();
-    let number = choice((
-        float.clone().map(Number::Float),
-        integer.map(Number::Integer),
-    ))
-    .map(Token::Number);
+    let float = regex(r"[-+]?(\d*\.\d+)")
+        .map(FromStr::from_str)
+        .unwrapped()
+        .boxed();
+    let number = choice((float.map(Number::Float), integer.map(Number::Integer)))
+        .map(Token::Number)
+        .boxed();
+    // This is a bit silly, but if we want concentrations like 1M to work like 1.0M, we need a
+    // leniant notion of a float that can also match integers. But just for concentrations.
+    let leniant_float = regex(r"[-+]?(\d*\.?\d+)")
+        .map(FromStr::from_str)
+        .unwrapped()
+        .boxed();
     // TODO: Introduce mM and nM quantities as well.
-    let concentration = float.then_ignore(just('M')).map(Token::Concentration);
+    let concentration = leniant_float
+        .clone()
+        .then_ignore(just('M'))
+        .map(Token::Concentration)
+        .boxed();
     let section = components::identifier()
         .padded()
         .delimited_by(just('['), just(']'))
-        .map(Token::Section);
+        .map(Token::Section)
+        .boxed();
     let placeholder = components::identifier()
         .padded()
         .delimited_by(just('<'), just('>'))
-        .map(Token::Placeholder);
+        .map(Token::Placeholder)
+        .boxed();
     let point = components::point().map(Token::Point).boxed();
 
     choice((
