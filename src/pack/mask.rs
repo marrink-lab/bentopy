@@ -512,7 +512,7 @@ pub fn distance_mask_grow(mask: &Mask, radius: u64) -> Mask {
         mask.grow_approx()
     }
 
-    mask
+    !mask
 }
 
 impl BitOrAssign for Mask {
