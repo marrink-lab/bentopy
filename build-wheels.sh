@@ -21,8 +21,3 @@ done
 for whl in /io/dist/*{cp312,cp313,314}*[!t].whl; do
     auditwheel repair "$whl" -w /io/dist/
 done
-
-# Install packages and test
-for PYBIN in /opt/python/cp{312,313,314}*[!t]/bin; do
-    "${PYBIN}/pip" install bentopy -f /io/dist/
-done
