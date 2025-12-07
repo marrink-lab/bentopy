@@ -6,12 +6,10 @@ use ariadne::{Color, Fmt};
 use clap::Parser;
 
 use bentopy::core::config::{Config, bent};
-use placement::PlacementList;
 use state::State;
 
 mod args;
 mod mask;
-mod placement;
 mod session;
 mod state;
 mod structure;
@@ -115,7 +113,7 @@ fn main() -> anyhow::Result<()> {
     let start_output = std::time::Instant::now();
     let placement_list_file = std::fs::File::create(&placement_list_path)
         .with_context(|| format!("Failed to create placement list file {placement_list_path:?}"))?;
-    let placement_list = PlacementList::new(placements, &state);
+    let placement_list = state.placement_list(placements);
     serde_json::to_writer(placement_list_file, &placement_list)
         .context("Encountered a problem while writing the placement list")?;
     eprintln!("Done in {:.3} s.", start_output.elapsed().as_secs_f64());

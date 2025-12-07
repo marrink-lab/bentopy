@@ -1,4 +1,5 @@
 pub mod config;
+pub mod placement;
 
 /// Provide additional version information, including the current git hash.
 pub mod version {

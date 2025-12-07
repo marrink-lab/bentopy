@@ -3,10 +3,10 @@ use std::io;
 pub(crate) use glam::Mat3;
 use rand::Rng as _;
 
-use crate::placement::{Batch, Placement};
 use crate::session::Locations;
 use crate::state::State;
 use crate::{CLEAR_LINE, Summary};
+use bentopy::core::placement::{Batch, Placement};
 
 impl State {
     pub fn pack(&mut self, log: &mut impl io::Write) -> anyhow::Result<(Vec<Placement>, Summary)> {

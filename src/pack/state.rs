@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, bail};
 use bentopy::core::config::{Config, defaults};
+use bentopy::core::placement::{Meta, Placement, PlacementList};
 pub(crate) use glam::{EulerRot, Mat3};
 use rand::{RngCore, SeedableRng};
 
@@ -418,5 +419,22 @@ impl State {
         }
 
         Ok(())
+    }
+
+    pub fn placement_list(&self, placements: impl IntoIterator<Item = Placement>) -> PlacementList {
+        let meta = Meta {
+            seed: self.general.seed,
+            max_tries_mult: self.general.max_tries_multiplier,
+            max_tries_per_rotation_divisor: self.general.max_tries_per_rotation_divisor,
+            bead_radius: self.general.bead_radius,
+        };
+
+        PlacementList {
+            title: self.output.title.to_string(),
+            size: self.space.size,
+            meta: Some(meta),
+            topol_includes: self.output.topol_includes.clone(),
+            placements: placements.into_iter().collect(),
+        }
     }
 }

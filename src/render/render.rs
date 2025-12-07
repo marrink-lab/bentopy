@@ -3,69 +3,20 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
+use bentopy::core::placement::PlacementList;
 use clap::ValueEnum;
-use glam::{Mat3, Vec3};
+use glam::Vec3;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use serde::Deserialize;
 
 use crate::limits::Limits;
 use crate::structure::{Atom, Molecule, load_molecule, rotate_molecule};
-
-/// A space with a set of [`Placement`]s.
-#[derive(Debug, Clone, Deserialize)]
-struct Placements {
-    title: String,
-    size: [f32; 3],
-    topol_includes: Vec<String>,
-    placements: Vec<Placement>,
-}
-
-/// A set of positions associated with some structure.
-///
-/// The structure is named and is stored at the provided `path`.
-///
-/// Positions are stored in [`Batch`]es.
-#[derive(Debug, Clone, Deserialize)]
-struct Placement {
-    name: String,
-    /// A tag that will replace the associated structure's `resname` field, if present.
-    tag: Option<String>,
-    /// Path to the segment's molecule file.
-    path: PathBuf,
-    batches: Vec<Batch>,
-}
-
-impl Placement {
-    fn tag(&self) -> Option<&str> {
-        self.tag.as_ref().map(|t| t.as_str())
-    }
-}
-
-/// A set of positions that share a specific rotation.
-#[derive(Debug, Clone, Deserialize)]
-struct Batch {
-    /// The 3×3 rotation matrix.
-    ///
-    /// The data is stored in a row-major order.
-    rotation: [[f32; 3]; 3],
-    positions: Vec<[f32; 3]>,
-}
-
-impl Batch {
-    /// Returns the 3×3 rotation matrix of this [`Batch`].
-    fn rotation(&self) -> Mat3 {
-        // Because the batch rotation is stored in a row-major order, and the initializer we use
-        // here assumes column-major order, we need to transpose the matrix before using it.
-        Mat3::from_cols_array_2d(&self.rotation).transpose()
-    }
-}
 
 /// Read a placement list to return [`Placements`].
 fn read_placement_list(
     placement_list: &str,
     root: Option<PathBuf>,
-) -> serde_json::Result<Placements> {
-    let mut placements: Placements = serde_json::from_str(placement_list)?;
+) -> serde_json::Result<PlacementList> {
+    let mut placements: PlacementList = serde_json::from_str(placement_list)?;
     if let Some(root) = root {
         for p in &mut placements.placements {
             if p.path.is_relative() {
@@ -111,7 +62,7 @@ impl FromStr for ResnumMode {
 /// [gro_manual]: https://manual.gromacs.org/archive/5.0.3/online/gro.html
 fn write_gro(
     writer: &mut impl io::Write,
-    placements: &Placements,
+    placements: &PlacementList,
     limits: Limits,
     mode: Mode,
     resnum_mode: ResnumMode,
