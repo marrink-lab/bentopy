@@ -46,6 +46,7 @@ pub struct Args {
     #[arg(long)]
     pub limits: Option<Limits>,
 
+    /// Retain the residue names from the input structure.
     #[arg(long)]
     pub ignore_tags: bool,
 }
