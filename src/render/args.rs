@@ -3,57 +3,6 @@ use std::{path::PathBuf, str::FromStr};
 use crate::limits::Limits;
 use clap::{Parser, ValueEnum, command};
 
-#[derive(Debug, Default, Clone, ValueEnum)]
-pub enum ResnumMode {
-    /// Each segment instance has a unique residue number.
-    #[default]
-    Instance,
-    /// All instances of a segment have the same residue number.
-    Segment,
-}
-
-impl FromStr for ResnumMode {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "instance" => Self::Instance,
-            "segment" => Self::Segment,
-            _ => return Err(()),
-        })
-    }
-}
-
-#[derive(Debug, Default, Clone, ValueEnum)]
-pub enum Mode {
-    /// Output all atoms.
-    #[default]
-    Full,
-    /// Only the backbone atoms.
-    Backbone,
-    /// Only the alpha carbons.
-    Alpha,
-    /// One bead per residue.
-    Residue,
-    /// One bead per instance of a structure.
-    Instance,
-}
-
-impl FromStr for Mode {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "full" => Self::Full,
-            "backbone" | "bb" => Self::Full,
-            "alpha" | "ca" | "a" => Self::Alpha,
-            "residue" | "res" => Self::Residue,
-            "instance" => Self::Instance,
-            _ => return Err(()),
-        })
-    }
-}
-
 /// Render structures from a placement list into a gro file.
 ///
 ///
@@ -99,4 +48,55 @@ pub struct Args {
 
     #[arg(long)]
     pub ignore_tags: bool,
+}
+
+#[derive(Debug, Default, Clone, ValueEnum)]
+pub enum Mode {
+    /// Output all atoms.
+    #[default]
+    Full,
+    /// Only the backbone atoms.
+    Backbone,
+    /// Only the alpha carbons.
+    Alpha,
+    /// One bead per residue.
+    Residue,
+    /// One bead per instance of a structure.
+    Instance,
+}
+
+impl FromStr for Mode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            "full" => Self::Full,
+            "backbone" | "bb" => Self::Full,
+            "alpha" | "ca" | "a" => Self::Alpha,
+            "residue" | "res" => Self::Residue,
+            "instance" => Self::Instance,
+            _ => return Err(()),
+        })
+    }
+}
+
+#[derive(Debug, Default, Clone, ValueEnum)]
+pub enum ResnumMode {
+    /// Each segment instance has a unique residue number.
+    #[default]
+    Instance,
+    /// All instances of a segment have the same residue number.
+    Segment,
+}
+
+impl FromStr for ResnumMode {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            "instance" => Self::Instance,
+            "segment" => Self::Segment,
+            _ => return Err(()),
+        })
+    }
 }
