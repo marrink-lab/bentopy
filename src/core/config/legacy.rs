@@ -348,7 +348,7 @@ mod convert {
             // here, and we assign it as the sole rule in the rules field.
             let axes_rule = if rotation_axes != Default::default() {
                 let id = rule::canonical_id_rotation_axes(rotation_axes);
-                Box::new([id])
+                vec![id].into_boxed_slice()
             } else {
                 Default::default()
             };
@@ -374,7 +374,7 @@ mod convert {
             } else {
                 let rule_ids = compartment_ids_from_rules.into_iter().collect::<Vec<_>>();
                 let id = rule::canonical_id_apply(&compartments, &rule_ids);
-                Box::new([id])
+                vec![id].into_boxed_slice()
             };
 
             // Pfhew... that sucked. But we're here now.
