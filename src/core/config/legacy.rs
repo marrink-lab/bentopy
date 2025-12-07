@@ -224,7 +224,8 @@ mod convert {
     use std::collections::{HashMap, HashSet};
 
     use super::*;
-    use crate::core::config::{self, legacy::convert::rule::parse_rule};
+    use crate::core::config;
+    use crate::core::config::legacy::convert::rule::parse_rule;
 
     impl Into<config::Expr<CompartmentID>> for CombinationExpression {
         fn into(self) -> config::Expr<CompartmentID> {
@@ -306,7 +307,7 @@ mod convert {
                 tag,
                 quantity,
                 path,
-                mut compartments,
+                compartments,
                 rules,
                 rotation_axes,
                 initial_rotation,
@@ -341,16 +342,39 @@ mod convert {
                 })
                 // Only retain unique rules.
                 .collect::<HashSet<_>>();
-            compartments.extend(compartment_ids_from_rules.into_iter());
 
             // Same goes for the rotation_axes, if non-default. This notion is now conceived of as
             // a rule, instead of as a per-segment property. We also come up with an injective id,
             // here, and we assign it as the sole rule in the rules field.
             let axes_rule = if rotation_axes != Default::default() {
                 let id = rule::canonical_id_rotation_axes(rotation_axes);
-                vec![id].into_boxed_slice()
+                Box::new([id])
             } else {
                 Default::default()
+            };
+
+            // The list of compartments represents a union of masks that can be merged together to
+            // provide the accessible space for a segment. In the legacy format, where rules were
+            // applied per segment, the presence of rules meant that the union of compartments was
+            // intersected with the masks distilled from the rules. In other words, the rules were
+            // _applied_ to the compartments.
+            // Therefore, it would be incorrect to simply merge the compartment_ids_from_rules with
+            // the provided compartment ids, since that would create a union of the explicit
+            // compartment masks and the virtual masks distilled from the rules.
+            // Instead, if any legacy rules are present, we need to create a special compartment
+            // not only for the rule, but also for the union of compartment ids intersected with
+            // the new legacy rule compartment.
+            // From legacy::Segment { compartments: [a, b, c], rules: within 10 of d }, we go to
+            //      config::Segment { compartment_ids: [{apply/{and/{or/a'b'c}'{win/d'10}}}] }.
+            // In Into<config::Config>, this {apply/...} rule is actually added to the compartments
+            // section.
+            let compartment_ids = if compartment_ids_from_rules.is_empty() {
+                // No rules, so we can just take the union of compartments directly.
+                compartments.into_boxed_slice()
+            } else {
+                let rule_ids = compartment_ids_from_rules.into_iter().collect::<Vec<_>>();
+                let id = rule::canonical_id_apply(&compartments, &rule_ids);
+                Box::new([id])
             };
 
             // Pfhew... that sucked. But we're here now.
@@ -359,7 +383,7 @@ mod convert {
                 tag,
                 quantity: quantity.into(),
                 path,
-                compartment_ids: compartments.into_boxed_slice(),
+                compartment_ids,
                 rules: axes_rule,
             }
         }
@@ -399,7 +423,6 @@ mod convert {
                     },
             } = self;
 
-            // happy monolithic family. Consider.
             // More cursed canonical rule id logic.
             // Together with the juggling in Into<config::Segment>, the following constitutes a
             // certified 'tricky bit'. We make the assumption here that we created id-constraint
@@ -407,38 +430,78 @@ mod convert {
             // with it, and vice versa. The management of the rule keys throughout this conversion
             // code aims to uphold that.
             // TODO: This can all be made less.. unclear if we just move it all together into one
+            //       happy monolithic family. Consider.
 
             // The legacy rules are now considered compartment declarations. We go through the
             // segments and collect all of their rules into a set and for each of those items we
             // come up with the canonical id the Into<config::Segment> implementation also
             // generated, along with the compartment mask definition that fits the bill.
-            // let rule_expressions = segments.iter
-            //     .iter()
-            //     .map(|re| {
-            //         let legacy_rule = parse_rule(re).expect("TODO");
-            //         rule::canonical_id_compartment(&legacy_rule)
-            //     })
-            //     // Only retain unique rules.
-            //     .collect::<HashSet<_>>();
-            // compartments.extend(compartment_ids_from_rules.into_iter());
-
-            let legacy_rule_compartments = {
+            // TODO: Ordering concerns from using HashMaps here?
+            let compartments = {
                 let mut legacy_rules = HashMap::new();
+                let mut rule_applications = HashMap::new();
                 for segment in &segments {
+                    let mut segment_legacy_rules = HashMap::new();
                     for re in &segment.rules {
                         // First, we do a legacy parse of the rule.
                         let legacy_rule = parse_rule(re).expect("TODO");
                         // Come up with a unique id for this rule that will match how a segment
                         // converts the rule into the same id.
                         let id = rule::canonical_id_compartment(&legacy_rule);
-                        legacy_rules.insert(id, legacy_rule);
+                        segment_legacy_rules.insert(id, legacy_rule);
                     }
+
+                    // Here comes another tricky bit.
+                    if segment_legacy_rules.is_empty() {
+                        // If there are no legacy rules, we can simply take the segment's list of
+                        // compartments, like described in Into<config::Segment>.
+                        // That means that we don't have to do anything special here.
+                        continue;
+                    }
+
+                    let segment_legacy_rule_ids =
+                        segment_legacy_rules.keys().cloned().collect::<Vec<_>>();
+                    let rule_application_id =
+                        rule::canonical_id_apply(&segment.compartments, &segment_legacy_rule_ids);
+                    let rule_application = (segment.compartments.clone(), segment_legacy_rule_ids);
+
+                    legacy_rules.extend(segment_legacy_rules);
+                    rule_applications.insert(rule_application_id, rule_application);
                 }
-                legacy_rules.into_iter().map(|(id, legacy_rule)| {
+
+                // Now we make actual compartments from the hashmaps.
+                let legacy_rules = legacy_rules.into_iter().map(|(id, legacy_rule)| {
                     // And convert the legacy Rule into a Mask.
                     let mask = legacy_rule.into_mask();
                     config::Compartment { id, mask }
-                })
+                });
+                let rule_applications = rule_applications.into_iter().map(|(id, application)| {
+                    // And convert the legacy rule applications into a Mask.
+                    use config::Expr;
+                    let (compartment_ids, legacy_rule_ids) = application;
+                    let compartments = compartment_ids
+                        .into_iter()
+                        .map(Expr::Term)
+                        .reduce(|acc, r| Expr::Or(Box::new(acc), Box::new(r)))
+                        .expect("a rules combination expression cannot be empty");
+                    let rules = legacy_rule_ids
+                        .into_iter()
+                        .map(Expr::Term)
+                        .reduce(|acc, r| Expr::And(Box::new(acc), Box::new(r)))
+                        .expect("a rules combination expression cannot be empty");
+                    let mask = config::Mask::Combination(Expr::And(
+                        Box::new(compartments),
+                        Box::new(rules),
+                    ));
+                    config::Compartment { id, mask }
+                });
+
+                compartments
+                    .into_iter()
+                    .map(Into::into)
+                    .chain(legacy_rules)
+                    .chain(rule_applications)
+                    .collect()
             };
 
             // Currently, constraints can only be rotation axes declarations. Look through all the
@@ -505,11 +568,7 @@ mod convert {
                     .map(Into::into)
                     .collect(),
                 constraints,
-                compartments: compartments
-                    .into_iter()
-                    .map(Into::into)
-                    .chain(legacy_rule_compartments)
-                    .collect(),
+                compartments,
                 segments: segments.into_iter().map(Into::into).collect(),
             }
         }
@@ -564,6 +623,21 @@ mod convert {
                 .map(ToString::to_string)
                 .collect::<String>();
             format!("{{axes/{axes}}}")
+        }
+
+        pub fn canonical_id_apply(
+            compartment_ids: &[CompartmentID],
+            rule_ids: &[CompartmentID],
+        ) -> String {
+            assert!(
+                !compartment_ids.is_empty(),
+                "expected at least one compartment"
+            );
+            assert!(!rule_ids.is_empty(), "expected at least one rule");
+
+            let rids = rule_ids.join("'");
+            let cids = compartment_ids.join("'");
+            format!("{{apply/{rids}/to/{cids}}}")
         }
 
         #[derive(Debug, Clone, PartialEq)]
