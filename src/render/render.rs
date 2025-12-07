@@ -2,7 +2,7 @@ use std::io::{self, Read};
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use bentopy::core::placement::PlacementList;
+use bentopy::core::placement::{Placement, PlacementList};
 use glam::Vec3;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
@@ -28,51 +28,38 @@ fn read_placement_list(
     Ok(placements)
 }
 
-/// Write out [`Placements`] as a `gro` file.
-///
-/// See the Gromacs manual entry on the [gro file][gro_manual].
-///
-/// Note that each [`Placement`] (i.e., kind of structure) is given a different `resnum`, such that
-/// the different kinds of structures can be targeted individually in programmes that use this
-/// `gro` file output. For example, each kind of molecule may be drawn in a different color in a
-/// molecular visualization program.
-///
-/// [gro_manual]: https://manual.gromacs.org/archive/5.0.3/online/gro.html
-fn write_gro(
-    writer: &mut impl io::Write,
-    placements: &PlacementList,
-    limits: Limits,
-    mode: Mode,
-    resnum_mode: ResnumMode,
-    ignore_tags: bool,
-) -> Result<Box<[(String, usize)]>> {
-    let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
-        if !ignore_tags {
-            if let Some(tag) = tag {
-                molecule.apply_tag(tag)
+impl Mode {
+    /// Based on the [`Mode`], prepare the list of molecules.
+    ///
+    /// If necessary, a molecule is loaded from its structure path, centered, possible its atoms
+    /// are filtered down to a subset, or its residues or the whole molecule itself is represented
+    /// by single particles.
+    ///
+    /// The goal is to do as little work as necessary for `Mode`s that aim to make lightweight
+    /// representations for inspection.
+    fn prepare_molecules(
+        &self,
+        placements: &[Placement],
+        ignore_tags: bool,
+    ) -> Result<Vec<Molecule>> {
+        let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
+            if !ignore_tags {
+                if let Some(tag) = tag {
+                    molecule.apply_tag(tag)
+                }
             }
-        }
-    };
+        };
 
-    let min_limits = Vec3::new(
-        limits.minx.unwrap_or_default(),
-        limits.miny.unwrap_or_default(),
-        limits.minz.unwrap_or_default(),
-    );
-    let size = limits.box_size(Vec3::from(placements.size));
-    let placements = &placements.placements;
-    // Load the molecules and center them with respect to themselves.
-    let molecules: Vec<_> = {
-        match mode {
+        match self {
             Mode::Full => placements
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
-                    apply_tag(&mut molecule, p.tag());
                     molecule.translate_to_center();
+                    apply_tag(&mut molecule, p.tag());
                     Ok(molecule)
                 })
-                .collect::<Result<Vec<_>>>()?,
+                .collect(),
             Mode::Backbone => placements
                 .iter()
                 .map(|p| {
@@ -86,7 +73,7 @@ fn write_gro(
                         .collect();
                     Ok(molecule)
                 })
-                .collect::<Result<Vec<_>>>()?,
+                .collect(),
             Mode::Alpha => placements
                 .iter()
                 .map(|p| {
@@ -100,7 +87,7 @@ fn write_gro(
                         .collect();
                     Ok(molecule)
                 })
-                .collect::<Result<Vec<_>>>()?,
+                .collect(),
             Mode::Residue => placements
                 .iter()
                 .map(|p| {
@@ -137,8 +124,8 @@ fn write_gro(
                     molecule.translate_to_center();
                     Ok(molecule)
                 })
-                .collect::<Result<Vec<_>>>()?,
-            Mode::Instance => placements
+                .collect(),
+            Mode::Instance => Ok(placements
                 .iter()
                 .map(|p| {
                     let mut atom = Atom::dummy();
@@ -147,9 +134,38 @@ fn write_gro(
                     }
                     Molecule { atoms: vec![atom] }
                 })
-                .collect(),
+                .collect()),
         }
-    };
+    }
+}
+
+/// Write out [`Placements`] as a `gro` file.
+///
+/// See the Gromacs manual entry on the [gro file][gro_manual].
+///
+/// Note that each [`Placement`] (i.e., kind of structure) is given a different `resnum`, such that
+/// the different kinds of structures can be targeted individually in programmes that use this
+/// `gro` file output. For example, each kind of molecule may be drawn in a different color in a
+/// molecular visualization program.
+///
+/// [gro_manual]: https://manual.gromacs.org/archive/5.0.3/online/gro.html
+fn write_gro(
+    writer: &mut impl io::Write,
+    placements: &PlacementList,
+    limits: Limits,
+    mode: Mode,
+    resnum_mode: ResnumMode,
+    ignore_tags: bool,
+) -> Result<Box<[(String, usize)]>> {
+    let min_limits = Vec3::new(
+        limits.minx.unwrap_or_default(),
+        limits.miny.unwrap_or_default(),
+        limits.minz.unwrap_or_default(),
+    );
+    let size = limits.box_size(Vec3::from(placements.size));
+    let placements = &placements.placements;
+    // Load the molecules and center them with respect to themselves.
+    let molecules = mode.prepare_molecules(placements, ignore_tags)?;
     writeln!(writer, "{}", env!("CARGO_BIN_NAME"))?;
     let placed = placements.iter().zip(&molecules).map(|(p, m)| {
         let n_placed = p
