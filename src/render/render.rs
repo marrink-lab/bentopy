@@ -1,13 +1,12 @@
 use std::io::{self, Read};
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use anyhow::{Context, Result};
 use bentopy::core::placement::PlacementList;
-use clap::ValueEnum;
 use glam::Vec3;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
+use crate::args::{Mode, ResnumMode};
 use crate::limits::Limits;
 use crate::structure::{Atom, Molecule, load_molecule, rotate_molecule};
 
@@ -27,27 +26,6 @@ fn read_placement_list(
         }
     }
     Ok(placements)
-}
-
-#[derive(Debug, Default, Clone, ValueEnum)]
-pub enum ResnumMode {
-    /// Each segment instance has a unique residue number.
-    #[default]
-    Instance,
-    /// All instances of a segment have the same residue number.
-    Segment,
-}
-
-impl FromStr for ResnumMode {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "instance" => Self::Instance,
-            "segment" => Self::Segment,
-            _ => return Err(()),
-        })
-    }
 }
 
 /// Write out [`Placements`] as a `gro` file.
@@ -273,36 +251,6 @@ fn write_gro(
     writeln!(writer, "{v1x:.3} {v2y:.3} {v3z:.3}")?;
 
     Ok(placed)
-}
-
-#[derive(Debug, Default, Clone, ValueEnum)]
-pub enum Mode {
-    /// Output all atoms.
-    #[default]
-    Full,
-    /// Only the backbone atoms.
-    Backbone,
-    /// Only the alpha carbons.
-    Alpha,
-    /// One bead per residue.
-    Residue,
-    /// One bead per instance of a structure.
-    Instance,
-}
-
-impl FromStr for Mode {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_str() {
-            "full" => Self::Full,
-            "backbone" | "bb" => Self::Full,
-            "alpha" | "ca" | "a" => Self::Alpha,
-            "residue" | "res" => Self::Residue,
-            "instance" => Self::Instance,
-            _ => return Err(()),
-        })
-    }
 }
 
 /// Write out the topology as a `top` file.
