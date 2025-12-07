@@ -345,6 +345,10 @@ impl State {
     }
 
     pub fn check_masks(&self) -> anyhow::Result<()> {
+        if self.verbose {
+            eprintln!("Checking compartments...")
+        }
+
         let mut checked = Vec::new(); // FIXME: BTreeMap?
         for segment in &self.segments {
             let ids = &segment.compartments;
@@ -370,7 +374,7 @@ impl State {
             let distilled = masks
                 .cloned()
                 .reduce(|mut acc, m| {
-                    acc |= m;
+                    acc.merge_mask(&m);
                     acc
                 })
                 // We know there is at least one compartment.
@@ -378,13 +382,39 @@ impl State {
                 .ok_or(anyhow::anyhow!(
                     "no valid compartments ({ids_formatted}) declared for segment '{name}'"
                 ))?;
+
+            if self.verbose {
+                let n = distilled.count::<false>();
+                eprintln!("\t{n:>12} open voxels in compartments '{ids_formatted}'.")
+            }
+
             if !distilled.any::<false>() {
+                // Provide some extra debug info about this failing segment's compartments if there
+                // is more than one. This is helpful in debugging problems if this error is hit.
+                if segment.compartments.len() > 1 {
+                    eprintln!("\tIndividual compartments for segment '{name}':");
+                    let compartments = self
+                        .space
+                        .compartments
+                        .iter()
+                        .filter(|c| ids.contains(&c.id));
+                    for compartment in compartments {
+                        let id = &compartment.id;
+                        let n = compartment.mask.count::<false>();
+                        eprintln!("\t{n:>12} open voxels in compartment '{id}'");
+                    }
+                }
                 bail!(
-                    "the compartments {ids_formatted} together preclude any placement of segment '{name}'"
+                    "the compartments '{ids_formatted}' together preclude any placement of segment '{name}'"
                 );
             }
 
             checked.push(ids.clone())
+        }
+
+        if self.verbose {
+            let n = checked.len();
+            eprintln!("\tAll okay. Checked {n} segment compartment combinations.")
         }
 
         Ok(())
