@@ -6,6 +6,7 @@ use ariadne::{Color, Fmt};
 use clap::Parser;
 
 use bentopy::core::config::{Config, bent};
+use bentopy::core::utilities::CLEAR_LINE;
 use state::State;
 
 mod args;
@@ -14,8 +15,6 @@ mod session;
 mod state;
 mod structure;
 mod voxelize;
-
-const CLEAR_LINE: &str = "\u{1b}[2K\r";
 
 type Location = usize;
 
