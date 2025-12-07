@@ -49,6 +49,10 @@ pub struct Args {
     /// Retain the residue names from the input structure.
     #[arg(long)]
     pub ignore_tags: bool,
+
+    /// Print additional information.
+    #[arg(short, long)]
+    pub verbose: bool,
 }
 
 #[derive(Debug, Default, Clone, ValueEnum)]

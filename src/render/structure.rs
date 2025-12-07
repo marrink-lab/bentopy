@@ -245,7 +245,6 @@ impl Atom {
 /// Load a [`Molecule`] from a pdb file.
 pub fn load_molecule<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Molecule> {
     let mut data = String::new();
-    eprintln!("\tLoading {path:?}...");
     std::fs::File::open(&path)?.read_to_string(&mut data)?;
 
     let molecule =

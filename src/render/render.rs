@@ -3,12 +3,13 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use bentopy::core::placement::{Placement, PlacementList};
+use bentopy::core::utilities::CLEAR_LINE;
 use glam::Vec3;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::args::{Mode, ResnumMode};
 use crate::limits::Limits;
-use crate::structure::{Atom, Molecule, load_molecule, rotate_molecule};
+use crate::structure::{self, Atom, Molecule, rotate_molecule};
 
 /// Read a placement list to return [`Placements`].
 fn read_placement_list(
@@ -41,7 +42,16 @@ impl Mode {
         &self,
         placements: &[Placement],
         ignore_tags: bool,
+        verbose: bool,
     ) -> Result<Vec<Molecule>> {
+        let load_molecule = |path| -> Result<_> {
+            let prefix = if verbose { "" } else { CLEAR_LINE };
+            let suffix = if verbose { "\n" } else { "\r" };
+            eprint!("{prefix}\tLoading {path:?}...{suffix}");
+            let mut molecule = structure::load_molecule(path)?;
+            molecule.translate_to_center();
+            Ok(molecule)
+        };
         let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
             if !ignore_tags {
                 if let Some(tag) = tag {
@@ -55,7 +65,6 @@ impl Mode {
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
-                    molecule.translate_to_center();
                     apply_tag(&mut molecule, p.tag());
                     Ok(molecule)
                 })
@@ -65,7 +74,6 @@ impl Mode {
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
                     apply_tag(&mut molecule, p.tag());
-                    molecule.translate_to_center();
                     molecule.atoms = molecule
                         .atoms
                         .into_iter()
@@ -79,7 +87,6 @@ impl Mode {
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
                     apply_tag(&mut molecule, p.tag());
-                    molecule.translate_to_center();
                     molecule.atoms = molecule
                         .atoms
                         .into_iter()
@@ -92,7 +99,6 @@ impl Mode {
                 .iter()
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
-                    molecule.translate_to_center();
                     let mut residues = Vec::new();
                     let mut residue_atoms = Vec::new();
                     for atom in molecule.atoms {
@@ -156,6 +162,7 @@ fn write_gro(
     mode: Mode,
     resnum_mode: ResnumMode,
     ignore_tags: bool,
+    verbose: bool,
 ) -> Result<Box<[(String, usize)]>> {
     let min_limits = Vec3::new(
         limits.minx.unwrap_or_default(),
@@ -165,8 +172,13 @@ fn write_gro(
     let size = limits.box_size(Vec3::from(placements.size));
     let placements = &placements.placements;
     // Load the molecules and center them with respect to themselves.
-    let molecules = mode.prepare_molecules(placements, ignore_tags)?;
-    writeln!(writer, "{}", env!("CARGO_BIN_NAME"))?;
+    let molecules = mode.prepare_molecules(placements, ignore_tags, verbose)?;
+    writeln!(
+        writer,
+        "{} (v{})",
+        env!("CARGO_BIN_NAME"),
+        bentopy::core::version::VERSION
+    )?;
     let placed = placements.iter().zip(&molecules).map(|(p, m)| {
         let n_placed = p
             .batches
@@ -187,10 +199,19 @@ fn write_gro(
     let mut instance_resnum = 0;
     writeln!(writer, "{n_atoms}")?;
     for (resnum, (placement, molecule)) in placements.iter().zip(molecules).enumerate() {
-        eprintln!(
-            "\tNow writing '{}' from {:?} data to output file.",
-            placement.name, placement.path
-        );
+        {
+            let prefix = if verbose { "" } else { CLEAR_LINE };
+            let suffix = if verbose { "\n" } else { "\r" };
+            let name = &placement.name;
+            let tag = placement
+                .tag()
+                .map(|tag| format!(":{tag}"))
+                .unwrap_or_default();
+            let path = &placement.path;
+            eprint!(
+                "{prefix}\tNow writing '{name}{tag}' from {path:?} data to output file.{suffix}",
+            );
+        }
         // Make sure that the printed resnum cannot exceed the 5 allotted columns.
         let resnum = resnum % 100000;
 
@@ -252,14 +273,16 @@ fn write_gro(
             instance_resnum += n_included_instances;
             output.push_str(&out);
         }
-        let dt = std::time::Instant::now() - t0;
-        eprintln!("\t\tFormatting took {:.3} s.", dt.as_secs_f32());
+        if verbose {
+            eprintln!("\t\tFormatting took {:.3} s.", t0.elapsed().as_secs_f32());
+        }
 
         let t0 = std::time::Instant::now();
         writer.write_all(output.as_bytes())?;
         writer.flush()?;
-        let dt = std::time::Instant::now() - t0;
-        eprintln!("\t\tWriting took    {:.3} s.", dt.as_secs_f32());
+        if verbose {
+            eprintln!("\t\tWriting took    {:.3} s.", t0.elapsed().as_secs_f32());
+        }
     }
 
     // Write the box vectors.
@@ -325,6 +348,7 @@ pub fn render(
     mode: Mode,
     resnum_mode: ResnumMode,
     ignore_tags: bool,
+    verbose: bool,
 ) -> anyhow::Result<()> {
     eprint!("Reading from {input_path:?}... ");
     let t0 = std::time::Instant::now();
@@ -336,8 +360,7 @@ pub fn render(
     }
     let placements = read_placement_list(&placement_list, root)
         .with_context(|| format!("Failed to read placement list from {input_path:?}"))?;
-    let dt = std::time::Instant::now() - t0;
-    eprintln!("Done in {:.3} ms.", dt.as_millis());
+    eprintln!("Done in {:.3} ms.", t0.elapsed().as_millis());
 
     eprintln!("Writing structure to {output_path:?}... ");
     let t0 = std::time::Instant::now();
@@ -349,9 +372,9 @@ pub fn render(
         mode,
         resnum_mode,
         ignore_tags,
+        verbose,
     )?;
-    let dt = std::time::Instant::now() - t0;
-    eprintln!("Done in {:.3} s.", dt.as_secs_f32());
+    eprintln!("{CLEAR_LINE}Done in {:.3} s.", t0.elapsed().as_secs_f32());
     eprintln!(
         "Wrote {} placements of {} different kinds of structures.",
         placed.iter().map(|(_, c)| c).sum::<usize>(),

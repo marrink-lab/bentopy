@@ -17,6 +17,7 @@ fn main() -> anyhow::Result<()> {
         limits,
         resnum_mode,
         ignore_tags,
+        verbose,
     } = clap::Parser::parse();
 
     render::render(
@@ -28,5 +29,6 @@ fn main() -> anyhow::Result<()> {
         mode,
         resnum_mode,
         ignore_tags,
+        verbose,
     )
 }
