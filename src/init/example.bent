@@ -24,12 +24,16 @@ resolution <voxel-size>
 
 [ compartments ]
 # At least one compartment must be defined.
+# You can select the whole space.
+<id> is all
 # Load from existing voxel mask (npz).
 <id> from <voxel-mask-path>
 # Or create them using analytical functions.
 <id> as sphere at center with radius <radius>
 <id> as sphere at <x>, <y>, <z> with radius <radius>
 <id> as cuboid from <x>, <y>, <z> to <x>, <y>, <z>
+# Like the center point anchor, you can also use start and end anchors.
+<id> as cuboid from start to end
 # Placements can be limited to geometric limits. These can be phrased as a
 # single inequality, such as:
 #   x > 40
@@ -42,7 +46,7 @@ resolution <voxel-size>
 # The available operators are `and`, `or`, and `not`.
 # Expressions can be grouped using parentheses. For example:
 #   not a or (b and c)
-<id> as combination <combination-expression>  
+<id> combines <combination-expression>
 
 [ constraints ]
 # The rotational axes of a placement can be restricted. Axes are provided as a

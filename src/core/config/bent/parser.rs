@@ -183,7 +183,7 @@ where
             id,
         })
         .boxed();
-    let combination = group(["is", "combination"].map(components::ident))
+    let combination = components::ident("combines")
         .ignore_then(terms_parser())
         .map(Mask::Combination)
         .labelled("compartment combination expression")
