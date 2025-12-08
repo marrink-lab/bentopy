@@ -95,7 +95,6 @@ def mda_box_to_freud(mda_box):
 def main():
     parser = argparse.ArgumentParser(
         description="Check for collisions in rendered structures.",
-        prog="bentopy-check",
     )
     parser.add_argument("file", type=Path, help="File to check (a structure file).")
     parser.add_argument(

@@ -19,7 +19,6 @@ def setup_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(
             description=DESCRIPTION,
-            prog="mask",
             epilog=EPILOG,
         )
     else:

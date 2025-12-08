@@ -129,7 +129,6 @@ def merge(args):
 def main():
     parser = argparse.ArgumentParser(
         description="Concatenate gro files.",
-        prog="bentopy-merge",
     )
 
     parser.add_argument(
