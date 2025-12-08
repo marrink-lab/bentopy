@@ -21,7 +21,7 @@ struct Args {
 #[derive(Debug, Subcommand)]
 enum Command {
     Example {
-        #[arg(short, long)]
+        #[arg(short, long, default_value = "example.bent")]
         output: PathBuf,
     },
     // Create {
@@ -57,6 +57,7 @@ fn example(output: PathBuf) -> Result<()> {
     let mut file = std::fs::File::create(&output)?;
     writeln!(file, "# Created by {BIN_NAME}, version {VERSION}.")?;
     file.write_all(example.as_bytes())?;
+    eprintln!("Wrote example file to {output:?}.");
     Ok(())
 }
 
@@ -192,9 +193,9 @@ fn convert(input: PathBuf, output: PathBuf) -> Result<()> {
                 "could not parse {path:?} as a legacy json input file"
             ))?;
             eprintln!("Successfully parsed {path:?} (legacy input file).");
-            eprintln!("Attempting to convert to new input configuration format...");
+            eprint!("Attempting to convert to new input configuration format... ");
             let config = config.into();
-            eprintln!("Done!");
+            eprintln!("Done.");
             config
         }
     };
