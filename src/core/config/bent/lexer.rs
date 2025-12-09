@@ -77,18 +77,19 @@ impl std::fmt::Display for Token<'_> {
 mod components {
     use super::*;
 
-    // TODO: Consider removing this token and parsing it only where we expect a point. It could be
-    // possible, actually, to have three number ids in a segment decl compartments list. Those
-    // kinds of ids are technically legal, I guess. Although.. not really, they will always be
-    // parsed as an ident. Hmm. Think about it for a while.
+    // There could be advantages to placing this in the parser, rather than the lexer. But for now
+    // I think this is the best choice.
+    /// A three-value point, values separated by commas, optionally delimited by parentheses.
     pub(crate) fn point<'s>() -> impl Parser<'s, &'s str, Point, E<'s>> {
         let number = regex(r"[-+]?(\d*\.\d+|\d+\.?\d*)")
             .map(FromStr::from_str)
             .unwrapped()
             .labelled("number");
-        number
+        let point = number
             .separated_by(just(',').padded())
-            .collect_exactly::<Point>()
+            .collect_exactly::<Point>();
+        let parens_point = point.clone().delimited_by(just('('), just(')'));
+        choice((point, parens_point))
     }
 
     pub(crate) fn identifier_builder<'s>(
