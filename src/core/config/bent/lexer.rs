@@ -88,7 +88,7 @@ mod components {
         let point = number
             .separated_by(just(',').padded())
             .collect_exactly::<Point>();
-        let parens_point = point.clone().delimited_by(just('('), just(')'));
+        let parens_point = point.clone().padded().delimited_by(just('('), just(')'));
         choice((point, parens_point))
     }
 
@@ -238,9 +238,24 @@ mod test {
         }
 
         #[test]
+        fn point_whitespace() {
+            assert_eq!(p(components::point(), "1.0,2,3"), Ok([1.0, 2.0, 3.0]));
+            assert_eq!(p(components::point(), "1.0 ,2 ,3"), Ok([1.0, 2.0, 3.0]));
+            assert_eq!(p(components::point(), "1.0 ,  2 ,  3"), Ok([1.0, 2.0, 3.0]));
+        }
+
+        #[test]
         fn point_with_parentheses() {
             assert_eq!(
                 p(components::point(), "(1.0, 2.0, 3.0)"),
+                Ok([1.0, 2.0, 3.0])
+            );
+        }
+
+        #[test]
+        fn point_with_parentheses_whitespace() {
+            assert_eq!(
+                p(components::point(), "( 1.0, 2.0, 3.0  )"),
                 Ok([1.0, 2.0, 3.0])
             );
         }
