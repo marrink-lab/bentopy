@@ -208,3 +208,116 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
     .allow_trailing()
     .collect()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn p<'s, T>(
+        p: impl Parser<'s, &'s str, T, E<'s>>,
+        s: &'s str,
+    ) -> Result<T, Vec<Rich<'s, char>>> {
+        p.parse(s).into_result()
+    }
+
+    mod point {
+        use super::*;
+        #[test]
+        fn point_floats() {
+            assert_eq!(p(components::point(), "1.0, 2.0, 3.0"), Ok([1.0, 2.0, 3.0]));
+        }
+
+        #[test]
+        fn point_integers() {
+            assert_eq!(p(components::point(), "1, 2, 3"), Ok([1.0, 2.0, 3.0]));
+        }
+
+        #[test]
+        fn point_mixed() {
+            assert_eq!(p(components::point(), "1.0, 2, 3"), Ok([1.0, 2.0, 3.0]));
+        }
+
+        #[test]
+        fn point_with_parentheses() {
+            assert_eq!(
+                p(components::point(), "(1.0, 2.0, 3.0)"),
+                Ok([1.0, 2.0, 3.0])
+            );
+        }
+
+        #[test]
+        fn bad_points() {
+            assert!(p(components::point(), "1.0, 2.0").is_err());
+            assert!(p(components::point(), "1.0, (2.0").is_err());
+            assert!(p(components::point(), "((1.0, 2.0, 3.0))").is_err());
+            assert!(p(components::point(), "1.0, .2.0, 3.0").is_err());
+        }
+    }
+
+    mod string {
+        use super::*;
+        #[test]
+        fn string() {
+            assert_eq!(p(components::string(), r#""abc""#), Ok("abc"));
+        }
+
+        #[test]
+        fn bad_string_single_quotes() {
+            assert!(p(components::string(), r#"'abc'"#).is_err());
+        }
+
+        #[test]
+        fn bad_string_extra_quote() {
+            assert!(p(components::string(), r#""ab"c""#).is_err());
+        }
+    }
+
+    mod identifier {
+        use super::*;
+
+        #[test]
+        fn identifier() {
+            assert_eq!(p(components::identifier(), "abc"), Ok("abc"));
+        }
+
+        #[test]
+        fn lysozyme() {
+            assert_eq!(p(components::identifier(), "3lyz"), Ok("3lyz"));
+        }
+
+        #[test]
+        fn containing_double_quote() {
+            assert!(p(components::identifier(), r#""ab"c""#).is_err());
+        }
+    }
+
+    mod comment {
+        use super::*;
+
+        #[test]
+        fn comment() {
+            assert_eq!(p(components::comment(), "# abc"), Ok("# abc"));
+            assert_eq!(p(components::comment(), "; abc"), Ok("; abc"));
+            assert!(p(components::comment(), "// abc").is_err());
+        }
+
+        #[test]
+        fn many() {
+            assert_eq!(
+                p(components::comment(), "# abc # a # b # c"),
+                Ok("# abc # a # b # c")
+            );
+            assert_eq!(p(components::comment(), "; abc"), Ok("; abc"));
+            assert!(p(components::comment(), "// abc").is_err());
+        }
+
+        #[test]
+        fn weird_whitespace() {
+            assert_eq!(p(components::comment(), "#abc"), Ok("#abc"));
+            assert_eq!(
+                p(components::comment(), "\t\t #       \t        abc\t\t"),
+                Ok("\t\t #       \t        abc\t\t")
+            );
+        }
+    }
+}
