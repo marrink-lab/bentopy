@@ -57,7 +57,7 @@ git add Cargo.toml Cargo.lock pyproject.toml
 git commit -m "Bump version to $version"
 
 # Remove old build files from the dist directory.
-sudo rm dist/*
+rm -f dist/*
 
 # Build the tar ball.
 python -m build
