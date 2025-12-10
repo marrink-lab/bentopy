@@ -496,3 +496,651 @@ where
         }
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use chumsky::Parser;
+
+    use crate::core::config::bent::{lexer::lexer, make_input};
+
+    use super::*;
+
+    macro_rules! lex_and_parse {
+        ($parser:path => $src:ident) => {{
+            let src = $src;
+            // HACK: This sucks, but it allows us to move on and just write the nice tests.
+            let tokens = Box::new(lexer().parse(src).into_result().expect("correct tokens")).leak();
+            let tokens = make_input((0..src.len()).into(), tokens);
+            $parser().parse(tokens).into_result()
+        }};
+    }
+
+    mod components {
+        use super::*;
+
+        // Some helpers to ease the pain of boxing everything.
+        type E = Expr<Limit>;
+
+        fn limit(axis: Axis, op: Op, value: f64) -> E {
+            term(Limit { axis, op, value })
+        }
+
+        fn term(t: Limit) -> E {
+            E::Term(t)
+        }
+
+        fn not(e: E) -> E {
+            E::Not(Box::new(e))
+        }
+
+        fn or(lhs: E, rhs: E) -> E {
+            E::Or(Box::new(lhs), Box::new(rhs))
+        }
+
+        fn and(lhs: E, rhs: E) -> E {
+            E::And(Box::new(lhs), Box::new(rhs))
+        }
+
+        #[test]
+        fn terms() {
+            let src = "not ((a or b)) and (not c)";
+            let res = lex_and_parse!(terms_parser => src);
+            assert_eq!(
+                res,
+                Ok(Expr::And(
+                    Box::new(Expr::Not(Box::new(Expr::Or(
+                        Box::new(Expr::Term("a".to_string())),
+                        Box::new(Expr::Term("b".to_string()))
+                    )))),
+                    Box::new(Expr::Not(Box::new(Expr::Term("c".to_string()))))
+                ))
+            );
+        }
+
+        #[test]
+        fn limits_parens() {
+            let src = "not ((x < 10 or (y > 3.1))) and (not 40 > z)";
+            let res = lex_and_parse!(limits_parser => src);
+            assert_eq!(
+                res,
+                Ok(and(
+                    not(or(
+                        limit(Axis::X, Op::LessThan, 10.0),
+                        limit(Axis::Y, Op::GreaterThan, 3.1)
+                    )),
+                    not(limit(Axis::Z, Op::LessThan, 40.0))
+                ))
+            );
+        }
+
+        #[test]
+        fn limits_many_parens() {
+            let src = "(not ((x < 10 or (y > 3.1))) and (((not 40 > z))))";
+            let res = lex_and_parse!(limits_parser => src);
+            assert_eq!(
+                res,
+                Ok(and(
+                    not(or(
+                        limit(Axis::X, Op::LessThan, 10.0),
+                        limit(Axis::Y, Op::GreaterThan, 3.1)
+                    )),
+                    not(limit(Axis::Z, Op::LessThan, 40.0))
+                ))
+            );
+        }
+
+        /// This expression can be handled nicely by the Pratt parser.
+        #[test]
+        fn limits_pratt() {
+            let src = "not x < 10 or y > 3.1 and not 40 > z";
+            let res = lex_and_parse!(limits_parser => src);
+            assert_eq!(
+                res,
+                Ok(or(
+                    not(limit(Axis::X, Op::LessThan, 10.0)),
+                    and(
+                        limit(Axis::Y, Op::GreaterThan, 3.1),
+                        not(limit(Axis::Z, Op::LessThan, 40.0))
+                    )
+                ))
+            );
+        }
+    }
+
+    mod general {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            let src = "[ general ]
+";
+            let res = lex_and_parse!(general_parser => src);
+            assert_eq!(res, Ok(General::default()))
+        }
+
+        #[test]
+        fn some() {
+            let src = r#"[ general ]
+title "abc"
+seed 1234"#;
+            let res = lex_and_parse!(general_parser => src);
+            assert_eq!(
+                res,
+                Ok(General {
+                    title: Some("abc".to_string()),
+                    seed: Some(1234),
+                    ..Default::default()
+                })
+            )
+        }
+
+        #[test]
+        fn all() {
+            let src = r#"[ general ]
+title       "abc"
+seed        1234
+bead-radius 0.3
+
+   rearrange moment
+max-tries-mult 
+  1000
+max-tries-rot-div
+  100
+"#;
+            let res = lex_and_parse!(general_parser => src);
+            assert_eq!(
+                res,
+                Ok(General {
+                    title: Some("abc".to_string()),
+                    seed: Some(1234),
+                    bead_radius: Some(0.3),
+                    rearrange_method: Some(RearrangeMethod::Moment),
+                    max_tries_mult: Some(1000),
+                    max_tries_rot_div: Some(100),
+                })
+            )
+        }
+    }
+
+    mod space {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            let src = "[ space ]
+";
+            let res = lex_and_parse!(space_parser => src);
+            assert_eq!(res, Ok(Space::default()))
+        }
+
+        #[test]
+        fn dimensions() {
+            let src = "[ space ]
+dimensions 10,10,10.0";
+            let res = lex_and_parse!(space_parser => src);
+            assert_eq!(
+                res,
+                Ok(Space {
+                    dimensions: Some([10.0; 3]),
+                    resolution: None,
+                    periodic: None
+                })
+            )
+        }
+
+        #[test]
+        fn all() {
+            let src = "[ space ]
+dimensions 10,10,10.0
+resolution 0.5
+periodic false
+";
+            let res = lex_and_parse!(space_parser => src);
+            assert_eq!(
+                res,
+                Ok(Space {
+                    dimensions: Some([10.0; 3]),
+                    resolution: Some(0.5),
+                    periodic: Some(false)
+                })
+            )
+        }
+    }
+
+    mod includes {
+        use super::*;
+
+        #[test]
+        fn include() {
+            let src = r#""forcefield/martini.itp""#;
+            let res = lex_and_parse!(include_parser => src);
+            assert_eq!(res, Ok("forcefield/martini.itp".into()))
+        }
+
+        #[test]
+        fn single() {
+            let src = r#"[ includes ]
+"forcefield/martini.itp""#;
+            let res = lex_and_parse!(includes_parser => src);
+            assert_eq!(res, Ok(vec!["forcefield/martini.itp".into()]))
+        }
+
+        #[test]
+        fn multiple() {
+            let src = r#"[ includes ]
+"forcefield/martini.itp"
+"structures/*.itp""#;
+            let res = lex_and_parse!(includes_parser => src);
+            assert_eq!(
+                res,
+                Ok(vec![
+                    "forcefield/martini.itp".into(),
+                    "structures/*.itp".into()
+                ])
+            )
+        }
+
+        #[test]
+        fn single_with_trailing_space() {
+            let src = "[ includes ]\t\t
+\"forcefield/martini.itp\"       ";
+            let res = lex_and_parse!(includes_parser => src);
+            assert_eq!(res, Ok(vec!["forcefield/martini.itp".into()]))
+        }
+
+        #[test]
+        fn quoted_path_with_spaces() {
+            let src = r#"[ includes ]   
+ "quoted-without-spaces"
+ "quoted with spaces"
+"#;
+            let res = lex_and_parse!(includes_parser => src);
+            assert_eq!(
+                res,
+                Ok(vec![
+                    "quoted-without-spaces".into(),
+                    "quoted with spaces".into(),
+                ])
+            )
+        }
+    }
+
+    mod compartment {
+        use super::*;
+
+        #[test]
+        fn all() {
+            let src = "space is all";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::All,
+                })
+            )
+        }
+
+        #[test]
+        fn sphere_center() {
+            let src = "space as sphere at center with radius 10.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Sphere {
+                        center: Center::Center,
+                        radius: 10.0
+                    }),
+                })
+            )
+        }
+
+        #[test]
+        fn sphere_point() {
+            let src = "space as sphere at 1,2.0,3 with radius 10.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Sphere {
+                        center: Center::Point([1.0, 2.0, 3.0]),
+                        radius: 10.0
+                    }),
+                })
+            )
+        }
+
+        #[test]
+        fn sphere_diameter() {
+            let src = "space as sphere at center with diameter 20.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Sphere {
+                        center: Center::Center,
+                        radius: 10.0
+                    }),
+                })
+            )
+        }
+
+        #[test]
+        fn cuboid_anchored() {
+            let src = "space as cuboid from center to end";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Cuboid {
+                        start: Anchor::Center,
+                        end: Anchor::End
+                    })
+                })
+            )
+        }
+
+        #[test]
+        fn cuboid_point() {
+            let src = "space as cuboid from 3,14,1.5 to end";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Cuboid {
+                        start: Anchor::Point([3.0, 14.0, 1.5]),
+                        end: Anchor::End
+                    })
+                })
+            )
+        }
+
+        #[test]
+        fn close() {
+            let src = "close within 5 of mask";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "close".to_string(),
+                    mask: Mask::Within {
+                        distance: 5.0,
+                        id: "mask".to_string()
+                    }
+                })
+            )
+        }
+
+        #[test]
+        fn limits() {
+            let src = "limited where not x > 10.0 and 3 < y";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "limited".to_string(),
+                    mask: Mask::Limits(Expr::And(
+                        Box::new(Expr::Not(Box::new(Expr::Term(Limit {
+                            axis: Axis::X,
+                            op: Op::GreaterThan,
+                            value: 10.0
+                        })))),
+                        Box::new(Expr::Term(Limit {
+                            axis: Axis::Y,
+                            op: Op::GreaterThan,
+                            value: 3.0
+                        }))
+                    ))
+                })
+            )
+        }
+
+        #[test]
+        fn limits_simple() {
+            let src = "simple-example where x > 10.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "simple-example".to_string(),
+                    mask: Mask::Limits(Expr::Term(Limit {
+                        axis: Axis::X,
+                        op: Op::GreaterThan,
+                        value: 10.0
+                    })),
+                })
+            )
+        }
+
+        #[test]
+        fn combination() {
+            let src = "space combines not ((a) and b) or (c or d)";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Combination(Expr::Or(
+                        Box::new(Expr::Not(Box::new(Expr::And(
+                            Box::new(Expr::Term("a".to_string(),)),
+                            Box::new(Expr::Term("b".to_string(),)),
+                        )),)),
+                        Box::new(Expr::Or(
+                            Box::new(Expr::Term("c".to_string(),)),
+                            Box::new(Expr::Term("d".to_string(),)),
+                        )),
+                    ),),
+                })
+            )
+        }
+
+        #[test]
+        fn combination_weird_whitespace() {
+            let src = "space combines a";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Combination(Expr::Term("a".to_string()))
+                })
+            )
+        }
+
+        #[test]
+        fn section_single() {
+            let src = "[ compartments ]
+
+simple-example where x > 10.0";
+            let res = lex_and_parse!(compartments_parser => src);
+            assert_eq!(
+                res,
+                Ok(vec![Compartment {
+                    id: "simple-example".to_string(),
+                    mask: Mask::Limits(Expr::Term(Limit {
+                        axis: Axis::X,
+                        op: Op::GreaterThan,
+                        value: 10.0
+                    })),
+                }])
+            )
+        }
+
+        #[test]
+        fn section_double() {
+            let src = "[ compartments ]
+simple-example where x > 10.0
+simple-example where x > 10.0";
+            let res = lex_and_parse!(compartments_parser => src);
+            assert_eq!(
+                res,
+                Ok(vec![
+                    Compartment {
+                        id: "simple-example".to_string(),
+                        mask: Mask::Limits(Expr::Term(Limit {
+                            axis: Axis::X,
+                            op: Op::GreaterThan,
+                            value: 10.0
+                        })),
+                    };
+                    2
+                ])
+            )
+        }
+    }
+
+    mod segment {
+        use super::*;
+
+        fn base_segment() -> Segment {
+            Segment {
+                name: "3lyz".to_string(),
+                tag: None,
+                quantity: Quantity::Number(1),
+                path: "structures/3lyz.gro".into(),
+                compartment_ids: vec!["sphere".to_string()].into(),
+                rules: vec!["rule".to_string()].into(),
+            }
+        }
+
+        #[test]
+        fn tag() {
+            let src = r#"3lyz:tag 1 from "structures/3lyz.gro" in sphere satisfies rule"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    name: "3lyz".to_string(),
+                    tag: Some("tag".to_string()),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn no_tag() {
+            let src = r#"3lyz 1 from "structures/3lyz.gro" in sphere satisfies rule"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    name: "3lyz".to_string(),
+                    tag: None,
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn number() {
+            let src = r#"3lyz 1000120 from "structures/3lyz.gro" in sphere satisfies rule"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    quantity: Quantity::Number(1000120),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn concentration() {
+            let src = r#"3lyz 0.05M from "structures/3lyz.gro" in sphere satisfies rule"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    quantity: Quantity::Concentration(0.05),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn two_compartments() {
+            let src = r#"3lyz 1 from "structures/3lyz.gro" in a,b satisfies rule"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    compartment_ids: vec!["a".to_string(), "b".to_string()].into(),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn no_rules() {
+            let src = r#"3lyz 1 from "structures/3lyz.gro" in sphere"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    rules: Default::default(),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn two_rules() {
+            let src = r#"3lyz 1 from "structures/3lyz.gro" in sphere satisfies rule1,rule2"#;
+            let res = lex_and_parse!(segment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Segment {
+                    rules: vec!["rule1".to_string(), "rule2".to_string()].into(),
+                    ..base_segment()
+                })
+            )
+        }
+
+        #[test]
+        fn section_normal() {
+            let src = r#"[ segments ]
+3lyz 1 from "structures/3lyz.gro" in sphere satisfies rule
+3lyz 1 from "structures/3lyz.gro" in sphere satisfies rule"#;
+            let res = lex_and_parse!(segments_parser => src);
+            assert_eq!(res, Ok(vec![base_segment(); 2]));
+        }
+
+        #[test]
+        fn section_weird_whitespace_lines() {
+            let src = "[ segments ]
+       \t
+            3lyz 1 from \"structures/3lyz.gro\" in sphere satisfies rule     
+
+
+
+    3lyz 1 from \"structures/3lyz.gro\" in sphere satisfies rule 
+";
+            let res = lex_and_parse!(segments_parser => src);
+            assert_eq!(res, Ok(vec![base_segment(); 2]));
+        }
+
+        #[test]
+        fn section_wrapped_line() {
+            let src = r#"[ segments ]
+
+3lyz 
+    1 
+    from "structures/3lyz.gro"
+    in sphere 
+    satisfies rule
+3lyz 1 from 
+
+    "structures/3lyz.gro"
+in sphere satisfies rule  
+"#;
+            let res = lex_and_parse!(segments_parser => src);
+            assert_eq!(res, Ok(vec![base_segment(); 2]));
+        }
+    }
+}
