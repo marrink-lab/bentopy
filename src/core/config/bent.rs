@@ -13,10 +13,10 @@ mod writer;
 
 pub use writer::write;
 
-pub(crate) fn make_input<'src>(
+pub(crate) fn make_input<'src, 'tokens>(
     eoi: SimpleSpan,
-    toks: &'src [Spanned<Token<'src>>],
-) -> impl BorrowInput<'src, Token = Token<'src>, Span = SimpleSpan> {
+    toks: &'tokens [Spanned<Token<'src>>],
+) -> impl BorrowInput<'tokens, Token = Token<'src>, Span = SimpleSpan> {
     toks.map(eoi, |(t, s)| (t, s))
 }
 
