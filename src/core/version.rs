@@ -16,9 +16,9 @@ impl std::fmt::Display for Version {
 }
 
 // This makes it possible to use it as the version that Clap displays for a command.
-impl Into<clap::builder::Str> for Version {
-    fn into(self) -> clap::builder::Str {
-        self.to_string().into()
+impl From<Version> for clap::builder::Str {
+    fn from(version: Version) -> Self {
+        version.to_string().into()
     }
 }
 

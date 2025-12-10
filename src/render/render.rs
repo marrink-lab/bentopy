@@ -7,7 +7,7 @@ use bentopy::core::utilities::CLEAR_LINE;
 use glam::Vec3;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use crate::args::{Mode, ResnumMode};
+use crate::args::{Args, Mode, ResnumMode};
 use crate::limits::Limits;
 use crate::structure::{self, Atom, Molecule, rotate_molecule};
 
@@ -53,10 +53,8 @@ impl Mode {
             Ok(molecule)
         };
         let apply_tag = |molecule: &mut Molecule, tag: Option<&str>| {
-            if !ignore_tags {
-                if let Some(tag) = tag {
-                    molecule.apply_tag(tag)
-                }
+            if !ignore_tags && let Some(tag) = tag {
+                molecule.apply_tag(tag)
             }
         };
 
@@ -74,11 +72,9 @@ impl Mode {
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
                     apply_tag(&mut molecule, p.tag());
-                    molecule.atoms = molecule
+                    molecule
                         .atoms
-                        .into_iter()
-                        .filter(|a| ["N", "CA", "C", "O"].contains(&a.name.as_str()))
-                        .collect();
+                        .retain(|a| ["N", "CA", "C", "O"].contains(&a.name.as_str()));
                     Ok(molecule)
                 })
                 .collect(),
@@ -87,11 +83,7 @@ impl Mode {
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
                     apply_tag(&mut molecule, p.tag());
-                    molecule.atoms = molecule
-                        .atoms
-                        .into_iter()
-                        .filter(|a| a.name.as_str() == "CA")
-                        .collect();
+                    molecule.atoms.retain(|a| a.name.as_str() == "CA");
                     Ok(molecule)
                 })
                 .collect(),
@@ -339,17 +331,19 @@ fn write_top(
 /// Render a placement list to a gro file.
 ///
 /// If `input_path` is "-", the placement list is read from stdin.
-pub fn render(
-    input_path: PathBuf,
-    output_path: PathBuf,
-    topol_path: Option<PathBuf>,
-    root: Option<PathBuf>,
-    limits: Option<Limits>,
-    mode: Mode,
-    resnum_mode: ResnumMode,
-    ignore_tags: bool,
-    verbose: bool,
-) -> anyhow::Result<()> {
+pub fn render(args: Args) -> anyhow::Result<()> {
+    let Args {
+        input: input_path,
+        output: output_path,
+        topol: topol_path,
+        root,
+        limits,
+        mode,
+        resnum_mode,
+        ignore_tags,
+        verbose,
+    } = args;
+
     eprint!("Reading from {input_path:?}... ");
     let t0 = std::time::Instant::now();
     let mut placement_list = String::new();

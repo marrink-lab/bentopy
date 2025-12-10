@@ -227,8 +227,8 @@ mod convert {
     use crate::core::config;
     use crate::core::config::legacy::convert::rule::parse_rule;
 
-    impl Into<config::Expr<CompartmentID>> for CombinationExpression {
-        fn into(self) -> config::Expr<CompartmentID> {
+    impl From<CombinationExpression> for config::Expr<CompartmentID> {
+        fn from(ce: CombinationExpression) -> Self {
             type Expr = config::Expr<CompartmentID>;
             fn unflatten(
                 expressions: Vec<CombinationExpression>,
@@ -246,18 +246,19 @@ mod convert {
                     .expect("TODO")
             }
 
-            match self {
-                Self::Id(id) => config::Expr::Term(id),
-                Self::Not(expression) => config::Expr::Not(Box::new((*expression).into())),
-                Self::Union(expressions) => unflatten(expressions, config::Expr::Or),
-                Self::Intersect(expressions) => unflatten(expressions, config::Expr::And),
+            type CE = CombinationExpression;
+            match ce {
+                CE::Id(id) => config::Expr::Term(id),
+                CE::Not(expression) => config::Expr::Not(Box::new((*expression).into())),
+                CE::Union(expressions) => unflatten(expressions, config::Expr::Or),
+                CE::Intersect(expressions) => unflatten(expressions, config::Expr::And),
             }
         }
     }
 
-    impl Into<config::Mask> for Mask {
-        fn into(self) -> config::Mask {
-            match self {
+    impl From<Mask> for config::Mask {
+        fn from(mask: Mask) -> Self {
+            match mask {
                 Mask::Shape(shape) => match shape {
                     // TODO: This sucks but is true.
                     Shape::Spherical => panic!("a sphere without a radius is an undefined shape"),
@@ -290,9 +291,9 @@ mod convert {
         }
     }
 
-    impl Into<config::Compartment> for Compartment {
-        fn into(self) -> config::Compartment {
-            let Self { id, mask } = self;
+    impl From<Compartment> for config::Compartment {
+        fn from(compartment: Compartment) -> Self {
+            let Compartment { id, mask } = compartment;
             config::Compartment {
                 id,
                 mask: mask.into(),
@@ -300,9 +301,9 @@ mod convert {
         }
     }
 
-    impl Into<config::Segment> for Segment {
-        fn into(self) -> config::Segment {
-            let Self {
+    impl From<Segment> for config::Segment {
+        fn from(segment: Segment) -> Self {
+            let Segment {
                 name,
                 tag,
                 quantity,
@@ -311,13 +312,13 @@ mod convert {
                 rules,
                 rotation_axes,
                 initial_rotation,
-            } = self;
+            } = segment;
 
             // As you can judge from the comments in the upcoming section, some non-trivial things
             // are happening here. For context, we need to do some juggling between the different
             // data types. This is a complex affair that is coordinated over the other conversion
             // functions as well. So, to understand this, make sure you also grasp how canonical
-            // ids are used in the root Into<config::Config> section as well.
+            // ids are used in the root From<Config> section as well.
 
             // We don't support this, anymore. It is still possible to rotate the contents of the
             // structure file, of course.
@@ -366,7 +367,7 @@ mod convert {
             // the new legacy rule compartment.
             // From legacy::Segment { compartments: [a, b, c], rules: within 10 of d }, we go to
             //      config::Segment { compartment_ids: [{apply/{and/{or/a'b'c}'{win/d'10}}}] }.
-            // In Into<config::Config>, this {apply/...} rule is actually added to the compartments
+            // In From<Config>, this {apply/...} rule is actually added to the compartments
             // section.
             let compartment_ids = if compartment_ids_from_rules.is_empty() {
                 // No rules, so we can just take the union of compartments directly.
@@ -389,18 +390,18 @@ mod convert {
         }
     }
 
-    impl Into<config::Quantity> for Quantity {
-        fn into(self) -> config::Quantity {
-            match self {
-                Self::Number(n) => config::Quantity::Number(n as u64),
-                Self::Concentration(c) => config::Quantity::Concentration(c),
+    impl From<Quantity> for config::Quantity {
+        fn from(quantity: Quantity) -> Self {
+            match quantity {
+                Quantity::Number(n) => config::Quantity::Number(n as u64),
+                Quantity::Concentration(c) => config::Quantity::Concentration(c),
             }
         }
     }
 
-    impl Into<config::Config> for Config {
-        fn into(self) -> config::Config {
-            let Self {
+    impl From<Config> for config::Config {
+        fn from(config: Config) -> Self {
+            let Config {
                 general:
                     General {
                         seed,
@@ -421,21 +422,21 @@ mod convert {
                         title,
                         topol_includes,
                     },
-            } = self;
+            } = config;
 
             // More cursed canonical rule id logic.
-            // Together with the juggling in Into<config::Segment>, the following constitutes a
-            // certified 'tricky bit'. We make the assumption here that we created id-constraint
-            // pairs in an injective manner. That is, one id has a single, unique rule associated
-            // with it, and vice versa. The management of the rule keys throughout this conversion
-            // code aims to uphold that.
+            // Together with the juggling in From<Segment>, the following constitutes a certified
+            // 'tricky bit'. We make the assumption here that we created id-constraint pairs in an
+            // injective manner. That is, one id has a single, unique rule associated with it, and
+            // vice versa. The management of the rule keys throughout this conversion code aims to
+            // uphold that.
             // TODO: This can all be made less.. unclear if we just move it all together into one
             //       happy monolithic family. Consider.
 
             // The legacy rules are now considered compartment declarations. We go through the
             // segments and collect all of their rules into a set and for each of those items we
-            // come up with the canonical id the Into<config::Segment> implementation also
-            // generated, along with the compartment mask definition that fits the bill.
+            // come up with the canonical id the From<Segment> implementation also generated, along
+            // with the compartment mask definition that fits the bill.
             // TODO: Ordering concerns from using HashMaps here?
             let compartments = {
                 let mut legacy_rules = HashMap::new();
@@ -454,8 +455,8 @@ mod convert {
                     // Here comes another tricky bit.
                     if segment_legacy_rules.is_empty() {
                         // If there are no legacy rules, we can simply take the segment's list of
-                        // compartments, like described in Into<config::Segment>.
-                        // That means that we don't have to do anything special here.
+                        // compartments, like described in From<Segment>. That means that we don't
+                        // have to do anything special here.
                         continue;
                     }
 
@@ -507,8 +508,8 @@ mod convert {
             // Currently, constraints can only be rotation axes declarations. Look through all the
             // segments to see if there are non-default rotation axes set. For each of those,
             // create a constraint with its canonical id that will also be generated by
-            // Into<config::Segment> and the appropriate Rule. We collect them in a set to
-            // automatically retain only unique constraints.
+            // From<Segment> and the appropriate Rule. We collect them in a set to automatically
+            // retain only unique constraints.
             let constraints = {
                 let mut constraints = HashSet::new();
                 for segment in &segments {
@@ -608,7 +609,7 @@ mod convert {
                 Rule::Or(rules) => {
                     let ids = rules
                         .iter()
-                        .map(|r| canonical_id_compartment(r))
+                        .map(canonical_id_compartment)
                         .collect::<Vec<_>>()
                         .join("'");
                     format!("{{or/{ids}}}")

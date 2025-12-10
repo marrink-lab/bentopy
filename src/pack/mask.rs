@@ -50,7 +50,7 @@ impl Mask {
             "the number of cells must match the dimensions"
         );
 
-        Self::from_cells_iter(dimensions, cells.into_iter().copied())
+        Self::from_cells_iter(dimensions, cells.iter().copied())
     }
 
     /// An internal function for setting up a [`Mask`] from an iterator of `bool`s.
@@ -462,9 +462,7 @@ pub fn distance_mask(thing: &Mask, radius: f32) -> Mask {
     let dimensions = thing.dimensions();
 
     assert!(radius >= 0.0);
-    let positions = thing
-        .indices_where::<false>()
-        .map(|idx| U64Vec3::from_array(idx));
+    let positions = thing.indices_where::<false>().map(U64Vec3::from_array);
     let thing_blocks = blocks::Blocks::from_iter(radius as u64, dimensions, positions);
 
     let radius_squared = radius.powi(2) as i64;

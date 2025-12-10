@@ -42,7 +42,7 @@ impl std::fmt::Display for ParseExpressionError {
     }
 }
 
-fn consume_whitespace<'s>(input: &'s str) -> &'s str {
+fn consume_whitespace(input: &str) -> &str {
     input.trim_start()
 }
 
@@ -138,7 +138,7 @@ fn tokenize_expr<'s>(
 fn tokenize(mut input: &str) -> Result<Vec<Token>, ParseExpressionError> {
     let mut tokens = Vec::new();
     while !input.is_empty() {
-        input = tokenize_expr(&input, &mut tokens)?;
+        input = tokenize_expr(input, &mut tokens)?;
     }
     Ok(tokens)
 }

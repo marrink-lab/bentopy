@@ -91,7 +91,7 @@ fn main() -> anyhow::Result<()> {
     // Check whether the compartment masks make any sense.
     state
         .check_masks()
-        .with_context(|| format!("Encountered a problem while checking the compartment masks"))?;
+        .context("Encountered a problem while checking the compartment masks")?;
 
     // Packing.
     let packing_start = std::time::Instant::now();
@@ -110,7 +110,7 @@ fn main() -> anyhow::Result<()> {
     let placement_list_path = &state.output.path;
     eprint!("Writing placement list to {placement_list_path:?}... ");
     let start_output = std::time::Instant::now();
-    let placement_list_file = std::fs::File::create(&placement_list_path)
+    let placement_list_file = std::fs::File::create(placement_list_path)
         .with_context(|| format!("Failed to create placement list file {placement_list_path:?}"))?;
     let placement_list = state.placement_list(placements);
     serde_json::to_writer(placement_list_file, &placement_list)

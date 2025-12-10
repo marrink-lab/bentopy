@@ -72,7 +72,7 @@ pub fn write_structure<const PAR: bool>(
         'fill_buffer: while buffer.len() < buffer_size {
             match placements.next() {
                 Some(sp) => buffer.extend(sp),
-                None if buffer.len() == 0 => break 'write_atoms,
+                None if buffer.is_empty() => break 'write_atoms,
                 None => break 'fill_buffer,
             }
         }
@@ -136,7 +136,7 @@ pub fn write_structure<const PAR: bool>(
                     writer.write_all(lines.as_bytes())?;
                 } else {
                     for atom in beads {
-                        let line = Structure::format_atom_line(&atom);
+                        let line = Structure::format_atom_line(atom);
                         writer.write_all(line.as_bytes())?;
                     }
                 }

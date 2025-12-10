@@ -66,7 +66,7 @@ impl Molecule {
     /// Here, center refers to mean position. This can be understood as a center of mass where all
     /// atoms are considered to have the same weight.
     pub fn center(&self) -> Vec3 {
-        if self.atoms.len() == 0 {
+        if self.atoms.is_empty() {
             return Vec3::ZERO;
         }
         let mut mean = Vec3::ZERO;

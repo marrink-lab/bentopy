@@ -95,7 +95,7 @@ impl TryFrom<char> for Axis {
             'x' => Ok(Self::X),
             'y' => Ok(Self::Y),
             'z' => Ok(Self::Z),
-            _ => return Err("unknown axis"),
+            _ => Err("unknown axis"),
         }
     }
 }
@@ -133,7 +133,7 @@ impl TryFrom<char> for Op {
         match c {
             '<' => Ok(Self::LessThan),
             '>' => Ok(Self::GreaterThan),
-            _ => return Err("unknown operator"),
+            _ => Err("unknown operator"),
         }
     }
 }

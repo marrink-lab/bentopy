@@ -108,7 +108,7 @@ impl Cookies {
                         .iter()
                         .map(|&v| Vec3A::from(v))
                         .filter(is_in_range)
-                        .map(|v| Vec3::from(v));
+                        .map(Vec3::from);
                     convolved_cookies[idx].extend(neighbor_content);
                 } else {
                     fn apply(b: BVec3, v: Vec3A) -> Vec3A {
@@ -124,7 +124,7 @@ impl Cookies {
                             Vec3A::from(v) + translation
                         })
                         .filter(is_in_range)
-                        .map(|v| Vec3::from(v));
+                        .map(Vec3::from);
                     convolved_cookies[idx].extend(wrapped_neighbor_content);
                 }
             }

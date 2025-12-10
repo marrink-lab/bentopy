@@ -21,7 +21,7 @@ impl Mask {
             min_dim >= r,
             "the provided radius ({r} voxels) must not exceed the space's smallest dimension ({min_dim} voxels)"
         );
-        let c = center.unwrap_or(UVec3::splat(r as u32)).as_ivec3();
+        let c = center.unwrap_or(UVec3::splat(r)).as_ivec3();
         assert!(U64Vec3::from_array(dimensions).cmpge(c.as_u64vec3()).all());
         let r2 = r.pow(2);
 

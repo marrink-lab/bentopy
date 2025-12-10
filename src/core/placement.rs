@@ -57,7 +57,7 @@ impl Placement {
 
     /// Returns the optional tag of this [`Placement`].
     pub fn tag(&self) -> Option<&str> {
-        self.tag.as_ref().map(|t| t.as_str())
+        self.tag.as_deref()
     }
 
     /// Push a new [`Batch`] onto this [`Placement`].
@@ -80,7 +80,7 @@ impl Batch {
     /// Create a new [`Batch`] from a rotation and a set of positions.
     ///
     /// - The locations of the `positions` must be provided in nm. Any resolution adjustments
-    /// must be applied by the caller.
+    ///   must be applied by the caller.
     /// - The provided `rotation` is internally converted and stored in row-major order.
     pub fn new(rotation: Rotation, positions: Vec<Position>) -> Self {
         Self {

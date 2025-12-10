@@ -1,5 +1,5 @@
 use std::io::{Result, Write};
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::core::config::{
     Compartment, Config, Constraint, General, Mask, Point, RearrangeMethod, Rule, Segment, Shape,
@@ -139,7 +139,7 @@ fn format_string(s: &str) -> String {
     format!(r#""{s}""#)
 }
 
-fn format_path(path: &PathBuf) -> String {
+fn format_path(path: &Path) -> String {
     // TODO: This really makes me think we should mave it to Vec<String>.
     format_string(path.to_str().expect("TODO"))
 }
@@ -152,7 +152,7 @@ fn list<T: std::fmt::Display>(items: &[T]) -> String {
         .join(", ")
 }
 
-fn include_entry<W: Write>(w: &mut W, include: &std::path::PathBuf) -> Result<()> {
+fn include_entry<W: Write>(w: &mut W, include: &Path) -> Result<()> {
     writeln!(w, "{}", format_path(include))
 }
 

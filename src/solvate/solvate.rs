@@ -10,6 +10,7 @@ use crate::structure::{BoxVecsExtension, Structure};
 use crate::{BoundaryMode, PeriodicMode};
 
 /// Solvate a [`Structure`] with a template solvent box.
+#[allow(clippy::too_many_arguments)]
 pub fn solvate<'sol>(
     structure: &mut Structure,
     solvent: &'sol Structure,

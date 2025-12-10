@@ -185,7 +185,7 @@ impl State {
                     let voxel_distance = (distance / resolution) as u64;
                     Compartment {
                         id: combination.id,
-                        mask: distance_mask_grow(&mask, voxel_distance),
+                        mask: distance_mask_grow(mask, voxel_distance),
                     }
                 }
                 config::Mask::Combination(expr) => Compartment {

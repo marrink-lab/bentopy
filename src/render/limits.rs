@@ -15,12 +15,12 @@ pub struct Limits {
 impl Limits {
     pub fn is_inside(&self, point: impl Into<Vec3>) -> bool {
         let point = point.into();
-        self.minx.map_or(true, |minx| minx <= point.x)
-            && self.miny.map_or(true, |miny| miny <= point.y)
-            && self.minz.map_or(true, |minz| minz <= point.z)
-            && self.maxx.map_or(true, |maxx| point.x <= maxx)
-            && self.maxy.map_or(true, |maxy| point.y <= maxy)
-            && self.maxz.map_or(true, |maxz| point.z <= maxz)
+        self.minx.is_none_or(|minx| minx <= point.x)
+            && self.miny.is_none_or(|miny| miny <= point.y)
+            && self.minz.is_none_or(|minz| minz <= point.z)
+            && self.maxx.is_none_or(|maxx| point.x <= maxx)
+            && self.maxy.is_none_or(|maxy| point.y <= maxy)
+            && self.maxz.is_none_or(|maxz| point.z <= maxz)
     }
 
     // NOTE: This implementation is slightly verbose, and could be shortened. But that is not

@@ -223,7 +223,7 @@ impl ChargeConfig {
 
         Some(Substitute {
             name,
-            number: self.charge.abs() as u64,
+            number: self.charge.unsigned_abs(),
         })
     }
 }

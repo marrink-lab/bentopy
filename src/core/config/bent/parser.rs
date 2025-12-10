@@ -13,7 +13,6 @@ use crate::core::config::{
 type E<'src, 'tokens> = extra::Err<Rich<'tokens, Token<'src>>>;
 
 mod components {
-
     use super::*;
 
     pub(crate) fn ident<'ts, 's: 'ts, I>(
@@ -132,7 +131,7 @@ where
     let sphere = {
         let sphere_center = point
             .clone()
-            .map(|p| Center::Point(p))
+            .map(Center::Point)
             .or(components::ident("center").to(Center::Center));
         let diameter = components::ident("diameter")
             .ignore_then(number.clone())
@@ -148,7 +147,7 @@ where
     };
     let cuboid = {
         let anchor = choice((
-            point.map(|p| Anchor::Point(p)),
+            point.map(Anchor::Point),
             components::ident("start").to(Anchor::Start),
             components::ident("center").to(Anchor::Center),
             components::ident("end").to(Anchor::End),
@@ -177,7 +176,7 @@ where
     let within = components::ident("within")
         .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
         .then_ignore(components::ident("of"))
-        .then(id.clone().labelled("compartment id"))
+        .then(id.labelled("compartment id"))
         .map(|(distance, id)| Mask::Within {
             distance: distance as f32,
             id,
@@ -228,8 +227,8 @@ where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
     let identifier = select! { Token::Ident(ident) => ident.to_owned() };
-    let name = identifier.clone();
-    let tag = identifier.clone();
+    let name = identifier;
+    let tag = identifier;
     let id = name.then(just(Token::Colon).ignore_then(tag).or_not());
     let number = select! { Token::Number(Number::Integer(n)) => n }.map(Quantity::Number);
     let molarity = select! { Token::Concentration(c) => c }.map(Quantity::Concentration);
@@ -339,7 +338,7 @@ where
         general
     });
 
-    select! { Token::Section("general") }
+    just(Token::Section("general"))
         .ignore_then(fields)
         .labelled("general section")
         .as_context()

@@ -87,7 +87,7 @@ fn main() -> anyhow::Result<()> {
         .to_array()
         .iter()
         .product();
-    let neutralizing_ions = config.charge.map(|c| c.bake()).flatten();
+    let neutralizing_ions = config.charge.and_then(|c| c.bake());
     let substitutes = config
         .substitutes
         .into_iter()
