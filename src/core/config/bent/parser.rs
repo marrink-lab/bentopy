@@ -43,7 +43,7 @@ mod components {
     {
         let op = select! {
             Token::GreaterThan => Op::GreaterThan,
-            Token::LessThan => Op::SmallerThan,
+            Token::LessThan => Op::LessThan,
         }
         .labelled("inequality operator");
         let value = select! { Token::Number(n) => n.as_float() }.labelled("number");

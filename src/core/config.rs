@@ -113,15 +113,15 @@ impl std::fmt::Display for Axis {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Op {
-    SmallerThan,
+    LessThan,
     GreaterThan,
 }
 
 impl Op {
     fn reverse(self) -> Self {
         match self {
-            Self::SmallerThan => Self::GreaterThan,
-            Self::GreaterThan => Self::SmallerThan,
+            Self::LessThan => Self::GreaterThan,
+            Self::GreaterThan => Self::LessThan,
         }
     }
 }
@@ -131,7 +131,7 @@ impl TryFrom<char> for Op {
 
     fn try_from(c: char) -> Result<Self, Self::Error> {
         match c {
-            '<' => Ok(Self::SmallerThan),
+            '<' => Ok(Self::LessThan),
             '>' => Ok(Self::GreaterThan),
             _ => return Err("unknown operator"),
         }
@@ -141,7 +141,7 @@ impl TryFrom<char> for Op {
 impl std::fmt::Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::SmallerThan => '<',
+            Self::LessThan => '<',
             Self::GreaterThan => '>',
         }
         .fmt(f)

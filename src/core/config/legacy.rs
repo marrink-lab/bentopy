@@ -597,7 +597,7 @@ mod convert {
             match rule {
                 Rule::Position(Limit { axis, op, value }) => {
                     let op = match op {
-                        Op::SmallerThan => "lt",
+                        Op::LessThan => "lt",
                         Op::GreaterThan => "gt",
                     };
                     format!("{{lim/{axis}'{op}'{value}}}")
@@ -696,7 +696,7 @@ mod convert {
                             },
                             "less_than" => Limit {
                                 axis,
-                                op: Op::SmallerThan,
+                                op: Op::LessThan,
                                 value,
                             },
                             _ => unreachable!(), // By virtue of this branch's pattern.

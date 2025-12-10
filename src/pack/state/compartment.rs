@@ -11,7 +11,7 @@ pub fn distill_limits(expr: &Expr<Limit>, dimensions: Dimensions, resolution: f6
     fn apply_limit(mut mask: Mask, limit: &Limit, resolution: f64) -> Mask {
         let &Limit { axis, op, value } = limit;
         match op {
-            bentopy::core::config::Op::SmallerThan => {
+            bentopy::core::config::Op::LessThan => {
                 mask.apply_function(|pos| value < pos[axis as usize] as f64 * resolution)
             }
             bentopy::core::config::Op::GreaterThan => {
