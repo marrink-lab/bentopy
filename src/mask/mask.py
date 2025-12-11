@@ -6,6 +6,7 @@ from pathlib import Path
 import MDAnalysis as mda
 import numpy as np
 from mdvcontainment import Containment
+from mdvcontainment.voxel_logic import voxels_to_universe
 
 from .config import setup_parser
 from .utilities import voxels_to_gro
@@ -87,28 +88,35 @@ def mask(args):
     selection = u.select_atoms(args.selection)
     log(f"Selected {selection.n_atoms} atoms according to '{args.selection}'.")
 
+    # Closing is just a short-hand for --morph='de'.
+    morph = args.morph
+    if args.closing:
+        morph = "de"
+
     # Calculate the containments. This is all in the hands of mdvcontainment.
     log("Calculating containment... ", end="")
     start = time()
     containment = Containment(
         selection,
         resolution=args.containment_resolution,
-        closing=args.closing,
-        slab=args.slab,
+        morph=morph,
         max_offset=0, # We accept any result of voxelization.
         verbose=args.verbose,
         no_mapping=True, # Mapping takes some time and is not used at all in this context.
-        betafactors=False, # Betafactors are not used in this context and are pretty slow to instantiate.
     )
     duration = time() - start
     log(f"Done in {duration:.3} s.")
+
+    if args.min_size is not None:
+        log(f"Applying a {args.min_size} nm³ minimum size view.")
+        containment = containment.node_view(min_size=args.min_size)
 
     # Show what we found.
     log("Found the following node groups:")
     log(f"        root:\t{npc(containment.voxel_containment.root_nodes)}")
     log(f"        leaf:\t{npc(containment.voxel_containment.leaf_nodes)}")
     # And show it as a tree of containments.
-    print(containment.voxel_containment.format_containment())
+    print(containment.voxel_containment)
 
     # Get the label array.
     label_array = containment.voxel_containment.components_grid
@@ -127,13 +135,37 @@ def mask(args):
             log(f"Path must have a gro extension. Found '{labels_path.suffix}'.")
     else:
         labels_path = args.inspect_labels_path
+    root_nodes = npc(containment.voxel_containment.root_nodes)
+    log(f"Do you want to exclude the 'outside' compartment(s) (labels {root_nodes})?")
+    log("Excluding the root nodes is helpful, because they usually make up a large part of the space.")
+    while True:
+        answer = input("(Y/n) -> ").strip()
+        match answer.lower():
+            case "" | "y":
+                exclude_outside = True
+                break
+            case "n":
+                exclude_outside = False
+                break
+            case _: log(f"Expected 'y' or 'n'. Found '{answer}'.")
     if labels_path is not None:
-        log(f"Writing labels voxels debug file to {labels_path}... ", end="")
-        voxels_to_gro(labels_path, label_array, scale=args.containment_resolution)
-        log("done.")
+        # voxels_to_gro(labels_path, label_array, scale=args.containment_resolution)
+        if exclude_outside:
+            nodes = set(containment.voxel_containment.nodes) - set(containment.voxel_containment.root_nodes)
+        else:
+            nodes = containment.voxel_containment.nodes
+        labels_u = containment.voxel_containment.get_universe_from_nodes(nodes=list(nodes), universe=u)
+
+        if len(labels_u.atoms) > 0:
+            log(f"Writing labels voxels debug file to {labels_path}... ", end="")
+            labels_u.atoms.write(labels_path)
+            log("done.")
+        else:
+            log(f"Could not write labels to {labels_path}, because there are no voxels to write!")
+
 
     # Let's select our labels.
-    possible_labels = np.unique(label_array)
+    possible_labels = npc(containment.voxel_containment.nodes)
     if args.interactive and args.labels is None and args.autofill is False:
         log(
             "No compartment labels have been selected, yet.",
@@ -172,9 +204,8 @@ def mask(args):
     compartment = containment.voxel_containment.get_voxel_mask(labels)
     full = np.count_nonzero(compartment == True)
     free = np.count_nonzero(compartment == False)
-    containment_voxel_volume = args.containment_resolution**3
-    full_volume = full * containment_voxel_volume
-    free_volume = free * containment_voxel_volume
+    full_volume = full * containment.voxel_volume
+    free_volume = free * containment.voxel_volume
     total_volume = full_volume + free_volume
     full_frac = full_volume / total_volume
     free_frac = free_volume / total_volume
@@ -212,6 +243,7 @@ def mask(args):
         voxels_path = args.debug_voxels
     if voxels_path is not None:
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
+        voxels_to_universe(zoomed, universe=u, nodes=[True])
         voxels_to_gro(voxels_path, zoomed, scale=args.mask_resolution)
         log("done.")
 
@@ -246,11 +278,13 @@ def resolve_cache_path(structure_path):
 
 
 def npc_single(n):
-    match type(n):
-        case np.float32 | np.float64:
+    match n:
+        case np.float32() | np.float64() | float():
             return float(n)
-        case np.int32 | np.int64:
+        case np.int32() | np.int64() | int():
             return int(n)
+        case _:
+            print(f"WARNING: Unknown type for {n}: {type(n)}")
 
 
 def npc(ns):

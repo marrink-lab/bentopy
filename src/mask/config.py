@@ -43,19 +43,45 @@ def setup_parser(parser=None):
         when all inputs are known and in a scripted context.
         (normally interactive)""",
     )
-    parser.add_argument(
+    morph = parser.add_mutually_exclusive_group()
+    morph.add_argument(
+        "--morph",
+        type=str,
+        help="""Morphological operations to apply to the initial boolean voxel
+        representation based on the provided structure. Provide a string of 'd'
+        for dilation steps and 'e' for erosion steps, in the order you wish to
+        apply them.
+
+        For example, the string 'de' is equivalent to the --closing flag, while
+        'ed' is a morphological opening operation. See
+        <https://en.wikipedia.org/wiki/Closing_(morphology)> for more
+        information.
+        """,
+    )
+    morph.add_argument(
         "--closing",
         action="store_true",
-        help="""Use binary closing to fill small holes in compartments. For analysis
-        of CG structures with a voxel resolution <1.0 nm this is highly recommended.
+        help="""Use binary closing to fill small holes in compartments. For
+        analysis of CG Martini structures with a voxel resolution 0.5 nm this
+        is highly recommended.
+
+        If the resolution exceeds the condensed phase distance (i.e., about
+        double the LJ sigma), closing is not required. A voxel resolution below
+        sigma is not recommended.
+
+        See also, --morph, which provides a more flexible interface to the same
+        notion.
         """,
     )
     parser.add_argument(
-        "--slab",
-        action="store_true",
-        help="""Determine the containment according to slab periodicity.
-        This setting is suitable for simple systems where an 'outside' region can be trivially determined.
-        When enabled, it may speed up containment determination.
+        "--min-size",
+        type=float,
+        help="""
+        A volume in nm³. Starting from the leaf nodes, recursively merge with
+        ancestors until this minimum size has been met.
+
+        This is very helpful for filtering out small, non-relevant compartments
+        by merging them to their parent compartments.
         """,
     )
     parser.add_argument(

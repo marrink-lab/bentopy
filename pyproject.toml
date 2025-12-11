@@ -22,7 +22,7 @@ dependencies = [
     "scipy>=1.15",
     "freud-analysis>=3.2.0",
     "MDAnalysis>=2.8",
-    "mdvcontainment>=0.1.2",
+    "mdvcontainment>=2.0.0a1",
 ]
 
 [project.urls]
