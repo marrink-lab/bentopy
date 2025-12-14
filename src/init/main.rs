@@ -4,7 +4,7 @@ use std::io::{BufWriter, Read, Write};
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
-use clap::{Parser, Subcommand, command};
+use clap::{Parser, Subcommand};
 
 use bentopy::core::config::{Config, Segment, legacy};
 use bentopy::core::version::VERSION;

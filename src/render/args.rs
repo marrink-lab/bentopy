@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
 use crate::limits::Limits;
-use clap::{Parser, ValueEnum, command};
+use clap::{Parser, ValueEnum};
 
 /// Render structures from a placement list into a gro file.
 ///
