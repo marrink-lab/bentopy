@@ -20,20 +20,31 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Create an example file describing the bentopy input file format with placeholders.
     Example {
         #[arg(short, long, default_value = "example.bent")]
         output: PathBuf,
     },
-    // Create {
-    //     #[arg(short, long)]
-    //     output: PathBuf,
-    // },
+    /// Check whether an input file is set up correctly and provide lints for common problems.
+    ///
+    /// First, the syntax of the file is validated, before checking for common problems:
+    ///
+    /// There should be at least one compartment.
+    /// There should be no duplicate compartment names.
+    /// There should be at least one segment.
+    /// Segments should refer to compartments that exist.
+    /// There should be no duplicate rule names.
+    /// Segments should refer to rules that exist.
     Validate {
         #[arg(short, long)]
         input: PathBuf,
         #[arg(short, long, default_value_t)]
         verbose: bool,
     },
+    /// Convert from the .json legacy input file format to .bent files.
+    ///
+    /// Note that this command can also read .bent files and produce a .bent file from that. This
+    /// can be considered a formatting step.
     Convert {
         #[arg(short, long)]
         input: PathBuf,
@@ -46,7 +57,6 @@ fn main() -> Result<()> {
     let Args { command } = Args::parse();
     match command {
         Command::Example { output } => example(output),
-        // Command::Create { output } => todo!(),
         Command::Validate { input, verbose } => validate(input, verbose),
         Command::Convert { input, output } => convert(input, output),
     }
