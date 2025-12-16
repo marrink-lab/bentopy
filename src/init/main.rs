@@ -28,7 +28,7 @@ enum Command {
     //     #[arg(short, long)]
     //     output: PathBuf,
     // },
-    Check {
+    Validate {
         #[arg(short, long)]
         input: PathBuf,
         #[arg(short, long, default_value_t)]
@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     match command {
         Command::Example { output } => example(output),
         // Command::Create { output } => todo!(),
-        Command::Check { input, verbose } => check(input, verbose),
+        Command::Validate { input, verbose } => validate(input, verbose),
         Command::Convert { input, output } => convert(input, output),
     }
 }
@@ -61,7 +61,7 @@ fn example(output: PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn check(input: PathBuf, verbose: bool) -> Result<()> {
+fn validate(input: PathBuf, verbose: bool) -> Result<()> {
     let mut file = std::fs::File::open(&input)?;
     let mut s = String::new();
     file.read_to_string(&mut s)?;
