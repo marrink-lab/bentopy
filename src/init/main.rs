@@ -105,7 +105,7 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
     for compartment in &config.compartments {
         let id = compartment.id.as_str();
         if !compartment_ids.insert(id) {
-            println!("Warning: Compartment id {id} is used multiple times.");
+            println!("Warning: Compartment id {id} is defined multiple times.");
             problems += 1;
         }
     }
@@ -129,7 +129,7 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
     for constraint in &config.constraints {
         let id = constraint.id.as_str();
         if !rules.insert(id) {
-            println!("Warning: Constraint name {id} is used multiple times.");
+            println!("Warning: Constraint name {id} is defined multiple times.");
             problems += 1;
         }
     }
