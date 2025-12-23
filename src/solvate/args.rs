@@ -14,9 +14,6 @@ pub struct Args {
     /// Output path.
     #[arg(short, long)]
     pub output: PathBuf,
-    /// Solvent template path.
-    #[arg(short = 'w', long = "water-box")]
-    pub template: Option<PathBuf>,
 
     /// Lowest allowable distance between solvent and structure beads (nm).
     ///
