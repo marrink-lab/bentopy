@@ -91,4 +91,25 @@ impl Water {
             })
             .flatten()
     }
+
+    /// Returns an iterator over the accepted substitute positions.
+    pub fn substitute_positions<'w, 'a: 'w, A: Iterator<Item = bool>>(
+        &'w self,
+        mut occupied: A,
+        // resnum: &'a mut u32,
+        // atomnum: &'a mut u32,
+        translation: Vec3,
+    ) -> impl Iterator<Item = Vec3> + use<'w, A> {
+        // TODO: Add the whole resnum atomnum thing back in!
+        self.positions()
+            .map(move |pos| pos + translation)
+            .filter(move |_atom| {
+                // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
+                // that impossible far before this function is executed. Otherwise, can we make it
+                // a nicer error? Or even an unimplemented!().
+                !occupied
+                    .next()
+                    .expect("occupied should have the same length as the number of residues")
+            })
+    }
 }

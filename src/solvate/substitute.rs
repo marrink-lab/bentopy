@@ -23,6 +23,7 @@ impl<'sol> Substitution<'sol> {
         &self.name
     }
 
+    /// Iterate over all atoms in this [`Substitution`].
     pub fn iter_atoms(&self) -> impl Iterator<Item = Atom> + '_ {
         self.placemap.iter_positions().enumerate().map(|(i, pos)| {
             let num = i as u32 + 1;

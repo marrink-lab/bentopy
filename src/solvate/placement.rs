@@ -1,7 +1,7 @@
 use eightyseven::structure::Atom;
 use glam::{UVec3, Vec3};
 
-use crate::water::Water;
+use crate::{convert::Convert, water::Water};
 
 /// Return an index into a linear array that represents items on a 3-dimensional grid in a z-major
 /// ordering.
@@ -71,16 +71,16 @@ impl<'s> PlaceMap<'s> {
 
     // TODO: Revisit, because there's some wasteful go-around, here. We're first creating Atoms
     // from positions which then get turned back into positions.
+    /// Returns the positions of the solvent particles in this [`PlaceMap`].
     pub fn iter_positions(&self) -> impl Iterator<Item = eightyseven::structure::Vec3> + '_ {
-        self.iter_atoms().map(|atom| atom.position)
-    }
-
-    fn iter_atoms(&self) -> impl Iterator<Item = Atom> + '_ {
         // TODO: Consider if these are hard-equivalent or soft-equivalent in terms of performance.
         //      self.iter_atoms_chunks().flatten()
         // My worry is that the flatten version will still allocate more than the one below.
         self.iter_placements()
-            .flat_map(|(translation, placement)| self.solvent.spray(placement, translation))
+            .flat_map(|(translation, placement)| {
+                self.solvent.substitute_positions(placement, translation)
+            })
+            .map(|pos| pos.convert())
     }
 
     pub fn iter_atoms_chunks(&self) -> impl Iterator<Item = Box<[Atom]>> + '_ {
