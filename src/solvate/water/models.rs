@@ -42,20 +42,9 @@ impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_P
         self.resname
     }
 
-    /// Returns the total number of atoms in this [`WaterBox`].
-    pub const fn natoms(&self) -> usize {
-        NATOMS
-    }
-
     /// Returns the number of points per residue for this [`WaterBox`].
     pub const fn residue_points(&self) -> usize {
         NATOMS_PER_RES
-    }
-
-    /// Returns the number of residues in this [`WaterBox`].
-    pub const fn nresidues(&self) -> usize {
-        // TODO: Static assert this fitting perfectly.
-        self.natoms() / self.residue_points()
     }
 
     /// Returns the dimensions of this [`WaterBox`].
