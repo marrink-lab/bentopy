@@ -92,6 +92,8 @@ pub enum ResnumMode {
     Instance,
     /// All instances of a segment have the same residue number.
     Segment,
+    /// The residue number appear exactly as in the input structure.
+    Keep,
 }
 
 impl FromStr for ResnumMode {

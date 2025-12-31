@@ -190,7 +190,7 @@ fn write_gro(
     let placed = placed.map(|(name, n_placed, _)| (name, n_placed)).collect();
     let mut instance_resnum = 0;
     writeln!(writer, "{n_atoms}")?;
-    for (resnum, (placement, molecule)) in placements.iter().zip(molecules).enumerate() {
+    for (segidx, (placement, molecule)) in placements.iter().zip(molecules).enumerate() {
         {
             let prefix = if verbose { "" } else { CLEAR_LINE };
             let suffix = if verbose { "\n" } else { "\r" };
@@ -205,18 +205,20 @@ fn write_gro(
             );
         }
         // Make sure that the printed resnum cannot exceed the 5 allotted columns.
-        let resnum = resnum % 100000;
+        let segidx = segidx % 100000;
 
         let mut inserts = Vec::new();
         for atom in &molecule.atoms {
             // HACK: For some reason, converting to string here is necessary for getting correct
             // alignment of ArrayString<U5>.
+            let resnum = atom.resnum;
             let resname = atom.resname.to_string();
             let atomname = atom.name.to_string();
             let atomnum = atom.num;
             let insert = match resnum_mode {
                 ResnumMode::Instance => format!("{resname:<5}{atomname:>5}{atomnum:>5}"),
-                ResnumMode::Segment => format!("{resnum:>5}{resname:<5}{atomname:>5}{atomnum:>5}"),
+                ResnumMode::Segment => format!("{segidx:>5}{resname:<5}{atomname:>5}{atomnum:>5}"),
+                ResnumMode::Keep => format!("{resnum:>5}{resname:<5}{atomname:>5}{atomnum:>5}"),
             };
             inserts.push(insert)
         }
@@ -255,6 +257,7 @@ fn write_gro(
                                 output.push_str(&format!("{resnum:>5}"))
                             }
                             ResnumMode::Segment => {}
+                            ResnumMode::Keep => {}
                         };
                         output.push_str(insert);
                         output.push_str(&format!("{:8.3}{:8.3}{:8.3}\n", pos.x, pos.y, pos.z));
