@@ -62,7 +62,7 @@ rm -f dist/*
 # Build the tar ball.
 python -m build
 # Create compiled wheels to distribute.
-sudo ./compile-release.sh
+./compile-release.sh
 
 # Upload to testpypi.
 ./upload.sh $py_version testpypi
