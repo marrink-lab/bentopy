@@ -92,6 +92,9 @@ def mask(args):
     morph = args.morph
     if args.closing:
         morph = "de"
+    # MDVContainment only accepts str, not str | None as of 2.0.0a2.
+    if morph == None:
+        morph = ""
 
     # Calculate the containments. This is all in the hands of mdvcontainment.
     log("Calculating containment... ", end="")
