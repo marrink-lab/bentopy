@@ -2,16 +2,13 @@
 
 ![Bentopy](figures/logo_header.png)
 
-Build packed models for molecular dynamics simulations, from simple and small
-boxes to complex and large mesoscale models.
-
-Bentopy provides tools for determining masks for molecule placement, packing of
-complex models, and very fast solvation and ion placement.
-
-These tools are force-field agnostic and can be integrated into molecular
-dynamics pipelines for different simulation packages. Bentopy has been used to
-help build systems ranging from entire cell models in the Martini force field
-to atomistic aerosols.
+Bentopy packs molecules to assemble models for molecular dynamics simulations.
+It uses a voxel-based approach to place molecules into arbitrary geometries,
+handling systems from simple boxes to cellular-scale models. Additional tools
+provide efficient solvation and ion placement. Bentopy is force-field agnostic
+and integrates with existing molecular dynamics workflows. Example systems
+built with bentopy include entire cell models in the Martini force field and
+all-atom aerosols.
 
 ## Information
 
@@ -28,7 +25,7 @@ available.
   and will soon be published.)
 
 [wiki]: https://github.com/marrink-lab/bentopy/wiki
-[wiki-examples]: https://github.com/marrink-lab/bentopy/wiki/examples
+[wiki-examples]: https://github.com/marrink-lab/bentopy/wiki/Examples
 [workshop]: https://cgmartini.nl/docs/tutorials/Martini3/Bentopy
 
 ## Citation
@@ -60,52 +57,42 @@ installed automatically through `pip`. For other platforms, such as macOS, a
 Rust compiler is required. See the [detailed installation
 instructions](#detailed-installation-instructions) below.
 
-## Usage
+## The _bentopy_ tools
 
 _Bentopy_ currently features five subcommands:
 
-- [_init_](#init): Initialize and check bentopy input files or convert legacy input files.
+- [_init_](#init): Initialize and validate bentopy input files.
 - [_mask_](#mask): Create masks based on voxel containments.
 - [_pack_](#pack): Pack a space and produce a placement list.
 - [_render_](#render): Write a structure file and topology based on a placement list.
 - [_solvate_](#solvate): Solvate large models, including very fast ion substitution.
 - [_merge_](#merge): Merge structure files.
 
-You can learn about the available options through the help information.
+Each subcommand has detailed `--help` information.
 
-```console
-bentopy-pack --help
-bentopy-mask --help
-...
-```
+### Workflow
 
 A typical _bentopy_ workflow may look like this.
 
 ![bentopy-merge -> bentopy-mask -> bentopy-pack -> bentopy-render -> bentopy-merge -> bentopy-solvate](figures/bentopy_workflow.png)
 
+The _init_ and _mask_ tools help prepare the configuration and masks for
+packing. Based on the input configuration and masks, _pack_ will create a
+placement list. Using _render_, you can create a structure file and system
+topology from the placement list. The _merge_ and _solvate_ tools help you
+prepare the model for simulation.
+
 What follows is a brief explanation and example invocation of these
 subcommands. A more detailed walkthrough can be found in the
-[example](#example) section.
+[Examples][wiki-examples] on the wiki.
 
-### _pack_
+### Pre-processing
 
-The _pack_ subcommand provides the core functionality of _bentopy_. Given an
-input configuration file, the input structures will be packed and their
-positions and orientations are written to a **placement list**.
-
-```console
-bentopy-pack input.bent placements.json
-```
-
-The placement list can be converted to a structure and associated topology
-using [_render_](#render).
-
-### _init_
+#### _init_
 
 The _init_ subcommand serves to make setting up a new _bentopy_ project easy.
 It can be used to create an [example configuration file][example] with
-placeholder values, to validate input files, or convert legacy input files into
-the `bent` format.
+placeholder values or to validate input files.
 
 [example]: https://github.com/marrink-lab/bentopy/blob/main/src/init/example.bent
 
@@ -115,7 +102,89 @@ bentopy-init example -o input.bent
 
 Read more about the [_init_ command](https://github.com/marrink-lab/bentopy/wiki/bentopy-init).
 
-### _render_
+#### _mask_
+
+While simple shapes can be defined directly in a `bent` file, **space masks**
+enable you to capture the complex geometries of curved membranes and large
+complexes. This allows you to create models based on existing structures or
+empirical evidence, making sophisticated integrative modeling workflows
+possible.
+
+The _mask_ subcommand offers a powerful tool for creating these masks. It is
+built on top of a versatile library for segmenting point clouds and molecular
+structures, called [mdvcontainment][mdvc].
+
+With _mask_ you can take a structure or point cloud and determine the different
+compartments within it.
+
+```console
+bentopy-mask membrane.gro masks/inside.npz --autofill
+```
+
+_Determine the compartments contained by the structure in `membrane.gro` and
+automatically select the innermost compartment (`--autofill`). From that
+selected compartment, write a mask to `masks/inside.npz`._
+
+The masks created with `bentopy-mask` can be imported as a compartment in a
+`bent` file.
+
+```ini
+[ compartment ]
+cytoplasm from "masks/inside.npz"
+```
+
+Note that any boolean _numpy_ array [stored as a compressed file
+(`npz`)][numpy-npz] of the correct dimensions can function as a valid mask.
+This makes it possible to create custom scripts and techniques for preparing
+masks as well.
+
+### Packing the structure
+
+#### _pack_
+
+The _pack_ subcommand provides the core functionality of _bentopy_. Given an
+**input configuration file** (`bent`), the input structures will be packed and
+their positions and orientations are written to a **placement list**.
+
+```console
+bentopy-pack input.bent placements.json
+```
+
+The _placement list_ can be converted to a structure and associated topology
+using [_render_](#render).
+
+#### The `bent` input configuration file
+
+_On the wiki, a [detailed reference] for the `bent` configuration input file is
+available._
+
+This is a minimal but complete `bent` file.
+
+```ini
+[ general ]
+title "Lysozymes in a sphere"
+
+[ space ]
+dimensions 100, 100, 100
+resolution 0.5
+
+[ compartments ]
+ball as sphere at center with diameter 80
+
+[ segments ]
+3lyz 2000 from "structures/3lyz.pdb" in ball
+```
+
+Provided you have the structure file, this configuration can be used to create
+an 80 nm diameter sphere filled with lysozyme structures. This is a minimal
+version of the system described and explained in [Example 1: Simple
+sphere][wiki-example-1] on the wiki.
+
+[wiki-example-1]: https://github.com/marrink-lab/bentopy/wiki/Example-1:-Simple-sphere
+
+### Post-processing
+
+#### _render_
 
 The result of the packing process is stored as a **placement list**, which is a
 `json` file that describes _which structures_ at _what rotations_ are _placed
@@ -134,39 +203,7 @@ become very large. Storing the placement list as an intermediate result
 decouples the hard task of packing from the simple work of writing it into a
 structure file.
 
-### _mask_
-
-In the packing configuration, you can define spaces in terms of basic
-analytical shapes. However, many sophisticated modeling tasks require placing
-molecules within existing structures, such as vesicles, or membrane shapes
-derived from experimental information. Handling such arbitrary shapes is a
-first-class part of the _bentopy_ workflow. 
-
-Any boolean numpy array [stored as a compressed file (`.npz`)][numpy-npz] of
-the correct dimensions can function as a valid mask.
-
-The _mask_ subcommand is a convenient and powerful tool for deriving such space
-masks from point clouds and existing molecular structures. It is built on top
-of a versatile library for segmenting point clouds and molecular structures,
-called [mdvcontainment][mdvc].
-
-```console
-bentopy-mask membrane.gro masks/inside.npz --autofill
-```
-
-_Determine the compartments contained by the structure in `membrane.gro` and
-automatically select the innermost compartment (`--autofill`). From that
-selected compartment, write a mask to `masks/inside.npz`._
-
-The masks created with `bentopy-mask` can be imported as a compartment in a
-`bent` file.
-
-```ini
-[ compartment ]
-inside from "masks/inside.npz"
-```
-
-### _merge_
+#### _merge_
 
 As the name suggests, _merge_ is a tool for concatenating `gro` files. Though
 this is a relatively simple operation, _merge_ provides a convenient way of
@@ -182,13 +219,12 @@ _Concatenate `chromosome.gro` and `membrane.gro` into `chrom_mem.gro`, setting
 the residue names of the chromosome atoms to `CHROM` and those of the membrane
 to `MEM` in the concatenated structure._
 
-### _solvate_
+#### _solvate_
 
 With _solvate_, large boxes can be solvated quickly and conveniently, with
-one-step ion substitutions. _Solvate_ is designed to run very fast while having
-a low memory footprint, which makes it an excellent tool for general-purpose
-solvation for large molecular dynamics simulations. Both atomistic and
-coarse-grained water placement is supported!
+one-step ion substitutions. _Solvate_ enables cellular-scale solvation and is
+designed to run very fast while having a low memory footprint. Both atomistic
+and coarse-grained Martini water placement is supported.
 
 ```console
 bentopy-solvate -i packed.gro -o solvated.gro \
