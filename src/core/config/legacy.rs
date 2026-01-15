@@ -270,8 +270,8 @@ mod convert {
                     radius,
                 } => config::Mask::Shape(config::Shape::Sphere {
                     center: match center {
-                        None => config::Center::Center,
-                        Some(center) => config::Center::Point(center),
+                        None => config::Anchor::Center,
+                        Some(center) => config::Anchor::Point(center),
                     },
                     // TODO: This sucks but is true.
                     radius: radius.expect("a sphere without a radius is an undefined shape"),

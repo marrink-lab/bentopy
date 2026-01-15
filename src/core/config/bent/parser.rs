@@ -5,8 +5,8 @@ use chumsky::prelude::*;
 
 use crate::core::config::bent::lexer::{Number, Token};
 use crate::core::config::{
-    Anchor, Axes, Axis, Center, Compartment, Config, Constraint, Dimensions, Expr, General, Limit,
-    Mask, Op, Quantity, RearrangeMethod, Rule, Segment, Shape, Space,
+    Anchor, Axes, Axis, Compartment, Config, Constraint, Dimensions, Expr, General, Limit, Mask,
+    Op, Quantity, RearrangeMethod, Rule, Segment, Shape, Space,
 };
 
 /// A shorter alias for this otherwise rather unwieldy type.
@@ -34,6 +34,20 @@ mod components {
             Token::Ident("z") => Axis::Z,
         }
         .labelled("axis")
+    }
+
+    pub(crate) fn anchor<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Anchor, E<'s, 'ts>>
+    where
+        I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
+    {
+        let point = select! { Token::Point(point) => point }.boxed();
+        choice((
+            point.map(Anchor::Point),
+            components::ident("start").to(Anchor::Start),
+            components::ident("center").to(Anchor::Center),
+            components::ident("end").to(Anchor::End),
+        ))
+        .boxed()
     }
 
     pub(crate) fn limit<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Limit, E<'s, 'ts>>
@@ -125,14 +139,10 @@ where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
     let number = select! { Token::Number(n) => n.as_float() as f32 }.boxed();
-    let point = select! { Token::Point(point) => point }.boxed();
     let id = select! { Token::Ident(id) => id.to_string() };
 
     let sphere = {
-        let sphere_center = point
-            .clone()
-            .map(Center::Point)
-            .or(components::ident("center").to(Center::Center));
+        let sphere_center = components::anchor();
         let diameter = components::ident("diameter")
             .ignore_then(number.clone())
             .map(|d| d * 0.5);
@@ -146,18 +156,11 @@ where
             .boxed()
     };
     let cuboid = {
-        let anchor = choice((
-            point.map(Anchor::Point),
-            components::ident("start").to(Anchor::Start),
-            components::ident("center").to(Anchor::Center),
-            components::ident("end").to(Anchor::End),
-        ))
-        .boxed();
         components::ident("cuboid")
             .ignore_then(components::ident("from"))
-            .ignore_then(anchor.clone())
+            .ignore_then(components::anchor())
             .then_ignore(components::ident("to"))
-            .then(anchor.clone())
+            .then(components::anchor())
             .map(|(start, end)| Shape::Cuboid { start, end })
             .boxed()
     };
@@ -789,7 +792,7 @@ periodic false
                 Ok(Compartment {
                     id: "space".to_string(),
                     mask: Mask::Shape(Shape::Sphere {
-                        center: Center::Center,
+                        center: Anchor::Center,
                         radius: 10.0
                     }),
                 })
@@ -805,7 +808,39 @@ periodic false
                 Ok(Compartment {
                     id: "space".to_string(),
                     mask: Mask::Shape(Shape::Sphere {
-                        center: Center::Point([1.0, 2.0, 3.0]),
+                        center: Anchor::Point([1.0, 2.0, 3.0]),
+                        radius: 10.0
+                    }),
+                })
+            )
+        }
+
+        #[test]
+        fn sphere_start() {
+            let src = "space as sphere at start with radius 10.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Sphere {
+                        center: Anchor::Start,
+                        radius: 10.0
+                    }),
+                })
+            )
+        }
+
+        #[test]
+        fn sphere_end() {
+            let src = "space as sphere at end with radius 10.0";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "space".to_string(),
+                    mask: Mask::Shape(Shape::Sphere {
+                        center: Anchor::End,
                         radius: 10.0
                     }),
                 })
@@ -821,7 +856,7 @@ periodic false
                 Ok(Compartment {
                     id: "space".to_string(),
                     mask: Mask::Shape(Shape::Sphere {
-                        center: Center::Center,
+                        center: Anchor::Center,
                         radius: 10.0
                     }),
                 })

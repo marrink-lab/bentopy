@@ -253,7 +253,7 @@ pub enum Mask {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Shape {
-    Sphere { center: Center, radius: f32 }, // Consider the f64 situation.
+    Sphere { center: Anchor, radius: f32 }, // Consider the f64 situation.
     Cuboid { start: Anchor, end: Anchor },
     // TODO: More?
 }
@@ -265,21 +265,6 @@ impl std::fmt::Display for Shape {
                 write!(f, "sphere at {center} with radius {radius}")
             }
             Self::Cuboid { start, end } => write!(f, "cuboid from {start} to {end}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Center {
-    Center,
-    Point(Point),
-}
-
-impl std::fmt::Display for Center {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Center => "center".fmt(f),
-            Self::Point([x, y, z]) => write!(f, "{x}, {y}, {z}"),
         }
     }
 }

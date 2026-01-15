@@ -117,8 +117,10 @@ impl Mask {
         match shape {
             config::Shape::Sphere { center, radius } => {
                 let center = match center {
-                    config::Center::Center => (U64Vec3::from(dimensions) / 2).as_uvec3(),
-                    config::Center::Point(point) => (Vec3::from(point) / resolution).as_uvec3(),
+                    config::Anchor::Center => (U64Vec3::from(dimensions) / 2).as_uvec3(),
+                    config::Anchor::Point(point) => (Vec3::from(point) / resolution).as_uvec3(),
+                    config::Anchor::Start => UVec3::ZERO,
+                    config::Anchor::End => U64Vec3::from(dimensions).as_uvec3(),
                 };
                 let radius = (radius / resolution) as u32;
                 Self::legacy_create_from_shape(
