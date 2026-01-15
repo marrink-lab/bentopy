@@ -27,7 +27,7 @@ impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_P
         positions: [Vec3; NATOMS],
     ) -> Self {
         // The number of atoms must be a multiple of the number of atoms per residue.
-        const { assert!(NATOMS % NATOMS_PER_RES == 0) }
+        const { assert!(NATOMS.is_multiple_of(NATOMS_PER_RES)) }
 
         Self {
             resname,

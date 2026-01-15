@@ -83,7 +83,7 @@ pub fn write_structure<const PAR: bool>(
         if PAR {
             let lines: String = particle_buffer
                 .par_iter()
-                .map(|a| Structure::format_atom_line(&a))
+                .map(Structure::format_atom_line)
                 .collect();
             writer.write_all(lines.as_bytes())?;
         } else {
