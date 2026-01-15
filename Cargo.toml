@@ -8,6 +8,7 @@ authors = [
     "Bart Bruininks <bartbruininks@gmail.com>",
 ]
 repository = "https://github.com/marrink-lab/bentopy"
+rust-version = "1.88"
 
 [[bin]]
 name = "bentopy-init"

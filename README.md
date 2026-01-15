@@ -279,8 +279,11 @@ If pre-built binaries are not available for your platform, you need access to
 cargo --version
 ```
 
-If it is not present, [you can install it][rust-installation] by any means you
-prefer. Installation through [_rustup_][rust-rustup] is very easy!
+Make sure that this is at least `1.88`, the minimum supported rust version for
+this project. If this is not the case, update using `rustup update`.
+
+If `cargo` is not present, [you can install it][rust-installation] by any means
+you prefer. Installation through [_rustup_][rust-rustup] is very easy!
 
 Once `cargo` is installed, installing _bentopy_ using `pip` should work.
 
