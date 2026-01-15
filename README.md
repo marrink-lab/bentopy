@@ -10,6 +10,10 @@ and integrates with existing molecular dynamics workflows. Example systems
 built with bentopy include entire cell models in the Martini force field and
 all-atom aerosols.
 
+- Build models at vast scales, quickly.
+- Powerful and flexible integration of spatial information.
+- Works with any forcefield, from Martini to all-atom.
+
 ## Information
 
 A number of resources explaining how to build systems using bentopy are
@@ -239,6 +243,32 @@ Substitute water residues for ions at 0.15M NaCl. Compensate the charge of
 
 A thorough description of the command is [provided in the `bentopy-solvate`
 README](src/solvate/README.md).
+
+## Why was _bentopy_ created?
+
+With _bentopy_, we address the lack of dedicated and generalized tools for
+packing detailed and MD-ready models while not sacrificing scale or
+efficiency.
+
+_Bentopy_ was created the goal of improving the workflow for building
+whole-cell models at the Marrink lab. While tools for preparing individual
+structures, polymers, and the cell membrane at that large scale were available,
+the procedure for packing the already crowded cytosol was slow and inflexible.
+As _bentopy_ was developed, it fulfilled this task excellently, and it quickly
+became clear that this is a tool that many people had their own creative
+applications for.
+
+Another problem with setting up large-scale molecular dynamics simulations is
+addressed by `bentopy-solvate`. Tools designed for boxes on the order of tens
+of nanometers start to break down at the mesoscale. With _solvate_, we
+introduce a well-considered and thoughtfully optimized tool. The improvement of
+the solvation stage for coarse-grained models has been excellent, but the
+improvement in performance and ergonomics is reported to be especially
+impressive for all-atom solvation.
+
+We want to thank the many fantastic researchers who are creating beautiful
+models with _bentopy_ for expressing their enthusiasm and providing hands-on
+feedback.
 
 ## Detailed installation instructions
 
