@@ -157,7 +157,10 @@ def mask(args):
             nodes = set(containment.voxel_containment.nodes) - set(containment.voxel_containment.root_nodes)
         else:
             nodes = containment.voxel_containment.nodes
-        labels_u = containment.voxel_containment.get_universe_from_nodes(nodes=list(nodes), universe=u)
+        labels = containment.voxel_containment.components_grid
+        labels_u = voxels_to_universe(labels, nodes=list(nodes), universe=u)
+        assert labels_u is not None
+        assert labels_u.atoms is not None
 
         if len(labels_u.atoms) > 0:
             log(f"Writing labels voxels debug file to {labels_path}... ", end="")
