@@ -154,7 +154,8 @@ def mask(args):
     if labels_path is not None:
         # voxels_to_gro(labels_path, label_array, scale=args.containment_resolution)
         if exclude_outside:
-            nodes = set(containment.voxel_containment.nodes) - set(containment.voxel_containment.root_nodes)
+            negative_root_nodes = set(rn for rn in containment.voxel_containment.root_nodes if rn < 0)
+            nodes = set(containment.voxel_containment.nodes) - negative_root_nodes
         else:
             nodes = containment.voxel_containment.nodes
         labels = containment.voxel_containment.components_grid
