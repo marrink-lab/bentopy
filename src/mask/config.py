@@ -1,3 +1,4 @@
+from typing import Literal
 import argparse
 from pathlib import Path
 
@@ -11,8 +12,27 @@ DEFAULT_CONTAINMENT_RESOLUTION = 0.5
 DEFAULT_MASK_RESOLUTION = 0.5
 
 
-def process_labels(labels: str) -> list[int]:
-    return [int(label) for label in labels.split(",")]
+def parse_label(label: str) -> int | None:
+    match label:
+        case "autofill": return None
+        case n: return int(n)
+
+
+def process_labels_to_mask(labels_to_mask: str) -> tuple[list[int | None], str]:
+    """
+    Convert a string of the form '<label>+:<mask-path>' to
+    `(labels, mask_path)`.
+
+    For example, '-1,-2:mask.npz' becomes `([-1, -2], "mask.npz")`.
+
+    A possible label is 'autofill', which will be interpreted during runtime
+    based on the containment graph.
+
+    For example, 'autofill,-2:mask.npz' becomes `([None, -2], "mask.npz")`.
+    """
+    labels_list, mask_path = labels_to_mask.split(":")
+    labels = [parse_label(label.strip()) for label in labels_list.split(",")]
+    return labels, mask_path
 
 
 def setup_parser(parser=None):
@@ -30,10 +50,75 @@ def setup_parser(parser=None):
         help="Input structure file to subject to segmentation.",
     )
     parser.add_argument(
-        "output",
+        "-l",
+        "--labels",
+        nargs=1, # Make sure that we can also safely provide negative number arguments.
+        action="append",
+        type=process_labels_to_mask,
+        help="""Write compartments to some mask based on a list of labels.
+        Provide compartment labels, comma-separated, followed by a colon and
+        the mask path for that set of labels.
+
+        For example, providing '-1,-2:mask.npz' will create a mask called
+        'mask.npz' that represents the labeled compartments -1 and -2.
+        """,
+    )
+    parser.add_argument(
+        "--containment-resolution",
+        default=DEFAULT_CONTAINMENT_RESOLUTION,
+        type=float,
+        help="Resolution for the compartment finding routine (nm). (default: %(default)s nm)",
+    )
+    parser.add_argument(
+        "--mask-resolution",
+        default=DEFAULT_MASK_RESOLUTION,
+        type=float,
+        help="Voxel size (resolution) for the exported mask (nm). (default: %(default)s nm)",
+    )
+    parser.add_argument(
+        "--selection",
+        default="not resname W ION",
+        type=str,
+        help="MDAnalysis selection string for the atom group over which to perform the segmentation. (default: '%(default)s')",
+    )
+    parser.add_argument(
+        "-b",
+        "--visualize-labels",
         type=Path,
         nargs="?",
-        help="Output path for the resulting voxel mask.",
+        const="labels.gro",
+        help="""Optional output path to a gro file to write labeled voxel positions to.
+        This file can be inspected with molecule viewers, which is very helpful 
+        in determining which labels match the compartments you want to select.
+        (when used, default: %(const)s)""",
+    )
+    parser.add_argument(
+        "--exclude-outside",
+        action="store_true",
+        help="""When writing labeled voxel positions (--visualize-labels),
+        exclude empty outside nodes.""",
+    )
+    parser.add_argument(
+        "--visualize-masks",
+        action="store_true",
+        help="""Write the final voxel masks as a gro file for inspection with
+        molecule viewers. This can be useful when you want to verify the voxel
+        mask that is produced for some selection of labels.
+
+        The name will be derived from the output mask name. So 'mask.npz'
+        becomes 'mask.npz.gro'.
+        """,
+    )
+    parser.add_argument(
+        "--min-size",
+        type=float,
+        help="""
+        A volume in nm³. Starting from the leaf nodes, recursively merge with
+        ancestors until this minimum size has been met.
+
+        This is very helpful for filtering out small, non-relevant compartments
+        by merging them to their parent compartments.
+        """,
     )
     morph = parser.add_mutually_exclusive_group()
     morph.add_argument(
@@ -66,70 +151,6 @@ def setup_parser(parser=None):
         """,
     )
     parser.add_argument(
-        "--min-size",
-        type=float,
-        help="""
-        A volume in nm³. Starting from the leaf nodes, recursively merge with
-        ancestors until this minimum size has been met.
-
-        This is very helpful for filtering out small, non-relevant compartments
-        by merging them to their parent compartments.
-        """,
-    )
-    parser.add_argument(
-        "--containment-resolution",
-        default=DEFAULT_CONTAINMENT_RESOLUTION,
-        type=float,
-        help="Resolution for the compartment finding routine (nm). (default: %(default)s nm)",
-    )
-    parser.add_argument(
-        "--mask-resolution",
-        default=DEFAULT_MASK_RESOLUTION,
-        type=float,
-        help="Voxel size (resolution) for the exported mask (nm). (default: %(default)s nm)",
-    )
-    parser.add_argument(
-        "--selection",
-        default="not resname W ION",
-        type=str,
-        help="MDAnalysis selection string for the atom group over which to perform the segmentation. (default: '%(default)s')",
-    )
-    labels_group = parser.add_mutually_exclusive_group()
-    labels_group.add_argument(
-        "--labels",
-        type=process_labels,
-        help="Pre-selected compartment labels, comma-separated.",
-    )
-    labels_group.add_argument(
-        "--autofill",
-        action="store_true",
-        help="Automatically select the leaf nodes from the containment graph, which commonly represent the 'insides' of the system.",
-    )
-    parser.add_argument(
-        "-b",
-        "--visualize-labels",
-        type=Path,
-        nargs="?",
-        const="labels.gro",
-        help="""Optional output path to a gro file to write labeled voxel positions to.
-        This file can be inspected with molecule viewers, which is very helpful 
-        in determining which labels match the compartments you want to select.
-        (when used, default: %(const)s)""",
-    )
-    parser.add_argument(
-        "--exclude-outside",
-        action="store_true",
-        help="""When writing labeled voxel positions (--visualize-labels),
-        exclude empty outside nodes.""",
-    )
-    parser.add_argument(
-        "--visualize-mask",
-        type=Path,
-        help="""Write the final voxel mask as a gro file for inspection with
-        molecule viewers. This can be useful when you want to verify the voxel
-        mask that is produced for some selection of labels.""",
-    )
-    parser.add_argument(
         "--no-cache",
         action="store_true",
         help="""Do not cache structure files.
@@ -154,6 +175,10 @@ def setup_parser(parser=None):
 def parse_args():
     parser = setup_parser()
     args = parser.parse_args()
+    # Because we use both nargs=1 and action="append", we need to unpack our
+    # values. Sucks but it works.
+    if args.labels is not None:
+        args.labels = [l for [l] in args.labels]
 
     # Make sure that --exclude-outside is accepted iff --visualize-labels is
     # given.

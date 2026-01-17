@@ -33,14 +33,6 @@ def mask(args):
         log(f"ERROR: The mask resolution ({args.mask_resolution}) cannot be negative.")
         return 1
     zoom = int(args.containment_resolution / args.mask_resolution)
-    # If labels are provided, we will not run in interactive mode.
-    interactive = args.labels is None and not args.autofill
-    if not interactive:
-        log("Running in non-interactive mode.")
-        if args.output is None:
-            log("WARNING: No mask output path was specified.")
-            log("The computed mask will not be written to disk.")
-            log("Like tears in rain.")
 
     # Read in structures from a structure file or from a cache..
     u = None
@@ -144,91 +136,78 @@ def mask(args):
 
     # Let's select our labels.
     possible_labels = npc(containment.voxel_containment.nodes)
-    if interactive:
-        log(
-            "No compartment labels have been selected, yet.",
-            "Select one or more to continue.\n",
-            f"Options: {possible_labels}.",
-            "Provide them as a space-separated list followed by a return.",
-        )
-        labels = []
-        while len(labels) == 0:
-            try:
-                labels.extend(map(lambda label: int(label), input("-> ").split()))
-            except ValueError:
-                log("Could not parse the labels. Make sure they are well-formed.")
+    if args.labels is not None:
+        labels_to_masks = args.labels
+        # Substitute None (autofill directives), such that:
+        #   [([int | None], str)] -> [([int], str)]
+        for labels, mask_path in labels_to_masks:
+            final_labels = set()
+            for label in labels:
+                if label is None:
+                    # Here we find the labels for 'autofill'.
+                    leaf_nodes = containment.voxel_containment.leaf_nodes
+                    final_labels.update(leaf_nodes)
+                else:
+                    final_labels.add(label)
+            labels[:] = list(final_labels)
             for label in labels:
                 if label not in possible_labels:
-                    log(f"'{label}' is not a valid compartment label.")
-                    log("Please try again.")
-                    labels.clear()
-                    break
-    elif args.autofill:
-        labels = containment.voxel_containment.leaf_nodes
-        log(f"Automatically choosing leaf components: {npc(labels)}.")
-    elif args.labels is not None:
-        labels = args.labels
-        for label in labels:
-            if label not in possible_labels:
-                log(f"ERROR: '{label}' is not a valid compartment label.")
-                return 1
+                    log(f"ERROR: {label} for '{mask_path}' is not a "
+                        "valid compartment label.")
+                    return 1
     else:
-        # This should be impossible!
-        log(f"ERROR: No labels are specified and the mode is non-interactive.")
-        return 1
-    log(f"Selected the following labels: {npc(labels)}.")
+        log("No label selection was provided.")
+        labels = npc(containment.voxel_containment.leaf_nodes)
+        # Make sure that we don't spam the entire screen if there are a lot of
+        # leaf node labels.
+        nlabels = min(len(labels), 5)
+        example_labels = ",".join(str(l) for l in labels[::-1][:nlabels])
+        log(f"To write a mask for, e.g., the compartments {example_labels}, use")
+        log(f"        -l {example_labels}:mask.npz")
+        return 0
 
-    # Get our compartment by masking out all voxels that have our selected labels.
-    compartment = containment.voxel_containment.get_voxel_mask(labels)
-    full = np.count_nonzero(compartment == True)
-    free = np.count_nonzero(compartment == False)
-    full_volume = full * containment.voxel_volume
-    free_volume = free * containment.voxel_volume
-    total_volume = full_volume + free_volume
-    full_frac = full_volume / total_volume
-    free_frac = free_volume / total_volume
-    log("Selected compartment contains:")
-    log(f"    occupied:\t{full} voxels\t({full_frac:.1%}, {full_volume:.1f} nm³)")
-    log(f"   available:\t{free} voxels\t({free_frac:.1%}, {free_volume:.1f} nm³)")
+    reported = False
+    for labels, mask_path in labels_to_masks:
+        # Get our compartment by masking out all voxels that have our selected labels.
+        compartment = containment.voxel_containment.get_voxel_mask(labels)
+        # Produce our final output mask according to the specified output mask resolution.
+        zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
 
-    # Produce our final output mask according to the specified output mask resolution.
-    log(f"Output mask resolution is set to {args.mask_resolution} nm.")
-    log(f"Zoom factor from containment voxels to mask voxels is {zoom}.")
-    zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
+        if not reported:
+            # Report a summary of the final masks's dimensions.
+            log(f"Output mask resolution is set to {args.mask_resolution} nm.")
+            log(f"Zoom factor from containment voxels to mask voxels is {zoom}.")
+            mask_res = args.mask_resolution
+            mask_shape = zoomed.shape
+            mask_size = tuple(npc(np.array(mask_shape) * mask_res))
+            log(f"Size of final voxel masks is {mask_shape} at a {mask_res} nm resolution.")
+            log(f"This corresponds to a final mask size of {mask_size} nm.")
+            reported = True
 
-    # Report a summary of the final mask's dimensions.
-    mask_res = args.mask_resolution
-    mask_shape = zoomed.shape
-    mask_size = tuple(npc(np.array(mask_shape) * mask_res))
-    log(f"Size of final voxel mask is {mask_shape} at a {mask_res} nm resolution.")
-    log(f"This corresponds to a final mask size of {mask_size} nm.")
+        log(f"Creating '{mask_path}' with the following labels: {npc(labels)}.")
+        full = np.count_nonzero(compartment == True)
+        free = np.count_nonzero(compartment == False)
+        full_volume = full * containment.voxel_volume
+        free_volume = free * containment.voxel_volume
+        total_volume = full_volume + free_volume
+        full_frac = full_volume / total_volume
+        free_frac = free_volume / total_volume
+        log("\tSelected compartment contains:")
+        log(f"\t    occupied:\t{full} voxels\t({full_frac:.1%}, {full_volume:.1f} nm³)")
+        log(f"\t   available:\t{free} voxels\t({free_frac:.1%}, {free_volume:.1f} nm³)")
 
-    # Write out a debug voxels gro of the mask if desired.
-    voxels_path = args.visualize_mask
-    if voxels_path is not None:
-        log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
-        voxels_to_universe(zoomed, universe=u, nodes=[True])
-        voxels_to_gro(voxels_path, zoomed, scale=args.mask_resolution)
-        log("done.")
+        # Write out a debug voxels gro of the mask if desired.
+        # TODO: Add ability to give custom path here.
+        if args.visualize_masks:
+            voxels_path = Path(f"{mask_path}.gro")
+            log(f"\tWriting mask voxels debug file to {voxels_path}... ", end="")
+            voxels_to_universe(zoomed, universe=u, nodes=[True])
+            voxels_to_gro(voxels_path, zoomed, scale=args.mask_resolution)
+            log("done.")
 
-    # Determine the voxel mask output path.
-    output_path = args.output
-    if args.output is None and interactive:
-        log("Please provide an output path for the final voxel mask.")
-        while True:
-            path = input("(npz) -> ").strip()
-            if len(path) == 0:
-                output_path = None
-                break
-            output_path = Path(path)
-            if output_path.suffix == ".npz":
-                break
-            log(f"Path must have an npz extension. Found '{output_path.suffix}'.")
-
-    # Finally, write out the voxel mask when desired.
-    if output_path is not None:
-        log(f"Writing the voxel mask to {output_path}... ", end="")
-        np.savez(output_path, zoomed)
+        # Finally, write out the voxel mask.
+        log(f"\tWriting the voxel mask to {mask_path}... ", end="")
+        np.savez(mask_path, zoomed)
         log("done.")
 
 
