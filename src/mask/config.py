@@ -117,6 +117,12 @@ def setup_parser(parser=None):
         (when used, default: %(const)s)""",
     )
     parser.add_argument(
+        "--exclude-outside",
+        action="store_true",
+        help="""When writing labeled voxel positions (--inspect-labels-path),
+        exclude empty outside nodes.""",
+    )
+    parser.add_argument(
         "--debug-voxels",
         type=Path,
         help="""Write the final voxel mask as a gro file for inspection with molecule viewers. 
@@ -143,3 +149,14 @@ def setup_parser(parser=None):
         help="Display verbose output.",
     )
     return parser
+
+def parse_args():
+    parser = setup_parser()
+    args = parser.parse_args()
+
+    # Make sure that --exclude-outside is accepted iff --inspect-labels-path is
+    # given.
+    if args.exclude_outside and not args.inspect_labels_path:
+        parser.error("--exclude-outside requires --inspect-labels-path")
+
+    return args

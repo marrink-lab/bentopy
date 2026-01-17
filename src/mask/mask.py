@@ -8,7 +8,7 @@ import numpy as np
 from mdvcontainment import Containment
 from mdvcontainment.voxel_logic import voxels_to_universe
 
-from .config import setup_parser
+from .config import parse_args
 from .utilities import voxels_to_gro
 
 # Let's ignore the wordy warnings we tend to get from MDAnalysis.
@@ -135,21 +135,8 @@ def mask(args):
             log(f"Path must have a gro extension. Found '{labels_path.suffix}'.")
     else:
         labels_path = args.inspect_labels_path
-    root_nodes = npc(containment.voxel_containment.root_nodes)
-    log(f"Do you want to exclude the 'outside' compartment(s) (labels {root_nodes})?")
-    log("Excluding the root nodes is helpful, because they usually make up a large part of the space.")
-    while True:
-        answer = input("(Y/n) -> ").strip()
-        match answer.lower():
-            case "" | "y":
-                exclude_outside = True
-                break
-            case "n":
-                exclude_outside = False
-                break
-            case _: log(f"Expected 'y' or 'n'. Found '{answer}'.")
     if labels_path is not None:
-        if exclude_outside:
+        if args.exclude_outside:
             negative_root_nodes = set(rn for rn in containment.voxel_containment.root_nodes if rn < 0)
             nodes = set(containment.voxel_containment.nodes) - negative_root_nodes
         else:
@@ -296,8 +283,7 @@ def npc(ns):
 
 
 def main():
-    parser = setup_parser()
-    args = parser.parse_args()
+    args = parse_args()
     return mask(args)
 
 
