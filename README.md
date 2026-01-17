@@ -122,11 +122,11 @@ With _mask_ you can take a structure or point cloud and determine the different
 compartments within it.
 
 ```console
-bentopy-mask membrane.gro masks/inside.npz --autofill
+bentopy-mask membrane.gro -l autofill:masks/inside.npz
 ```
 
 _Determine the compartments contained by the structure in `membrane.gro` and
-automatically select the innermost compartment (`--autofill`). From that
+automatically select the innermost compartment (`autofill`). From that
 selected compartment, write a mask to `masks/inside.npz`._
 
 The masks created with `bentopy-mask` can be imported as a compartment in a
