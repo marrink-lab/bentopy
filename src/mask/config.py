@@ -107,7 +107,7 @@ def setup_parser(parser=None):
     )
     parser.add_argument(
         "-b",
-        "--inspect-labels-path",
+        "--visualize-labels",
         type=Path,
         nargs="?",
         const="labels.gro",
@@ -119,14 +119,15 @@ def setup_parser(parser=None):
     parser.add_argument(
         "--exclude-outside",
         action="store_true",
-        help="""When writing labeled voxel positions (--inspect-labels-path),
+        help="""When writing labeled voxel positions (--visualize-labels),
         exclude empty outside nodes.""",
     )
     parser.add_argument(
-        "--debug-voxels",
+        "--visualize-mask",
         type=Path,
-        help="""Write the final voxel mask as a gro file for inspection with molecule viewers. 
-        This can be useful when you want to verify the voxel mask that is produced for some selection of labels.""",
+        help="""Write the final voxel mask as a gro file for inspection with
+        molecule viewers. This can be useful when you want to verify the voxel
+        mask that is produced for some selection of labels.""",
     )
     parser.add_argument(
         "--no-cache",
@@ -154,9 +155,9 @@ def parse_args():
     parser = setup_parser()
     args = parser.parse_args()
 
-    # Make sure that --exclude-outside is accepted iff --inspect-labels-path is
+    # Make sure that --exclude-outside is accepted iff --visualize-labels is
     # given.
-    if args.exclude_outside and not args.inspect_labels_path:
-        parser.error("--exclude-outside requires --inspect-labels-path")
+    if args.exclude_outside and not args.visualize_labels:
+        parser.error("--exclude-outside requires --visualize-labels")
 
     return args

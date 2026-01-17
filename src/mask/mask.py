@@ -122,7 +122,7 @@ def mask(args):
     label_array = containment.voxel_containment.components_grid
 
     # Write the labels to a gro file if desired.
-    labels_path = args.inspect_labels_path
+    labels_path = args.visualize_labels
     if labels_path is not None:
         if args.exclude_outside:
             negative_root_nodes = set(rn for rn in containment.voxel_containment.root_nodes if rn < 0)
@@ -204,7 +204,7 @@ def mask(args):
     log(f"This corresponds to a final mask size of {mask_size} nm.")
 
     # Write out a debug voxels gro of the mask if desired.
-    voxels_path = args.debug_voxels
+    voxels_path = args.visualize_mask
     if voxels_path is not None:
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
         voxels_to_universe(zoomed, universe=u, nodes=[True])
