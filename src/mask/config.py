@@ -7,7 +7,7 @@ More information is available at <https://github.com/BartBruininks/mdvcontainmen
 """
 DESCRIPTION = "Set up masks based on structures and compartment segmentations."
 
-DEFAULT_CONTAINMENT_RESOLUTION = 1.0
+DEFAULT_CONTAINMENT_RESOLUTION = 0.5
 DEFAULT_MASK_RESOLUTION = 0.5
 
 
