@@ -33,17 +33,14 @@ def mask(args):
         log(f"ERROR: The mask resolution ({args.mask_resolution}) cannot be negative.")
         return 1
     zoom = int(args.containment_resolution / args.mask_resolution)
-    # Everything must be set correctly in case --no-interactive is used.
-    if not args.interactive:
+    # If labels are provided, we will not run in interactive mode.
+    interactive = args.labels is None and not args.autofill
+    if not interactive:
         log("Running in non-interactive mode.")
         if args.output is None:
             log("WARNING: No mask output path was specified.")
             log("The computed mask will not be written to disk.")
             log("Like tears in rain.")
-        if args.labels is None and not args.autofill:
-            log("ERROR: No labels were specified.")
-            log("In non-interactive mode, at least one label must be provided manually (`--label`) or automatically (`--autofill`).")
-            return 1
 
     # Read in structures from a structure file or from a cache..
     u = None
@@ -124,7 +121,7 @@ def mask(args):
     # Get the label array.
     label_array = containment.voxel_containment.components_grid
     # Write the labels to a gro file if desired.
-    if args.inspect_labels_path is None and args.interactive:
+    if args.inspect_labels_path is None and interactive:
         log("Do you want to write a label map as a gro file to view the containments?")
         log("Provide an output path. To skip this step, leave this field empty.")
         while True:
@@ -172,7 +169,7 @@ def mask(args):
 
     # Let's select our labels.
     possible_labels = npc(containment.voxel_containment.nodes)
-    if args.interactive and args.labels is None and args.autofill is False:
+    if interactive and args.labels is None and args.autofill is False:
         log(
             "No compartment labels have been selected, yet.",
             "Select one or more to continue.\n",
@@ -232,7 +229,7 @@ def mask(args):
     log(f"This corresponds to a final mask size of {mask_size} nm.")
 
     # Write out a debug voxels gro of the mask if desired.
-    if args.debug_voxels is None and args.interactive:
+    if args.debug_voxels is None and interactive:
         log("Do you want to write the voxel mask as a gro file to inspect it?")
         log("Warning: This file may be quite large, depending on the mask resolution.")
         log("Provide an output path. To skip this step, leave this field empty.")
@@ -255,7 +252,7 @@ def mask(args):
 
     # Determine the voxel mask output path.
     output_path = args.output
-    if args.output is None and args.interactive:
+    if args.output is None and interactive:
         log("Please provide an output path for the final voxel mask.")
         while True:
             path = input("(npz) -> ").strip()

@@ -35,14 +35,6 @@ def setup_parser(parser=None):
         nargs="?",
         help="Output path for the resulting voxel mask.",
     )
-    parser.add_argument(
-        "--no-interactive",
-        dest="interactive",
-        action="store_false",
-        help="""Do not ask for command line input at runtime. May be desirable 
-        when all inputs are known and in a scripted context.
-        (normally interactive)""",
-    )
     morph = parser.add_mutually_exclusive_group()
     morph.add_argument(
         "--morph",
