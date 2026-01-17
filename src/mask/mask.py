@@ -120,21 +120,9 @@ def mask(args):
 
     # Get the label array.
     label_array = containment.voxel_containment.components_grid
+
     # Write the labels to a gro file if desired.
-    if args.inspect_labels_path is None and interactive:
-        log("Do you want to write a label map as a gro file to view the containments?")
-        log("Provide an output path. To skip this step, leave this field empty.")
-        while True:
-            path = input("(gro) -> ").strip()
-            if len(path) == 0:
-                labels_path = None
-                break
-            labels_path = Path(path)
-            if labels_path.suffix == ".gro":
-                break
-            log(f"Path must have a gro extension. Found '{labels_path.suffix}'.")
-    else:
-        labels_path = args.inspect_labels_path
+    labels_path = args.inspect_labels_path
     if labels_path is not None:
         if args.exclude_outside:
             negative_root_nodes = set(rn for rn in containment.voxel_containment.root_nodes if rn < 0)
@@ -156,7 +144,7 @@ def mask(args):
 
     # Let's select our labels.
     possible_labels = npc(containment.voxel_containment.nodes)
-    if interactive and args.labels is None and args.autofill is False:
+    if interactive:
         log(
             "No compartment labels have been selected, yet.",
             "Select one or more to continue.\n",
@@ -175,19 +163,19 @@ def mask(args):
                     log("Please try again.")
                     labels.clear()
                     break
-    elif args.autofill is True:
+    elif args.autofill:
         labels = containment.voxel_containment.leaf_nodes
         log(f"Automatically choosing leaf components: {npc(labels)}.")
-    else:
-        # Making sure we this is the case, even though we do this check at the top as well.
-        assert (
-            args.labels is not None
-        ), "No labels are specified and the mode is non-interactive so we can't ask."
+    elif args.labels is not None:
         labels = args.labels
         for label in labels:
             if label not in possible_labels:
                 log(f"ERROR: '{label}' is not a valid compartment label.")
                 return 1
+    else:
+        # This should be impossible!
+        log(f"ERROR: No labels are specified and the mode is non-interactive.")
+        return 1
     log(f"Selected the following labels: {npc(labels)}.")
 
     # Get our compartment by masking out all voxels that have our selected labels.
@@ -216,21 +204,7 @@ def mask(args):
     log(f"This corresponds to a final mask size of {mask_size} nm.")
 
     # Write out a debug voxels gro of the mask if desired.
-    if args.debug_voxels is None and interactive:
-        log("Do you want to write the voxel mask as a gro file to inspect it?")
-        log("Warning: This file may be quite large, depending on the mask resolution.")
-        log("Provide an output path. To skip this step, leave this field empty.")
-        while True:
-            path = input("(gro) -> ").strip()
-            if len(path) == 0:
-                voxels_path = None
-                break
-            voxels_path = Path(path)
-            if voxels_path.suffix == ".gro":
-                break
-            log(f"Path must have a gro extension. Found '{voxels_path.suffix}'.")
-    else:
-        voxels_path = args.debug_voxels
+    voxels_path = args.debug_voxels
     if voxels_path is not None:
         log(f"Writing mask voxels debug file to {voxels_path}... ", end="")
         voxels_to_universe(zoomed, universe=u, nodes=[True])
