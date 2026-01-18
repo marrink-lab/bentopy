@@ -731,13 +731,13 @@ periodic false
         fn multiple() {
             let src = r#"[ includes ]
 "forcefield/martini.itp"
-"structures/*.itp""#;
+"structures/3lyz.itp""#;
             let res = lex_and_parse!(includes_parser => src);
             assert_eq!(
                 res,
                 Ok(vec![
                     "forcefield/martini.itp".into(),
-                    "structures/*.itp".into()
+                    "structures/3lyz.itp".into()
                 ])
             )
         }

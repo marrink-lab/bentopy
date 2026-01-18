@@ -19,7 +19,7 @@ resolution <voxel-size>
 # This is optional. For example:
 #   "forcefield/forcefield.itp"
 #   "forcefield/forcefield_solvents.itp"
-#   "structures/*.itp"
+#   "structures/3lyz.itp"
 <itp-includes...>
 
 [ compartments ]
