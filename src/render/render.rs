@@ -305,8 +305,11 @@ fn write_top(
         env!("CARGO_BIN_NAME"),
         bentopy::core::version::VERSION
     )?;
-    writeln!(writer, "; {}", env!("CARGO_PKG_AUTHORS"))?;
     writeln!(writer, "; {}", env!("CARGO_PKG_REPOSITORY"))?;
+    let authors = env!("CARGO_PKG_AUTHORS").split(':');
+    for author in authors {
+        writeln!(writer, "; - {author}")?;
+    }
     writeln!(writer)?;
 
     // Dump the includes.
