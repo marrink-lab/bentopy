@@ -172,7 +172,7 @@ The water model used for solvation can be selected with the `--water-type`
 flag. The `martini` and `tip3p` (atomistic) options are available. By default,
 the `martini` water type is used.
 
-### Substitutions --- place ions with ease!
+### Substitutions&mdash;place ions with ease!
 
 Distributing ions in solvated systems can become challenging in very large
 systems. By substituting solvent residues with ions or other residues in this
@@ -233,7 +233,7 @@ box, compared to the box set in the input structure.
 The periodic mode determines how the periodic images of the input
 structure itself are treated. The default behavior is orthorhombicly
 periodic according to the final box size (see boundary mode).
-For cases where---for some reason---atoms from the input structure that
+For cases where&mdash;-for some reason&mdash;-atoms from the input structure that
 fall outside the box should not be considered in checking solvent
 placement, the `ignore` mode can be used.
 Furher, for cases where solvation should be stopped when an atom from
