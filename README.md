@@ -53,8 +53,15 @@ If you use bentopy to set up your molecular dynamics system in a publication, pl
 _Bentopy_ can be installed through `pip`.
 
 ```console
-pip install bentopy
+pip install bentopy==0.2.0a10
 ```
+
+> [!NOTE]
+> As you can see, we recommend you install an alpha version. This will soon
+> become a _bentopy_ 1.0 beta, release candidate, and eventually the proper 1.0
+> release.
+>
+> This is the version described by the current documentation.
 
 For most Linux platforms, pre-built binaries are available and will be
 installed automatically through `pip`. For other platforms, such as macOS, a
