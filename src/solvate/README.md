@@ -19,7 +19,7 @@ to this project's [installation instructions][install].
 ## Usage
 
 ```console
-$ bentopy-solvate -i structure.gro -w water.gro -o structure_solvated.gro
+$ bentopy-solvate -i structure.gro -o structure_solvated.gro
 ```
 
 Learn about the available options through `$ bentopy-solvate --help`.
@@ -27,7 +27,7 @@ Learn about the available options through `$ bentopy-solvate --help`.
 ```
 Solvate
 
-Usage: bentopy-solvate [OPTIONS] --input <INPUT> --output <OUTPUT> --water-box <TEMPLATE>
+Usage: bentopy-solvate [OPTIONS] --input <INPUT> --output <OUTPUT>
 
 Options:
   -i, --input <INPUT>
@@ -36,16 +36,16 @@ Options:
   -o, --output <OUTPUT>
           Output path
 
-  -w, --water-box <TEMPLATE>
-          Solvent template path
-
       --cutoff <CUTOFF>
           Lowest allowable distance between solvent and structure beads (nm).
 
           This is the minimum allowable center-to-center distance when checking
           for a collision between a solvent bead and a structure bead.
 
-          [default: 0.43]
+          For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
+
+          For Martini solvation, the default cutoff is 0.43 nm. For atomistic
+          solvation, the default cutoff is 0.28.
 
       --solvent-cutoff <SOLVENT_CUTOFF>
           Lowest allowable distance between solvent beads (nm).
@@ -54,9 +54,18 @@ Options:
           solvent beads when cutting the sides to fit in the specified output
           structure box.
 
-          For the solvent-solvent cutoff distance, see `--solvent-cutoff`.
+          For Martini solvation, the default cutoff is 0.21 nm. For atomistic
+          solvation, the default cutoff is 0.21.
 
-          [default: 0.21]
+      --ignore <IGNORE>
+          List of resnames to ignore when checking against structure-solvent
+          collisions
+
+      --water-type <WATER_TYPE>
+          The type of water written to the output file
+
+          [default: martini]
+          [possible values: martini, tip3p]
 
   -c, --center
           Center the structure in the new box.
@@ -67,11 +76,13 @@ Options:
   -b, --boundary-mode <BOUNDARY_MODE>
           Set how the boundaries of the box will be treated
 
-          [default: cut]
-
           Possible values:
-          - cut:  Cut at the structure box size and remove solvent residues that overlap with the periodic neighbors
-          - grow: If necessary, grow the box of the output structure to fit a whole number of template boxes
+          - cut:  Cut at the structure box size and remove solvent residues
+                  that overlap with the periodic neighbors
+          - grow: If necessary, grow the box of the output structure to fit a
+                  whole number of template boxes
+
+          [default: cut]
 
   -p, --periodic-mode <PERIODIC_MODE>
           Set how periodic images of the input structure are considered.
@@ -79,12 +90,15 @@ Options:
           Note that only orthorhombic (cuboid) periodicity is considered,
           currently.
 
-          [default: periodic]
-
           Possible values:
-          - periodic: Include the periodic images of the structure when checking whether a solvent spot is occupied
-          - ignore:   Ignore the periodic images of the structure for the solvent placement check
-          - deny:     Treat any structure atoms outside of the output box as an error and exit
+          - periodic: Include the periodic images of the structure when
+                      checking whether a solvent spot is occupied
+          - ignore:   Ignore the periodic images of the structure for the
+                      solvent placement check
+          - deny:     Treat any structure atoms outside of the output box as an
+                      error and exit
+
+          [default: periodic]
 
   -s, --substitute <SUBSTITUTES>
           Define substitutes for solvent residues, such as ions
@@ -117,8 +131,12 @@ Options:
           [possible values: size, rev-size, alphabetical, rev-alphabetical, no]
 
       --seed <SEED>
-          Random number generator seed for solvent substitution, such as
-          ion placement
+          Random number generator seed for solvent substitution, such as ion
+          placement
+
+      --write-velocities
+          If the solvent template contains velocity information, write these
+          velocities to the output file
 
   -t, --append-topol <APPEND_TOPOL>
           Append solvation topology lines to a path
@@ -141,9 +159,18 @@ Options:
 
   -h, --help
           Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 ```
 
 ## Features
+
+### All-atom and Martini solvation
+
+The water model used for solvation can be selected with the `--water-type`
+flag. The `martini` and `tip3p` (atomistic) options are available. By default,
+the `martini` water type is used.
 
 ### Substitutions --- place ions with ease!
 
@@ -152,7 +179,7 @@ systems. By substituting solvent residues with ions or other residues in this
 solvation process, a great speed-up is possible over other methods.
 
 ```console
-$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
+$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
 ```
 
 To specify a substitution, provide a name and a quantifier, separated by a
@@ -171,7 +198,7 @@ The `--charge` option can be used as a convenient short-hand for adding
 neutralizing ions. This may be especially useful in automated pipelines.
 
 ```console
-$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
+$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
 ```
 
 `NA` and `CL` substitutes are made by default, but custom neutralizing
@@ -179,7 +206,7 @@ substitutes can be set after the charge:
 `--charge <charge>:<positive name>,<negative name>`.
 
 ```console
-$ bentopy-solvate -i structure.gro -w water.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
+$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
 ```
 
 #### Combining, sorting
@@ -215,7 +242,7 @@ be set to `deny`. This will exit the process with error code 2 if such
 an escaped atom is found.
 
 [hose]: https://git.sr.ht/~ma3ke/hose
-[install]: /README.md
+[install]: /README.md#installation
 [gro]: https://manual.gromacs.org/archive/5.0.3/online/gro.html
 [rust]: https://www.rust-lang.org/
 [rustup]: https://www.rust-lang.org/tools/install

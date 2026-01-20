@@ -232,14 +232,12 @@ and coarse-grained Martini water placement is supported.
 
 ```console
 bentopy-solvate -i packed.gro -o solvated.gro \
-	-s NA:0.15M -s CL:0.15M --charge 5172 \
-	--water-type tip3p
+	-s NA:0.15M -s CL:0.15M --charge 5172
 ```
 
 _Solvate the structure in `packed.gro` and output the result to `solvated.gro`.
 Substitute water residues for ions at 0.15M NaCl. Compensate the charge of
-`packed.gro` with 5172 additional Cl substitutions. Use Tip3P waters
-(atomistic)._
+`packed.gro` with 5172 additional Cl substitutions. Use Martini waters._
 
 A thorough description of the command is [provided in the `bentopy-solvate`
 README](src/solvate/README.md).
