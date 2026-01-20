@@ -129,10 +129,10 @@ With _mask_ you can take a structure or point cloud and determine the different
 compartments within it.
 
 ```console
-bentopy-mask membrane.gro -l autofill:masks/inside.npz
+bentopy-mask vesicle.gro -l autofill:masks/inside.npz
 ```
 
-_Determine the compartments contained by the structure in `membrane.gro` and
+_Determine the compartments contained by the structure in `vesicle.gro` and
 automatically select the innermost compartment (`autofill`). From that
 selected compartment, write a mask to `masks/inside.npz`._
 
@@ -175,23 +175,24 @@ This is a minimal but complete `bent` file.
 
 ```ini
 [ general ]
-title "Lysozymes in a sphere"
+title "Lysozymes in a vesicle"
 
 [ space ]
-dimensions 100, 100, 100
+dimensions 50, 50, 50
 resolution 0.5
 
 [ compartments ]
-ball as sphere at center with diameter 80
+inside from "masks/inside.npz"
 
 [ segments ]
-3lyz 2000 from "structures/3lyz.pdb" in ball
+3lyz 300 from "structures/3lyz.pdb" in inside
 ```
 
-Provided you have the structure file, this configuration can be used to create
-an 80 nm diameter sphere filled with lysozyme structures. This is a minimal
-version of the system described and explained in [Example 1: Simple
-sphere][wiki-example-1] on the wiki.
+Provided you have the structure file and the mask, this configuration can be
+used to place lysozyme structures within a vesicle.
+
+For a more elaborate description of a similar system using an analytical
+sphere, take a look at [Example 1: Simple sphere][wiki-example-1] on the wiki.
 
 [wiki-example-1]: https://github.com/marrink-lab/bentopy/wiki/Example-1:-Simple-sphere
 
@@ -205,10 +206,10 @@ where_. In order to create a structure file (and topology file) from this
 placement list, the _render_ subcommand can be used.
 
 ```console
-bentopy-render placements.json structure.gro -t topol.top
+bentopy-render placements.json packed.gro -t topol.top
 ```
 
-_Render `placements.json` created by _pack_ to a `gro` file at `structure.gro`
+_Render `placements.json` created by _pack_ to a `gro` file at `packed.gro`
 and write a topology file to `topol.top`._
 
 This is a separate operation from _packing_, since the packed systems can
@@ -225,12 +226,12 @@ residue name for a whole file in the argument list by appending
 `:<residue name>` to a file path.
 
 ```console
-bentopy-merge chromosome.gro:CHROM membrane.gro:MEM -o chrom_mem.gro
+bentopy-merge vesicle.gro:VES packed.gro:LYZ -o merged.gro
 ```
 
-_Concatenate `chromosome.gro` and `membrane.gro` into `chrom_mem.gro`, setting
-the residue names of the chromosome atoms to `CHROM` and those of the membrane
-to `MEM` in the concatenated structure._
+_Concatenate `vesicle.gro` and `packed.gro` into `merged.gro`, setting the
+residue names of the lipid vesicle atoms to `VES` and those of the packed
+lysozymes to `LYZ` in the concatenated structure._
 
 #### _solvate_
 
@@ -240,13 +241,13 @@ designed to run very fast while having a low memory footprint. Both atomistic
 and coarse-grained Martini water placement is supported.
 
 ```console
-bentopy-solvate -i packed.gro -o solvated.gro \
+bentopy-solvate -i merged.gro -o solvated.gro \
 	-s NA:0.15M -s CL:0.15M --charge 5172
 ```
 
-_Solvate the structure in `packed.gro` and output the result to `solvated.gro`.
-Substitute water residues for ions at 0.15M NaCl. Compensate the charge of
-`packed.gro` with 5172 additional Cl substitutions. Use Martini waters._
+_Solvate the structure in `packed.gro` and output the result to `solvated.gro`
+with Martini waters. Substitute water residues for ions at 0.15M NaCl.
+Compensate the charge of `packed.gro` with 5172 additional Cl substitutions._
 
 A thorough description of the command is [provided in the `bentopy-solvate`
 README](src/solvate/README.md).
