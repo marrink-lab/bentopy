@@ -162,6 +162,8 @@ using [_render_](#render).
 _On the wiki, a [detailed reference] for the `bent` configuration input file is
 available._
 
+[detailed reference]: https://github.com/marrink-lab/bentopy/wiki/Reference-for-bent
+
 This is a minimal but complete `bent` file.
 
 ```ini
