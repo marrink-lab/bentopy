@@ -60,7 +60,11 @@ fn main() -> anyhow::Result<()> {
         .to_array()
         .iter()
         .product();
-    let neutralizing_ions = config.charge.and_then(|c| c.bake());
+    let neutralizing_ions = if let Some(charge) = config.charge {
+        charge.bake(config.append_topol.as_ref())?
+    } else {
+        None // Nothing to neutralize.
+    };
     let substitutes = config
         .substitutes
         .into_iter()
