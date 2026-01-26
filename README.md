@@ -34,19 +34,30 @@ available.
 
 ## Citation
 
-If you use bentopy to set up your molecular dynamics system in a publication, please cite our work.
+If you use bentopy to set up your molecular dynamics system in a publication,
+please cite our work.
 
-<!-- TODO: Apa style citation with doi link. -->
-
-> Westendorp, M.S.S, Stevens, J.A. et al. Bentopy: building molecular dynamics simulations with cellular complexity and scale. _In preparation._
-
-<!-- TODO: Fill when paper is going to print.
+> Westendorp MSS, Stevens JA, Brown CM, Dommer AC, Wassenaar TA, Bruininks BMH,
+> and Marrink SJ. Compartment-guided assembly of large-scale molecular models
+> with _Bentopy_. _Protein Science_. 2026. e70480.
+> <https://doi.org/10.1002/pro.70480>
 
 ```
-@article{...}
+@article{westendorp_stevens_bentopy_2026,
+	title = {Compartment-Guided Assembly of Large-Scale Molecular Models with Bentopy},
+	doi = {10.1002/pro.70480},
+	pages = {e70480},
+	journaltitle = {Protein Science},
+	author = {Westendorp, Marieke S.S. and
+                  Stevens, Jan A. and
+                  Brown, Chelsea M. and
+                  Dommer, Abigail C. and
+                  Wassenaar, Tsjerk A. and
+                  Bruininks, Bart M.H. and
+                  Marrink, Siewert J.},
+	year = 2026,
+}
 ```
-
--->
 
 ## Installation
 
