@@ -20,6 +20,7 @@ mod placement;
 mod solvate;
 mod structure;
 mod substitute;
+mod topology;
 mod water;
 
 fn main() -> anyhow::Result<()> {
