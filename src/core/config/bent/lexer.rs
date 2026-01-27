@@ -146,7 +146,6 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         .map(f64::from_str)
         .unwrapped()
         .boxed();
-    // TODO: Introduce mM and nM quantities as well.
     let unit = choice((
         just('M').to(1.0),
         just("mM").to(1e-3),
