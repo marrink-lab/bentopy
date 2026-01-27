@@ -69,13 +69,15 @@ pub struct Args {
     #[arg(short, long = "substitute")]
     pub substitutes: Vec<SubstituteConfig>,
 
-    /// Set the charge to neutralize with additional ions.
+    /// Neutralize the system charge with additional ions.
+    ///
+    /// By passing `--charge neutral`, the total system charge will be determined automically. This
+    /// requires a topology.
+    ///
+    /// The charge to be neutralized can also be set explicitly by providing an integer.
     ///
     /// In essence, this is a shorthand for explicitly providing ions to compensate the charge as
     /// substitutes. This can be helpful for automation purposes.
-    ///
-    /// When you pass a charge value of 'auto', the residual charge will be determined on a
-    /// best-effort basis by reading the topology file, if specified.
     ///
     /// By default, NA (positive) and CL (negative) ions are used, but a different
     /// positive-negative substitution pair can be specified by prepending a colon followed by the
@@ -86,6 +88,8 @@ pub struct Args {
     /// So, by default, some `<charge>` is interpreted as
     ///
     ///     <charge>:NA,CL
+    ///
+    /// Here, `<charge>` can be the string 'neutral' or an integer.
     #[arg(long, allow_hyphen_values = true)]
     pub charge: Option<ChargeConfig>,
 
@@ -207,7 +211,7 @@ impl FromStr for SubstituteConfig {
 #[derive(Debug, Clone)]
 pub enum Charge {
     Known(i64),
-    Auto,
+    Neutral,
 }
 
 #[derive(Debug, Clone)]
@@ -224,7 +228,7 @@ impl FromStr for ChargeConfig {
         let mut words = s.split(':');
         let charge = words.next().ok_or("expected a charge")?;
         let charge = match charge {
-            "auto" => Charge::Auto,
+            "neutral" => Charge::Neutral,
             n => Charge::Known(n.parse::<i64>().map_err(|err| err.to_string())?),
         };
         let (positive, negative) = if let Some(names) = words.next() {
@@ -254,9 +258,9 @@ impl ChargeConfig {
         // we compensate with the positive ion substitute, and vice versa.
         let charge = match self.charge {
             Charge::Known(known) => known,
-            Charge::Auto => {
+            Charge::Neutral => {
                 let topol_path =
-                    topol_path.context("automatic charge determination requires a topology")?;
+                    topol_path.context("automatic charge neutralization requires a topology")?;
                 let start = std::time::Instant::now();
                 let charge = determine_system_charge(&topol_path).context(format!(
                     "could not determine system charge from topology file at {topol_path:?}"
