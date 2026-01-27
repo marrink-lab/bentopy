@@ -126,11 +126,15 @@ mod components {
 pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::Err<Rich<'s, char>>>
 {
     let operator = |s: &'static str| just(s).labelled(s);
-    let integer = text::int(10)
+    let integer = any()
+        .filter(move |c: &char| c.is_digit(10))
+        .repeated()
+        .at_least(1)
+        .ignored()
+        .or(just(char::digit_zero()).ignored())
+        .to_slice()
         .map(FromStr::from_str)
         .unwrapped()
-        // This is a bit cursed, but we need to make sure that an int is not followed by an
-        // alphabetic character.
         .then_ignore(any().filter(|c: &char| c.is_alphabetic()).not())
         .boxed();
     let float = regex(r"[-+]?(\d*\.\d+)")
@@ -297,6 +301,26 @@ mod test {
         #[test]
         fn lysozyme() {
             assert_eq!(p(components::identifier(), "3lyz"), Ok("3lyz"));
+        }
+
+        #[test]
+        fn zero_prefix() {
+            assert_eq!(p(components::identifier(), "0abc"), Ok("0abc"));
+        }
+
+        #[test]
+        fn zero_int_prefix() {
+            assert_eq!(p(components::identifier(), "01abc"), Ok("01abc"));
+        }
+
+        #[test]
+        fn trailing_numbers() {
+            assert_eq!(p(components::identifier(), "abc0123"), Ok("abc0123"));
+        }
+
+        #[test]
+        fn surrounding_numbers() {
+            assert_eq!(p(components::identifier(), "012abc012"), Ok("012abc012"));
         }
 
         #[test]
