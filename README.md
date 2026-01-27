@@ -42,7 +42,7 @@ please cite our work.
 > with _Bentopy_. _Protein Science_. 2026. e70480.
 > <https://doi.org/10.1002/pro.70480>
 
-```
+```bibtex
 @article{westendorp_stevens_bentopy_2026,
 	title = {Compartment-Guided Assembly of Large-Scale Molecular Models with Bentopy},
 	doi = {10.1002/pro.70480},
