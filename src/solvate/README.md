@@ -202,11 +202,21 @@ A quantity can be expressed in any of the following ways:
 
 #### Neutralizing structure charge
 
-The `--charge` option can be used as a convenient short-hand for adding
-neutralizing ions. This may be especially useful in automated pipelines.
+By passing `--charge neutral`, you can automatically neutralize the total
+system charge when a topology is provided.
 
 ```console
-$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12
+$ bentopy-solvate -i structure.gro -o solvated.gro -t topol.top \
+        -s NA:0.15M -s CL:0.15M --charge neutral
+```
+
+The `--charge` option can also be used as a convenient short-hand for adding
+neutralizing ions for an explicitly provided integer charge. This may be
+especially useful in automated pipelines.
+
+```console
+$ bentopy-solvate -i structure.gro -o solvated.gro \
+        -s NA:0.15M -s CL:0.15M --charge -12
 ```
 
 `NA` and `CL` substitutes are made by default, but custom neutralizing
@@ -214,7 +224,10 @@ substitutes can be set after the charge:
 `--charge <charge>:<positive name>,<negative name>`.
 
 ```console
-$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M --charge -12:K,CL
+$ bentopy-solvate -i structure.gro -o solvated.gro \
+        -s NA:0.15M -s CL:0.15M --charge neutral:K,CL
+$ bentopy-solvate -i structure.gro -o solvated.gro \
+        -s NA:0.15M -s CL:0.15M --charge -12:K,CL
 ```
 
 #### Combining, sorting
