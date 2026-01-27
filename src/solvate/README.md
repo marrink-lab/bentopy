@@ -104,7 +104,13 @@ Options:
           Define substitutes for solvent residues, such as ions
 
       --charge <CHARGE>
-          Set the charge to neutralize with additional ions.
+          Neutralize the system charge with additional ions.
+
+          By passing `--charge neutral`, the total system charge will be
+          determined automically. This requires a topology.
+
+          The charge to be neutralized can also be set explicitly by providing
+          an integer.
 
           In essence, this is a shorthand for explicitly providing ions to
           compensate the charge as substitutes. This can be helpful for
@@ -120,6 +126,8 @@ Options:
           So, by default, some `<charge>` is interpreted as
 
           <charge>:NA,CL
+
+          Here, `<charge>` can be the string 'neutral' or an integer.
 
       --no-combine-substitutes
           Combine substitutes with identical names into one block

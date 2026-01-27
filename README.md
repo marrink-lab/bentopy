@@ -246,19 +246,22 @@ lysozymes to `LYZ` in the concatenated structure._
 
 #### _solvate_
 
-With _solvate_, large boxes can be solvated quickly and conveniently, with
-one-step ion substitutions. _Solvate_ enables cellular-scale solvation and is
-designed to run very fast while having a low memory footprint. Both atomistic
-and coarse-grained Martini water placement is supported.
+With _solvate_, large boxes can be solvated quickly and conveniently. _Solvate_
+places waters and makes ion substitutions in the same step. It was created to
+enable cellular-scale solvation and is designed to run very fast while having a
+low memory footprint. Both atomistic and coarse-grained Martini water placement
+is supported.
 
 ```console
-bentopy-solvate -i merged.gro -o solvated.gro \
-	-s NA:0.15M -s CL:0.15M --charge 5172
+bentopy-solvate -i merged.gro -o solvated.gro -t topol.top \
+	-s NA:0.15M -s CL:0.15M --charge neutral
 ```
 
-_Solvate the structure in `packed.gro` and output the result to `solvated.gro`
-with Martini waters. Substitute water residues for ions at 0.15M NaCl.
-Compensate the charge of `packed.gro` with 5172 additional Cl substitutions._
+_Solvate the structure in `packed.gro` with Martini waters and output the
+result to `solvated.gro`. Substitute water residues for ions at 0.15M NaCl.
+Make additional ion substitutions to neutralize the charge of `packed.gro`
+based on the provided topology. The number of added waters and ions will be
+appended to `topol.top`._
 
 A thorough description of the command is [provided in the `bentopy-solvate`
 README](src/solvate/README.md).
