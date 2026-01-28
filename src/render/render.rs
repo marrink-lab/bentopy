@@ -306,9 +306,10 @@ fn write_top(
         bentopy::core::version::VERSION
     )?;
     writeln!(writer, "; {}", env!("CARGO_PKG_REPOSITORY"))?;
-    let authors = env!("CARGO_PKG_AUTHORS").split(':');
-    for author in authors {
-        writeln!(writer, "; - {author}")?;
+    writeln!(writer, ";")?;
+    let citation = bentopy::core::citation::CITATION.lines();
+    for line in citation {
+        writeln!(writer, "; {line}")?;
     }
     writeln!(writer)?;
 
