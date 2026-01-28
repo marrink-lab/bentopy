@@ -3,13 +3,15 @@ use std::{path::PathBuf, str::FromStr};
 use crate::limits::Limits;
 use clap::{Parser, ValueEnum};
 
+use bentopy::core::{citation::CITATION, version::VERSION};
+
 /// Render structures from a placement list into a gro file.
 ///
 ///
 /// Structures specified in the placement list are retrieved from their pdb or gro
 /// files and placed into a gro file according to their rotations and positions.
 #[derive(Debug, Parser)]
-#[command(about, version = bentopy::core::version::VERSION)]
+#[command(about, version = VERSION, after_help = CITATION)]
 pub struct Args {
     /// Path to the placement list.
     ///

@@ -2,9 +2,11 @@ use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
 
+use bentopy::core::{citation::CITATION, version::VERSION};
+
 /// Pack a space.
 #[derive(Debug, Parser)]
-#[command(version = bentopy::core::version::VERSION)]
+#[command(about, version = VERSION, after_help = CITATION)]
 pub struct Args {
     // Configuration input file to define the run (bent).
     pub config: PathBuf,

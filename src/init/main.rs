@@ -7,12 +7,12 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 
 use bentopy::core::config::{Config, Segment, legacy};
-use bentopy::core::version::VERSION;
+use bentopy::core::{citation::CITATION, version::VERSION};
 
 const BIN_NAME: &str = env!("CARGO_BIN_NAME");
 
 #[derive(Debug, Parser)]
-#[command(about, version = VERSION)]
+#[command(about, version = VERSION, after_help = CITATION)]
 struct Args {
     #[command(subcommand)]
     command: Command,

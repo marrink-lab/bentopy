@@ -5,11 +5,13 @@ use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
 use eightyseven::structure::ResName;
 
+use bentopy::core::{citation::CITATION, version::VERSION};
+
 use crate::topology::determine_system_charge;
 
 /// Solvate.
 #[derive(Debug, Parser)]
-#[command(about, version = bentopy::core::version::VERSION)]
+#[command(about, version = VERSION, after_help = CITATION)]
 pub struct Args {
     /// Structure input path.
     #[arg(short, long)]
