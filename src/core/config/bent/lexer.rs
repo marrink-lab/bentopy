@@ -135,7 +135,11 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         .to_slice()
         .map(FromStr::from_str)
         .unwrapped()
-        .then_ignore(any().filter(|c: &char| c.is_alphabetic()).not())
+        .then_ignore(
+            any()
+                .filter(|c: &char| c.is_alphabetic() || c == &'_')
+                .not(),
+        )
         .boxed();
     let float = regex(r"[-+]?(\d*\.\d+)")
         .map(FromStr::from_str)
@@ -311,6 +315,36 @@ mod test {
         #[test]
         fn zero_int_prefix() {
             assert_eq!(p(components::identifier(), "01abc"), Ok("01abc"));
+        }
+
+        #[test]
+        fn zero_zero_prefix() {
+            assert_eq!(p(components::identifier(), "00abc"), Ok("00abc"));
+        }
+
+        #[test]
+        fn zero_zero_int_prefix() {
+            assert_eq!(p(components::identifier(), "001abc"), Ok("001abc"));
+        }
+
+        #[test]
+        fn zero_underscore_prefix() {
+            assert_eq!(p(components::identifier(), "0_abc"), Ok("0_abc"));
+        }
+
+        #[test]
+        fn zero_int_underscore_prefix() {
+            assert_eq!(p(components::identifier(), "01_abc"), Ok("01_abc"));
+        }
+
+        #[test]
+        fn zero_zero_underscore_prefix() {
+            assert_eq!(p(components::identifier(), "00_abc"), Ok("00_abc"));
+        }
+
+        #[test]
+        fn zero_zero_int_underscore_prefix() {
+            assert_eq!(p(components::identifier(), "001_abc"), Ok("001_abc"));
         }
 
         #[test]
