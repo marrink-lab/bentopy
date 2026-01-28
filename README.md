@@ -37,9 +37,9 @@ available.
 If you use bentopy to set up your molecular dynamics system in a publication,
 please cite our work.
 
-> Westendorp MSS, Stevens JA, Brown CM, Dommer AC, Wassenaar TA, Bruininks BMH,
-> and Marrink SJ. Compartment-guided assembly of large-scale molecular models
-> with _Bentopy_. _Protein Science_. 2026. e70480.
+> **Westendorp MSS**, **Stevens JA**, Brown CM, Dommer AC, Wassenaar TA,
+> Bruininks BMH, and Marrink SJ. Compartment-guided assembly of large-scale
+> molecular models with _Bentopy_. _Protein Science_. 2026. e70480.
 > <https://doi.org/10.1002/pro.70480>
 
 ```bibtex
