@@ -77,11 +77,8 @@ def mask(args):
     selection = u.select_atoms(args.selection)
     log(f"Selected {selection.n_atoms} atoms according to '{args.selection}'.")
 
-    # Closing is just a short-hand for --morph='de'.
-    morph = args.morph
-    if args.closing:
-        morph = "de"
     # MDVContainment only accepts str, not str | None as of 2.0.0a2.
+    morph = args.morph
     if morph == None:
         morph = ""
 

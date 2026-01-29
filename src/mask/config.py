@@ -129,25 +129,14 @@ def setup_parser(parser=None):
         for dilation steps and 'e' for erosion steps, in the order you wish to
         apply them.
 
-        For example, the string 'de' is equivalent to the --closing flag, while
-        'ed' is a morphological opening operation. See
+        The default 'de' is equivalent to a morphological closing operation,
+        while 'ed' is a morphological opening operation. See
         <https://en.wikipedia.org/wiki/Closing_(morphology)> for more
         information.
-        """,
-    )
-    morph.add_argument(
-        "--closing",
-        action="store_true",
-        help="""Use binary closing to fill small holes in compartments. For
-        analysis of CG Martini structures with a voxel resolution 0.5 nm this
-        is highly recommended.
 
         If the resolution exceeds the condensed phase distance (i.e., about
-        double the LJ sigma), closing is not required. A voxel resolution below
-        sigma is not recommended.
-
-        See also, --morph, which provides a more flexible interface to the same
-        notion.
+        double the LJ sigma), morphing is not required. A voxel resolution
+        below sigma is not recommended.
         """,
     )
     parser.add_argument(
