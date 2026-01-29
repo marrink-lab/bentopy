@@ -85,12 +85,10 @@ def setup_parser(parser=None):
         "-b",
         "--visualize-labels",
         type=Path,
-        nargs="?",
-        const="labels.gro",
-        help="""Optional output path to a gro file to write labeled voxel positions to.
-        This file can be inspected with molecule viewers, which is very helpful 
-        in determining which labels match the compartments you want to select.
-        (when used, default: %(const)s)""",
+        help="""Optional output path to a gro file to write labeled voxel
+        positions to. This file can be inspected with molecule viewers, which
+        is very helpful in determining which labels match the compartments you
+        want to select.""",
     )
     parser.add_argument(
         "--exclude-outside",
