@@ -163,7 +163,9 @@ impl State {
                         compartment::distill_limits(&expr, dimensions, resolution as f64)
                     }
                     // We partitioned the list, so these variants are not present.
-                    config::Mask::Within { .. } | config::Mask::Combination(_) => unreachable!(),
+                    config::Mask::Within { .. }
+                    | config::Mask::Around { .. }
+                    | config::Mask::Combination(_) => unreachable!(),
                 };
 
                 Ok(Compartment { id: comp.id, mask })
@@ -175,6 +177,7 @@ impl State {
             }
 
             let baked = match combination.mask {
+                // Within some distance of the mask for compartment `id`. This is inclusive.
                 config::Mask::Within { distance, id } => {
                     let compartment = compartments
                         .iter()
@@ -185,6 +188,27 @@ impl State {
                     Compartment {
                         id: combination.id,
                         mask: distance_mask_grow(mask, voxel_distance),
+                    }
+                }
+                // Mask within some distance of compartment `id` excluding that source mask.
+                // This is exclusive. Around is Within followed by a not and on the source mask.
+                config::Mask::Around { distance, id } => {
+                    let compartment = compartments
+                        .iter()
+                        .find(|c| c.id == id)
+                        .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                    let source = &compartment.mask;
+                    let voxel_distance = (distance / resolution) as u64;
+                    // First, the same step as for within.
+                    let mut mask = distance_mask_grow(source, voxel_distance);
+                    // Now we need to take away the source mask from the within mask.
+                    // FIXME: I'm still so frustrated with the inversed mask decision. Ugh past me.
+                    // That's why the logic here looks so cursed. Practically, OR means AND for the
+                    // way I designed the mask datatype.
+                    mask |= !source.clone();
+                    Compartment {
+                        id: combination.id,
+                        mask,
                     }
                 }
                 config::Mask::Combination(expr) => Compartment {

@@ -185,6 +185,15 @@ where
             id,
         })
         .boxed();
+    let around = components::ident("around")
+        .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
+        .then_ignore(components::ident("of"))
+        .then(id.labelled("compartment id"))
+        .map(|(distance, id)| Mask::Around {
+            distance: distance as f32,
+            id,
+        })
+        .boxed();
     let combination = components::ident("combines")
         .ignore_then(terms_parser())
         .map(Mask::Combination)
@@ -194,10 +203,18 @@ where
         .to(Mask::All)
         .boxed();
 
-    id.then(choice((voxels, shape, limits, within, combination, all)))
-        .map(|(id, mask)| Compartment { id, mask })
-        .labelled("compartment declaration")
-        .as_context()
+    id.then(choice((
+        voxels,
+        shape,
+        limits,
+        within,
+        around,
+        combination,
+        all,
+    )))
+    .map(|(id, mask)| Compartment { id, mask })
+    .labelled("compartment declaration")
+    .as_context()
 }
 
 pub(crate) fn constraint_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Constraint, E<'s, 'ts>>
@@ -896,7 +913,7 @@ periodic false
         }
 
         #[test]
-        fn close() {
+        fn within() {
             let src = "close within 5 of mask";
             let res = lex_and_parse!(compartment_parser => src);
             assert_eq!(
@@ -904,6 +921,22 @@ periodic false
                 Ok(Compartment {
                     id: "close".to_string(),
                     mask: Mask::Within {
+                        distance: 5.0,
+                        id: "mask".to_string()
+                    }
+                })
+            )
+        }
+
+        #[test]
+        fn around() {
+            let src = "close around 5 of mask";
+            let res = lex_and_parse!(compartment_parser => src);
+            assert_eq!(
+                res,
+                Ok(Compartment {
+                    id: "close".to_string(),
+                    mask: Mask::Around {
                         distance: 5.0,
                         id: "mask".to_string()
                     }

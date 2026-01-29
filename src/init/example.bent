@@ -41,7 +41,8 @@ resolution <voxel-size>
 #   20 < x and x < 80 and not z > 20
 <id> where <limits-expression>
 # Placements can be further restricted to a certain distance from some compartment.
-<id> within 5.0 of <compartment-id>
+<id> around 5.0 of <compartment-id> # Excludes the referenced compartment.
+<id> within 5.0 of <compartment-id> # Includes the referenced compartment.
 # Compartments can be combined.
 # The available operators are `and`, `or`, and `not`.
 # Expressions can be grouped using parentheses. For example:

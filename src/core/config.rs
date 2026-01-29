@@ -235,7 +235,7 @@ impl Compartment {
     pub fn is_predefined(&self) -> bool {
         match &self.mask {
             Mask::All | Mask::Voxels(_) | Mask::Shape(_) | Mask::Limits(_) => true,
-            Mask::Within { .. } | Mask::Combination(_) => false,
+            Mask::Within { .. } | Mask::Around { .. } | Mask::Combination(_) => false,
         }
     }
 }
@@ -248,6 +248,7 @@ pub enum Mask {
     Limits(Expr<Limit>),
     // These are constructed by referencing previously defined masks.
     Within { distance: f32, id: CompartmentID },
+    Around { distance: f32, id: CompartmentID },
     Combination(Expr<CompartmentID>),
 }
 

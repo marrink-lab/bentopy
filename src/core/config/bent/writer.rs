@@ -169,6 +169,7 @@ fn compartment_entry<W: Write>(w: &mut W, compartment: &Compartment) -> Result<(
         }
         Mask::Limits(expr) => format!("where {expr}"),
         Mask::Within { distance, id } => format!("within {distance} of {id}"),
+        Mask::Around { distance, id } => format!("around {distance} of {id}"),
         Mask::Combination(expr) => format!("combines {expr}"),
     };
     writeln!(w, "{id} {mask}")
