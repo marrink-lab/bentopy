@@ -181,7 +181,6 @@ impl State {
                         .find(|c| c.id == id)
                         .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
                     let mask = &compartment.mask;
-                    // TODO: This conversion appears correct but I'd like better reasoning. Consider.
                     let voxel_distance = (distance / resolution) as u64;
                     Compartment {
                         id: combination.id,
