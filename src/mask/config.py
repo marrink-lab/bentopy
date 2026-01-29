@@ -136,8 +136,17 @@ def setup_parser(parser=None):
         If the resolution exceeds the condensed phase distance (i.e., about
         double the LJ sigma), morphing is not required. A voxel resolution
         below sigma is not recommended.
+
+        Morphing can be enabled using the --no-morph flag.
         (default: '%(default)s')
         """,
+    )
+    morph.add_argument(
+        "--no-morph",
+        dest="morph",
+        action="store_const",
+        const="",
+        help="Disable morphological operations."
     )
     parser.add_argument(
         "--no-cache",
