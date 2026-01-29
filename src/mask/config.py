@@ -123,6 +123,7 @@ def setup_parser(parser=None):
     morph = parser.add_mutually_exclusive_group()
     morph.add_argument(
         "--morph",
+        default="de",
         type=str,
         help="""Morphological operations to apply to the initial boolean voxel
         representation based on the provided structure. Provide a string of 'd'
@@ -137,6 +138,7 @@ def setup_parser(parser=None):
         If the resolution exceeds the condensed phase distance (i.e., about
         double the LJ sigma), morphing is not required. A voxel resolution
         below sigma is not recommended.
+        (default: '%(default)s')
         """,
     )
     parser.add_argument(
