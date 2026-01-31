@@ -18,7 +18,7 @@ impl Molecule {
             if line.starts_with("ATOM") || line.starts_with("HETATM") {
                 let ln = ln + 1;
                 let atom = Atom::from_pdb_atom_line(line)
-                    .context(format!("Could not parse atom on line {ln}"))?;
+                    .with_context(|| format!("Could not parse atom on line {ln}"))?;
                 atoms.push(atom);
             }
         }
@@ -42,7 +42,7 @@ impl Molecule {
         for (ln, line) in lines.take(n_atoms) {
             let ln = ln + 1;
             let atom = Atom::from_gro_atom_line(line)
-                .context(format!("Could not parse atom on line {ln}"))?;
+                .with_context(|| format!("Could not parse atom on line {ln}"))?;
             atoms.push(atom);
         }
         // We don't check for the presence and correctness of the box vectors, even though they
@@ -247,18 +247,17 @@ pub fn load_molecule<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Molecu
     let mut data = String::new();
     std::fs::File::open(&path)?.read_to_string(&mut data)?;
 
-    let molecule =
-        match path.as_ref().extension().and_then(|s| s.to_str()) {
-            Some("gro") => Molecule::from_gro(&data)
-                .context(format!("Could not parse .gro file at {path:?}"))?,
-            Some("pdb") => Molecule::from_pdb(&data)
-                .context(format!("Could not parse .pdb file at {path:?}"))?,
-            None | Some(_) => {
-                eprintln!("WARNING: Assuming {path:?} is a pdb file.");
-                Molecule::from_pdb(&data)
-                    .context(format!("Could not parse file at {path:?} as .pdb"))?
-            }
-        };
+    let molecule = match path.as_ref().extension().and_then(|s| s.to_str()) {
+        Some("gro") => Molecule::from_gro(&data)
+            .with_context(|| format!("Could not parse .gro file at {path:?}"))?,
+        Some("pdb") => Molecule::from_pdb(&data)
+            .with_context(|| format!("Could not parse .pdb file at {path:?}"))?,
+        None | Some(_) => {
+            eprintln!("WARNING: Assuming {path:?} is a pdb file.");
+            Molecule::from_pdb(&data)
+                .with_context(|| format!("Could not parse file at {path:?} as .pdb"))?
+        }
+    };
 
     Ok(molecule)
 }

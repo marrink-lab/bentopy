@@ -264,9 +264,11 @@ impl ChargeConfig {
                 let topol_path =
                     topol_path.context("Automatic charge neutralization requires a topology")?;
                 let start = std::time::Instant::now();
-                let charge = determine_system_charge(&topol_path).context(format!(
-                    "Could not determine system charge from topology file at {topol_path:?}"
-                ))?;
+                let charge = determine_system_charge(&topol_path).with_context(|| {
+                    format!(
+                        "Could not determine system charge from topology file at {topol_path:?}"
+                    )
+                })?;
                 let duration = start.elapsed().as_secs_f32();
                 eprintln!("According to the topology, the total system charge is {charge}.");
                 eprintln!("Determining charges took {duration:.3} s.");
