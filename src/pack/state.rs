@@ -137,7 +137,7 @@ impl State {
                         if verbose {
                             eprintln!("\tLoading mask from {path:?}...");
                         }
-                        Mask::load_from_path(&path)
+                        Mask::load_from_path(&path, dimensions)
                             .with_context(|| format!("Failed to load mask {path:?}"))?
                     }
                     config::Mask::All => {

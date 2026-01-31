@@ -148,7 +148,10 @@ impl Mask {
         // }
     }
 
-    pub(crate) fn load_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub(crate) fn load_from_path<P: AsRef<Path>>(
+        path: P,
+        expected_dimensions: Dimensions,
+    ) -> Result<Self> {
         let mut npz = npyz::npz::NpzArchive::open(path)?;
         // FIXME: This error could be handled more gracefully.
         let first_name = npz
@@ -157,12 +160,15 @@ impl Mask {
             .context("There should be at least one array in the mask voxel map")?
             .to_string();
         let array = npz.by_name(&first_name)?.unwrap(); // We just asserted the name exists.
-        let Ok(size): Result<[u64; 3], _> = array.shape().to_vec().try_into() else {
+        let Ok(dimensions): Result<[u64; 3], _> = array.shape().to_vec().try_into() else {
             let shape = array.shape();
             bail!("a voxel map must have three dimensions, found {shape:?}");
         };
-        if size.iter().any(|d| d == &0) {
-            bail!("a voxel map must have non-zero sized dimensions, found {size:?}")
+        if dimensions != expected_dimensions {
+            bail!(
+                "the dimensions of the voxel map do not match those defined in the configuration, \
+                    expected {expected_dimensions:?}, found {dimensions:?}"
+            )
         }
 
         let order = array.order();
@@ -175,7 +181,7 @@ impl Mask {
                 reordered.resize(cells.len(), false);
                 let mut cells = IntoIterator::into_iter(cells);
                 let mut reordered = reordered.into_boxed_slice();
-                let [w, h, d] = size;
+                let [w, h, d] = dimensions;
                 assert_eq!(cells.len() as u64, w * h * d);
                 for x in 0..w {
                     for y in 0..h {
@@ -191,6 +197,6 @@ impl Mask {
             npyz::Order::Fortran => cells,
         };
 
-        Ok(Self::from_cells(size, &cells))
+        Ok(Self::from_cells(dimensions, &cells))
     }
 }
