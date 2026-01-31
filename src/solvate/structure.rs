@@ -81,10 +81,8 @@ pub fn write_structure<const PAR: bool>(
         }
 
         if PAR {
-            let lines: String = particle_buffer
-                .par_iter()
-                .map(Structure::format_atom_line)
-                .collect();
+            let lines: String =
+                particle_buffer.par_iter().map(Structure::format_atom_line).collect();
             writer.write_all(lines.as_bytes())?;
         } else {
             // TODO: Even this could be done with a buffer of lines that fills up for a while,
@@ -110,10 +108,7 @@ pub fn write_structure<const PAR: bool>(
         );
     }
     eprintln!();
-    eprintln!(
-        "Done writing solvent atoms, took {:.3} s.",
-        start.elapsed().as_secs_f32()
-    );
+    eprintln!("Done writing solvent atoms, took {:.3} s.", start.elapsed().as_secs_f32());
 
     if !substitutions.is_empty() {
         // Write out the substitutes at the end of the structure.
@@ -145,10 +140,7 @@ pub fn write_structure<const PAR: bool>(
             }
             eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
         }
-        eprintln!(
-            "Done writing substitutes, took {:.3} s.",
-            start.elapsed().as_secs_f32()
-        );
+        eprintln!("Done writing substitutes, took {:.3} s.", start.elapsed().as_secs_f32());
     }
 
     // Finally, we write the box vectors.

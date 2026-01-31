@@ -7,14 +7,7 @@ use crate::core::config::{
 };
 
 pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
-    let Config {
-        general,
-        space,
-        includes,
-        constraints,
-        compartments,
-        segments,
-    } = config;
+    let Config { general, space, includes, constraints, compartments, segments } = config;
 
     // Write a comment header about this file.
     writeln!(w, "# Bentopy {}", crate::core::version::VERSION)?;
@@ -58,11 +51,7 @@ pub fn write<W: Write>(config: &Config, w: &mut W) -> Result<()> {
 
     {
         // Space section.
-        let Space {
-            dimensions,
-            resolution,
-            periodic,
-        } = space;
+        let Space { dimensions, resolution, periodic } = space;
 
         section(w, "space")?;
         if let Some(val) = dimensions {
@@ -145,11 +134,7 @@ fn format_path(path: &Path) -> String {
 }
 
 fn list<T: std::fmt::Display>(items: &[T]) -> String {
-    items
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
+    items.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 }
 
 fn include_entry<W: Write>(w: &mut W, include: &Path) -> Result<()> {
@@ -184,14 +169,7 @@ fn constraint_entry<W: Write>(w: &mut W, constraint: &Constraint) -> Result<()> 
 }
 
 fn segment_entry<W: Write>(w: &mut W, segment: &Segment) -> Result<()> {
-    let Segment {
-        name,
-        tag,
-        quantity,
-        path,
-        compartment_ids,
-        rules,
-    } = segment;
+    let Segment { name, tag, quantity, path, compartment_ids, rules } = segment;
     let id = match tag {
         Some(tag) => format!("{name}:{tag}"),
         None => name.to_string(),

@@ -62,16 +62,12 @@ impl State {
         // it overwrites the config value. (And the deprecated env vars have the highest priority.)
 
         // If no seed is provided, use a random seed.
-        let seed = args
-            .seed
-            .or(config.general.seed)
-            .unwrap_or_else(|| Rng::from_os_rng().next_u64());
+        let seed =
+            args.seed.or(config.general.seed).unwrap_or_else(|| Rng::from_os_rng().next_u64());
         let rng = Rng::seed_from_u64(seed);
 
-        let bead_radius = args
-            .bead_radius
-            .or(config.general.bead_radius)
-            .unwrap_or(defaults::BEAD_RADIUS);
+        let bead_radius =
+            args.bead_radius.or(config.general.bead_radius).unwrap_or(defaults::BEAD_RADIUS);
 
         // Determine the max_tries parameters.
         let max_tries_multiplier = if let Ok(s) = std::env::var("BENTOPY_TRIES") {
@@ -110,25 +106,19 @@ impl State {
 
         // Space.
         // TODO: Consider if the resolution should be a default, again?
-        let resolution = config
-            .space
-            .resolution
-            .context("No resolution was specified in the input file")?
-            as f32;
-        let size = config
-            .space
-            .dimensions
-            .context("No dimensions were specified in the input file")?;
+        let resolution =
+            config.space.resolution.context("No resolution was specified in the input file")?
+                as f32;
+        let size =
+            config.space.dimensions.context("No dimensions were specified in the input file")?;
         // The dimensions from the config is the real-space size of the box. Here, we treat the
         // word dimensions as being the size in terms of voxels. Bit annoying.
         // TODO: Reconsider this wording.
         let dimensions = size.map(|d| (d / resolution) as u64);
 
         eprintln!("Setting up compartments...");
-        let (predefined, combinations): (Vec<_>, Vec<_>) = config
-            .compartments
-            .into_iter()
-            .partition(config::Compartment::is_predefined);
+        let (predefined, combinations): (Vec<_>, Vec<_>) =
+            config.compartments.into_iter().partition(config::Compartment::is_predefined);
         let mut compartments: Vec<Compartment> = predefined
             .into_iter()
             .map(|comp| -> anyhow::Result<_> {
@@ -206,10 +196,7 @@ impl State {
                     // That's why the logic here looks so cursed. Practically, OR means AND for the
                     // way I designed the mask datatype.
                     mask |= !source.clone();
-                    Compartment {
-                        id: combination.id,
-                        mask,
-                    }
+                    Compartment { id: combination.id, mask }
                 }
                 config::Mask::Combination(expr) => Compartment {
                     id: combination.id,
@@ -240,11 +227,8 @@ impl State {
         // Segments.
         eprintln!("Loading segment structures...");
         let segments = {
-            let constraints: HashMap<&String, &config::Rule> = config
-                .constraints
-                .iter()
-                .map(|c| (&c.id, &c.rule))
-                .collect();
+            let constraints: HashMap<&String, &config::Rule> =
+                config.constraints.iter().map(|c| (&c.id, &c.rule)).collect();
             let mut segments: Vec<_> = config
                 .segments
                 .into_iter()
@@ -356,16 +340,7 @@ impl State {
             bead_radius: bead_radius as f32,
         };
 
-        Ok(Self {
-            general,
-            space,
-            segments,
-            output,
-
-            rng,
-            verbose,
-            summary: !args.no_summary,
-        })
+        Ok(Self { general, space, segments, output, rng, verbose, summary: !args.no_summary })
     }
 
     pub fn check_masks(&self) -> anyhow::Result<()> {
@@ -388,12 +363,8 @@ impl State {
             }
 
             // Check the masks.
-            let masks = self
-                .space
-                .compartments
-                .iter()
-                .filter(|c| ids.contains(&c.id))
-                .map(|c| &c.mask);
+            let masks =
+                self.space.compartments.iter().filter(|c| ids.contains(&c.id)).map(|c| &c.mask);
             // TODO: Check for correctness.
             let distilled = masks
                 .cloned()
@@ -417,11 +388,8 @@ impl State {
                 // is more than one. This is helpful in debugging problems if this error is hit.
                 if segment.compartments.len() > 1 {
                     eprintln!("\tIndividual compartments for segment '{name}':");
-                    let compartments = self
-                        .space
-                        .compartments
-                        .iter()
-                        .filter(|c| ids.contains(&c.id));
+                    let compartments =
+                        self.space.compartments.iter().filter(|c| ids.contains(&c.id));
                     for compartment in compartments {
                         let id = &compartment.id;
                         let n = compartment.mask.count::<false>();

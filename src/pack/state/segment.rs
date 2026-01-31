@@ -57,12 +57,7 @@ impl Segment {
     ///
     /// The voxelization can be accessed through [`Segment::voxels`].
     pub fn voxelize(&mut self, resolution: f32, radius: f32) {
-        self.voxels = Some(voxelize(
-            &self.structure,
-            self.rotation(),
-            resolution,
-            radius,
-        ));
+        self.voxels = Some(voxelize(&self.structure, self.rotation(), resolution, radius));
     }
 
     /// If available, return a reference to the voxels that represent this [`Segment`].

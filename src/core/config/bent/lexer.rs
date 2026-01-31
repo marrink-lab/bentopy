@@ -85,9 +85,7 @@ mod components {
             .map(FromStr::from_str)
             .unwrapped()
             .labelled("number");
-        let point = number
-            .separated_by(just(',').padded())
-            .collect_exactly::<Point>();
+        let point = number.separated_by(just(',').padded()).collect_exactly::<Point>();
         let parens_point = point.clone().padded().delimited_by(just('('), just(')'));
         choice((point, parens_point))
     }
@@ -135,25 +133,14 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         .to_slice()
         .map(FromStr::from_str)
         .unwrapped()
-        .then_ignore(
-            any()
-                .filter(|c: &char| c.is_alphabetic() || c == &'_')
-                .not(),
-        )
+        .then_ignore(any().filter(|c: &char| c.is_alphabetic() || c == &'_').not())
         .boxed();
-    let float = regex(r"[-+]?(\d*\.\d+)")
-        .map(FromStr::from_str)
-        .unwrapped()
-        .boxed();
-    let number = choice((float.map(Number::Float), integer.map(Number::Integer)))
-        .map(Token::Number)
-        .boxed();
+    let float = regex(r"[-+]?(\d*\.\d+)").map(FromStr::from_str).unwrapped().boxed();
+    let number =
+        choice((float.map(Number::Float), integer.map(Number::Integer))).map(Token::Number).boxed();
     // This is a bit silly, but if we want concentrations like 1M to work like 1.0M, we need a
     // leniant notion of a float that can also match integers. But just for concentrations.
-    let leniant_float = regex(r"[-+]?(\d*\.?\d+)")
-        .map(f64::from_str)
-        .unwrapped()
-        .boxed();
+    let leniant_float = regex(r"[-+]?(\d*\.?\d+)").map(f64::from_str).unwrapped().boxed();
     let unit = choice((
         just('M').to(1.0),
         just("mM").to(1e-3),
@@ -161,11 +148,8 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         just("nM").to(1e-9),
         just("pM").to(1e-12),
     ));
-    let concentration = leniant_float
-        .clone()
-        .then(unit)
-        .map(|(v, u)| Token::Concentration(v * u))
-        .boxed();
+    let concentration =
+        leniant_float.clone().then(unit).map(|(v, u)| Token::Concentration(v * u)).boxed();
     let section = components::identifier()
         .padded()
         .delimited_by(just('['), just(']'))
@@ -204,11 +188,7 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
     .padded()
     // Tokens usually follow each other directly, but there may be comments between them.
     .separated_by(choice((
-        components::comment()
-            .ignored()
-            .padded()
-            .repeated()
-            .at_least(1),
+        components::comment().ignored().padded().repeated().at_least(1),
         empty(),
     )))
     .allow_leading()
@@ -253,18 +233,12 @@ mod test {
 
         #[test]
         fn point_with_parentheses() {
-            assert_eq!(
-                p(components::point(), "(1.0, 2.0, 3.0)"),
-                Ok([1.0, 2.0, 3.0])
-            );
+            assert_eq!(p(components::point(), "(1.0, 2.0, 3.0)"), Ok([1.0, 2.0, 3.0]));
         }
 
         #[test]
         fn point_with_parentheses_whitespace() {
-            assert_eq!(
-                p(components::point(), "( 1.0, 2.0, 3.0  )"),
-                Ok([1.0, 2.0, 3.0])
-            );
+            assert_eq!(p(components::point(), "( 1.0, 2.0, 3.0  )"), Ok([1.0, 2.0, 3.0]));
         }
 
         #[test]
@@ -375,10 +349,7 @@ mod test {
 
         #[test]
         fn many() {
-            assert_eq!(
-                p(components::comment(), "# abc # a # b # c"),
-                Ok("# abc # a # b # c")
-            );
+            assert_eq!(p(components::comment(), "# abc # a # b # c"), Ok("# abc # a # b # c"));
             assert_eq!(p(components::comment(), "; abc"), Ok("; abc"));
             assert!(p(components::comment(), "// abc").is_err());
         }

@@ -62,16 +62,11 @@ mod components {
         let value = select! { Token::Number(n) => n.as_float() }.labelled("number");
 
         // For example, x > 10.
-        let axis_op_value = group((axis(), op, value))
-            .map(|(axis, op, value)| Limit { axis, op, value })
-            .boxed();
+        let axis_op_value =
+            group((axis(), op, value)).map(|(axis, op, value)| Limit { axis, op, value }).boxed();
         // For example, 10 < x.
         let value_op_axis = group((value, op, axis()))
-            .map(|(value, rev_op, axis)| Limit {
-                axis,
-                op: rev_op.reverse(),
-                value,
-            })
+            .map(|(value, rev_op, axis)| Limit { axis, op: rev_op.reverse(), value })
             .boxed();
 
         choice((axis_op_value, value_op_axis)).labelled("limit")
@@ -87,9 +82,7 @@ mod components {
 
         recursive(|expr| {
             let atom = atom.map(Expr::Term).boxed();
-            let group = expr
-                .delimited_by(just(Token::ParenOpen), just(Token::ParenClose))
-                .boxed();
+            let group = expr.delimited_by(just(Token::ParenOpen), just(Token::ParenClose)).boxed();
             choice((atom, group))
                 .pratt((
                     prefix(3, just(Token::Not), |_op, rhs, _| Expr::Not(Box::new(rhs))).boxed(),
@@ -122,9 +115,7 @@ pub fn limits_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Expr<Limit>, E<'s
 where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
-    components::expr_parser(components::limit())
-        .labelled("limits expression")
-        .as_context()
+    components::expr_parser(components::limit()).labelled("limits expression").as_context()
 }
 
 pub fn include_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, PathBuf, E<'s, 'ts>>
@@ -143,9 +134,7 @@ where
 
     let sphere = {
         let sphere_center = components::anchor();
-        let diameter = components::ident("diameter")
-            .ignore_then(number.clone())
-            .map(|d| d * 0.5);
+        let diameter = components::ident("diameter").ignore_then(number.clone()).map(|d| d * 0.5);
         let radius = components::ident("radius").ignore_then(number.clone());
         components::ident("sphere")
             .ignore_then(components::ident("at"))
@@ -168,53 +157,32 @@ where
         .ignore_then(select! { Token::String(s) => s.into() }.labelled("quoted path"))
         .map(Mask::Voxels)
         .boxed();
-    let shape = components::ident("as")
-        .ignore_then(choice((sphere, cuboid)))
-        .map(Mask::Shape)
-        .boxed();
-    let limits = components::ident("where")
-        .ignore_then(limits_parser())
-        .map(Mask::Limits)
-        .boxed();
+    let shape =
+        components::ident("as").ignore_then(choice((sphere, cuboid))).map(Mask::Shape).boxed();
+    let limits = components::ident("where").ignore_then(limits_parser()).map(Mask::Limits).boxed();
     let within = components::ident("within")
         .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
         .then_ignore(components::ident("of"))
         .then(id.labelled("compartment id"))
-        .map(|(distance, id)| Mask::Within {
-            distance: distance as f32,
-            id,
-        })
+        .map(|(distance, id)| Mask::Within { distance: distance as f32, id })
         .boxed();
     let around = components::ident("around")
         .ignore_then(select! { Token::Number(n) => n.as_float() }.labelled("distance"))
         .then_ignore(components::ident("of"))
         .then(id.labelled("compartment id"))
-        .map(|(distance, id)| Mask::Around {
-            distance: distance as f32,
-            id,
-        })
+        .map(|(distance, id)| Mask::Around { distance: distance as f32, id })
         .boxed();
     let combination = components::ident("combines")
         .ignore_then(terms_parser())
         .map(Mask::Combination)
         .labelled("compartment combination expression")
         .boxed();
-    let all = group(["is", "all"].map(components::ident))
-        .to(Mask::All)
-        .boxed();
+    let all = group(["is", "all"].map(components::ident)).to(Mask::All).boxed();
 
-    id.then(choice((
-        voxels,
-        shape,
-        limits,
-        within,
-        around,
-        combination,
-        all,
-    )))
-    .map(|(id, mask)| Compartment { id, mask })
-    .labelled("compartment declaration")
-    .as_context()
+    id.then(choice((voxels, shape, limits, within, around, combination, all)))
+        .map(|(id, mask)| Compartment { id, mask })
+        .labelled("compartment declaration")
+        .as_context()
 }
 
 pub(crate) fn constraint_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Constraint, E<'s, 'ts>>
@@ -223,16 +191,13 @@ where
 {
     let id = select! { Token::Ident(id) => id.to_string() };
     let rotation_axes = components::ident("rotates")
-        .ignore_then(
-            components::axis()
-                .separated_by(just(Token::Comma))
-                .collect::<Vec<_>>()
-                .map(|axes| Axes {
-                    x: axes.contains(&Axis::X),
-                    y: axes.contains(&Axis::Y),
-                    z: axes.contains(&Axis::Z),
-                }),
-        )
+        .ignore_then(components::axis().separated_by(just(Token::Comma)).collect::<Vec<_>>().map(
+            |axes| Axes {
+                x: axes.contains(&Axis::X),
+                y: axes.contains(&Axis::Y),
+                z: axes.contains(&Axis::Z),
+            },
+        ))
         .map(Rule::RotationAxes)
         .boxed();
 
@@ -267,16 +232,14 @@ where
         .map(Option::unwrap_or_default);
 
     group((id, quantity, path, compartments, rules))
-        .map(
-            |((name, tag), quantity, path, compartment_ids, rules)| Segment {
-                name,
-                tag,
-                quantity,
-                path,
-                compartment_ids,
-                rules,
-            },
-        )
+        .map(|((name, tag), quantity, path, compartment_ids, rules)| Segment {
+            name,
+            tag,
+            quantity,
+            path,
+            compartment_ids,
+            rules,
+        })
         .labelled("segment declaration")
         .as_context()
 }
@@ -331,37 +294,28 @@ where
         .ignore_then(select! { Token::Number(Number::Integer(n)) => n })
         .map(Field::MaxTriesRotDiv);
 
-    let fields = choice((
-        title,
-        seed,
-        bead_radius,
-        rearrange_method,
-        max_tries_mult,
-        max_tries_rot_div,
-    ))
-    .labelled("general declaration")
-    .as_context()
-    .repeated()
-    .collect::<Vec<_>>()
-    .map(|fields| {
-        let mut general = General::default();
-        for field in fields {
-            match field {
-                Field::Title(t) => general.title = Some(t),
-                Field::Seed(s) => general.seed = Some(s),
-                Field::BeadRadius(r) => general.bead_radius = Some(r),
-                Field::RearrangeMethod(m) => general.rearrange_method = Some(m),
-                Field::MaxTriesMult(n) => general.max_tries_mult = Some(n),
-                Field::MaxTriesRotDiv(n) => general.max_tries_rot_div = Some(n),
-            }
-        }
-        general
-    });
+    let fields =
+        choice((title, seed, bead_radius, rearrange_method, max_tries_mult, max_tries_rot_div))
+            .labelled("general declaration")
+            .as_context()
+            .repeated()
+            .collect::<Vec<_>>()
+            .map(|fields| {
+                let mut general = General::default();
+                for field in fields {
+                    match field {
+                        Field::Title(t) => general.title = Some(t),
+                        Field::Seed(s) => general.seed = Some(s),
+                        Field::BeadRadius(r) => general.bead_radius = Some(r),
+                        Field::RearrangeMethod(m) => general.rearrange_method = Some(m),
+                        Field::MaxTriesMult(n) => general.max_tries_mult = Some(n),
+                        Field::MaxTriesRotDiv(n) => general.max_tries_rot_div = Some(n),
+                    }
+                }
+                general
+            });
 
-    just(Token::Section("general"))
-        .ignore_then(fields)
-        .labelled("general section")
-        .as_context()
+    just(Token::Section("general")).ignore_then(fields).labelled("general section").as_context()
 }
 
 pub fn space_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Space, E<'s, 'ts>>
@@ -405,10 +359,7 @@ where
             space
         });
 
-    just(Token::Section("space"))
-        .ignore_then(fields)
-        .labelled("space section")
-        .as_context()
+    just(Token::Section("space")).ignore_then(fields).labelled("space section").as_context()
 }
 
 pub fn includes_parser<'ts, 's: 'ts, I>() -> impl Parser<'ts, I, Vec<PathBuf>, E<'s, 'ts>>
@@ -459,61 +410,47 @@ where
     let compartments = compartments_parser().map(Section::Compartments);
     let segments = segments_parser().map(Section::Segments);
 
-    choice((
-        general,
-        space,
-        includes,
-        constraints,
-        compartments,
-        segments,
-    ))
-    .repeated()
-    .collect::<Vec<_>>()
-    .map(|sections| {
-        let mut general = General::default();
-        let mut space = Space::default();
-        let mut includes = Vec::new();
-        let mut constraints = Vec::new();
-        let mut compartments = Vec::new();
-        let mut segments = Vec::new();
+    choice((general, space, includes, constraints, compartments, segments))
+        .repeated()
+        .collect::<Vec<_>>()
+        .map(|sections| {
+            let mut general = General::default();
+            let mut space = Space::default();
+            let mut includes = Vec::new();
+            let mut constraints = Vec::new();
+            let mut compartments = Vec::new();
+            let mut segments = Vec::new();
 
-        for section in sections {
-            match section {
-                Section::General(g) => {
-                    // TODO: Find something for this update pattern.
-                    general = General {
-                        title: g.title.or(general.title),
-                        seed: g.seed.or(general.seed),
-                        bead_radius: g.bead_radius.or(general.bead_radius),
-                        rearrange_method: g.rearrange_method.or(general.rearrange_method),
-                        max_tries_mult: g.max_tries_mult.or(general.max_tries_mult),
-                        max_tries_rot_div: g.max_tries_rot_div.or(general.max_tries_rot_div),
+            for section in sections {
+                match section {
+                    Section::General(g) => {
+                        // TODO: Find something for this update pattern.
+                        general = General {
+                            title: g.title.or(general.title),
+                            seed: g.seed.or(general.seed),
+                            bead_radius: g.bead_radius.or(general.bead_radius),
+                            rearrange_method: g.rearrange_method.or(general.rearrange_method),
+                            max_tries_mult: g.max_tries_mult.or(general.max_tries_mult),
+                            max_tries_rot_div: g.max_tries_rot_div.or(general.max_tries_rot_div),
+                        }
                     }
-                }
-                Section::Space(s) => {
-                    // TODO: Find something for this update pattern.
-                    space = Space {
-                        dimensions: s.dimensions.or(space.dimensions),
-                        resolution: s.resolution.or(space.resolution),
-                        periodic: s.periodic.or(space.periodic),
+                    Section::Space(s) => {
+                        // TODO: Find something for this update pattern.
+                        space = Space {
+                            dimensions: s.dimensions.or(space.dimensions),
+                            resolution: s.resolution.or(space.resolution),
+                            periodic: s.periodic.or(space.periodic),
+                        }
                     }
+                    Section::Includes(items) => includes.extend(items),
+                    Section::Constraints(items) => constraints.extend(items),
+                    Section::Compartments(items) => compartments.extend(items),
+                    Section::Segments(items) => segments.extend(items),
                 }
-                Section::Includes(items) => includes.extend(items),
-                Section::Constraints(items) => constraints.extend(items),
-                Section::Compartments(items) => compartments.extend(items),
-                Section::Segments(items) => segments.extend(items),
             }
-        }
 
-        Config {
-            general,
-            space,
-            includes,
-            constraints,
-            compartments,
-            segments,
-        }
-    })
+            Config { general, space, includes, constraints, compartments, segments }
+        })
 }
 
 #[cfg(test)]
@@ -699,11 +636,7 @@ dimensions 10,10,10.0";
             let res = lex_and_parse!(space_parser => src);
             assert_eq!(
                 res,
-                Ok(Space {
-                    dimensions: Some([10.0; 3]),
-                    resolution: None,
-                    periodic: None
-                })
+                Ok(Space { dimensions: Some([10.0; 3]), resolution: None, periodic: None })
             )
         }
 
@@ -750,13 +683,7 @@ periodic false
 "forcefield/martini.itp"
 "structures/3lyz.itp""#;
             let res = lex_and_parse!(includes_parser => src);
-            assert_eq!(
-                res,
-                Ok(vec![
-                    "forcefield/martini.itp".into(),
-                    "structures/3lyz.itp".into()
-                ])
-            )
+            assert_eq!(res, Ok(vec!["forcefield/martini.itp".into(), "structures/3lyz.itp".into()]))
         }
 
         #[test]
@@ -774,13 +701,7 @@ periodic false
  "quoted with spaces"
 "#;
             let res = lex_and_parse!(includes_parser => src);
-            assert_eq!(
-                res,
-                Ok(vec![
-                    "quoted-without-spaces".into(),
-                    "quoted with spaces".into(),
-                ])
-            )
+            assert_eq!(res, Ok(vec!["quoted-without-spaces".into(), "quoted with spaces".into(),]))
         }
     }
 
@@ -791,13 +712,7 @@ periodic false
         fn all() {
             let src = "space is all";
             let res = lex_and_parse!(compartment_parser => src);
-            assert_eq!(
-                res,
-                Ok(Compartment {
-                    id: "space".to_string(),
-                    mask: Mask::All,
-                })
-            )
+            assert_eq!(res, Ok(Compartment { id: "space".to_string(), mask: Mask::All }))
         }
 
         #[test]
@@ -808,10 +723,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "space".to_string(),
-                    mask: Mask::Shape(Shape::Sphere {
-                        center: Anchor::Center,
-                        radius: 10.0
-                    }),
+                    mask: Mask::Shape(Shape::Sphere { center: Anchor::Center, radius: 10.0 }),
                 })
             )
         }
@@ -840,10 +752,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "space".to_string(),
-                    mask: Mask::Shape(Shape::Sphere {
-                        center: Anchor::Start,
-                        radius: 10.0
-                    }),
+                    mask: Mask::Shape(Shape::Sphere { center: Anchor::Start, radius: 10.0 }),
                 })
             )
         }
@@ -856,10 +765,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "space".to_string(),
-                    mask: Mask::Shape(Shape::Sphere {
-                        center: Anchor::End,
-                        radius: 10.0
-                    }),
+                    mask: Mask::Shape(Shape::Sphere { center: Anchor::End, radius: 10.0 }),
                 })
             )
         }
@@ -872,10 +778,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "space".to_string(),
-                    mask: Mask::Shape(Shape::Sphere {
-                        center: Anchor::Center,
-                        radius: 10.0
-                    }),
+                    mask: Mask::Shape(Shape::Sphere { center: Anchor::Center, radius: 10.0 }),
                 })
             )
         }
@@ -888,10 +791,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "space".to_string(),
-                    mask: Mask::Shape(Shape::Cuboid {
-                        start: Anchor::Center,
-                        end: Anchor::End
-                    })
+                    mask: Mask::Shape(Shape::Cuboid { start: Anchor::Center, end: Anchor::End })
                 })
             )
         }
@@ -920,10 +820,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "close".to_string(),
-                    mask: Mask::Within {
-                        distance: 5.0,
-                        id: "mask".to_string()
-                    }
+                    mask: Mask::Within { distance: 5.0, id: "mask".to_string() }
                 })
             )
         }
@@ -936,10 +833,7 @@ periodic false
                 res,
                 Ok(Compartment {
                     id: "close".to_string(),
-                    mask: Mask::Around {
-                        distance: 5.0,
-                        id: "mask".to_string()
-                    }
+                    mask: Mask::Around { distance: 5.0, id: "mask".to_string() }
                 })
             )
         }
@@ -1094,27 +988,14 @@ simple-example where x > 10.0";
         fn no_tag() {
             let src = r#"3lyz 1 from "structures/3lyz.gro" in sphere satisfies rule"#;
             let res = lex_and_parse!(segment_parser => src);
-            assert_eq!(
-                res,
-                Ok(Segment {
-                    name: "3lyz".to_string(),
-                    tag: None,
-                    ..base_segment()
-                })
-            )
+            assert_eq!(res, Ok(Segment { name: "3lyz".to_string(), tag: None, ..base_segment() }))
         }
 
         #[test]
         fn number() {
             let src = r#"3lyz 1000120 from "structures/3lyz.gro" in sphere satisfies rule"#;
             let res = lex_and_parse!(segment_parser => src);
-            assert_eq!(
-                res,
-                Ok(Segment {
-                    quantity: Quantity::Number(1000120),
-                    ..base_segment()
-                })
-            )
+            assert_eq!(res, Ok(Segment { quantity: Quantity::Number(1000120), ..base_segment() }))
         }
 
         #[test]
@@ -1123,10 +1004,7 @@ simple-example where x > 10.0";
             let res = lex_and_parse!(segment_parser => src);
             assert_eq!(
                 res,
-                Ok(Segment {
-                    quantity: Quantity::Concentration(0.05),
-                    ..base_segment()
-                })
+                Ok(Segment { quantity: Quantity::Concentration(0.05), ..base_segment() })
             )
         }
 
@@ -1147,13 +1025,7 @@ simple-example where x > 10.0";
         fn no_rules() {
             let src = r#"3lyz 1 from "structures/3lyz.gro" in sphere"#;
             let res = lex_and_parse!(segment_parser => src);
-            assert_eq!(
-                res,
-                Ok(Segment {
-                    rules: Default::default(),
-                    ..base_segment()
-                })
-            )
+            assert_eq!(res, Ok(Segment { rules: Default::default(), ..base_segment() }))
         }
 
         #[test]

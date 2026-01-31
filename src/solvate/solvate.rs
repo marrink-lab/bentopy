@@ -66,14 +66,7 @@ pub fn solvate<'sol>(
     }
     eprint!("\tCutting cookies... ");
     let start = std::time::Instant::now();
-    let cookies = Cookies::new(
-        structure,
-        ignore,
-        cookie_size,
-        dimensions,
-        cutoff,
-        periodic_mode,
-    );
+    let cookies = Cookies::new(structure, ignore, cookie_size, dimensions, cutoff, periodic_mode);
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
     // For each location of a solvent box, go through each of the solvent bead positions and see
@@ -151,10 +144,7 @@ pub fn solvate<'sol>(
                     .collect();
 
                 let translation = cookies.offset(main.as_uvec3() * max);
-                let this = placemap
-                    .all_positions()
-                    .iter()
-                    .map(|&position| position + translation);
+                let this = placemap.all_positions().iter().map(|&position| position + translation);
 
                 // We'll make a list of solvent atoms we need to reject by index.
                 let rejected: Box<[_]> = this
@@ -164,11 +154,7 @@ pub fn solvate<'sol>(
                         let too_close = crown
                             .iter()
                             .any(|&crown_bead| bead.distance_squared(crown_bead) < solvent_cutoff2);
-                        if outside || too_close {
-                            Some(idx)
-                        } else {
-                            None
-                        }
+                        if outside || too_close { Some(idx) } else { None }
                     })
                     .collect();
 
@@ -211,11 +197,7 @@ impl Axis {
     const fn roll(&self, mut v: Vec3) -> Vec3 {
         let mut n = 0;
         while n < *self as usize {
-            v = Vec3 {
-                x: v.z,
-                y: v.x,
-                z: v.y,
-            };
+            v = Vec3 { x: v.z, y: v.x, z: v.y };
             n += 1;
         }
         v

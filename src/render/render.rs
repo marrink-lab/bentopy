@@ -72,9 +72,7 @@ impl Mode {
                 .map(|p| {
                     let mut molecule = load_molecule(&p.path)?;
                     apply_tag(&mut molecule, p.tag());
-                    molecule
-                        .atoms
-                        .retain(|a| ["N", "CA", "C", "O"].contains(&a.name.as_str()));
+                    molecule.atoms.retain(|a| ["N", "CA", "C", "O"].contains(&a.name.as_str()));
                     Ok(molecule)
                 })
                 .collect(),
@@ -165,22 +163,12 @@ fn write_gro(
     let placements = &placements.placements;
     // Load the molecules and center them with respect to themselves.
     let molecules = mode.prepare_molecules(placements, ignore_tags, verbose)?;
-    writeln!(
-        writer,
-        "{} (v{})",
-        env!("CARGO_BIN_NAME"),
-        bentopy::core::version::VERSION
-    )?;
+    writeln!(writer, "{} (v{})", env!("CARGO_BIN_NAME"), bentopy::core::version::VERSION)?;
     let placed = placements.iter().zip(&molecules).map(|(p, m)| {
         let n_placed = p
             .batches
             .iter()
-            .map(|b| {
-                b.positions
-                    .iter()
-                    .filter(|&&pos| limits.is_inside(pos))
-                    .count()
-            })
+            .map(|b| b.positions.iter().filter(|&&pos| limits.is_inside(pos)).count())
             .sum::<usize>();
         let n_atoms = n_placed * m.atoms.len();
         let name = p.name.clone();
@@ -195,10 +183,7 @@ fn write_gro(
             let prefix = if verbose { "" } else { CLEAR_LINE };
             let suffix = if verbose { "\n" } else { "\r" };
             let name = &placement.name;
-            let tag = placement
-                .tag()
-                .map(|tag| format!(":{tag}"))
-                .unwrap_or_default();
+            let tag = placement.tag().map(|tag| format!(":{tag}")).unwrap_or_default();
             let path = &placement.path;
             eprint!(
                 "{prefix}\tNow writing '{name}{tag}' from {path:?} data to output file.{suffix}",
@@ -232,11 +217,8 @@ fn write_gro(
             // Move over the positions so that they do not float somewhere in space, far from the
             // origin, in case the limits are set. This puts them within the specified limits.
             let min = molecule.min() + min_limits;
-            let included_positions: Vec<_> = batch
-                .positions
-                .iter()
-                .filter(|&&position| limits.is_inside(position))
-                .collect();
+            let included_positions: Vec<_> =
+                batch.positions.iter().filter(|&&position| limits.is_inside(position)).collect();
             let n_included_instances = included_positions.len();
             let out: String = included_positions
                 .par_iter()
@@ -384,12 +366,7 @@ pub fn render(args: Args) -> anyhow::Result<()> {
 
     if let Some(topol_path) = topol_path {
         let mut top = std::fs::File::create(&topol_path)?;
-        write_top(
-            &mut top,
-            &placements.topol_includes,
-            &placements.title,
-            &placed,
-        )?;
+        write_top(&mut top, &placements.topol_includes, &placements.title, &placed)?;
         eprintln!("Wrote topology to {topol_path:?}.");
     }
 

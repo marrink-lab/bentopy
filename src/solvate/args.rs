@@ -186,10 +186,7 @@ impl SubstituteConfig {
     /// Bake into a [`Substitute`] according to a final volume in nm³ and some number of valid
     /// solvent beads.
     pub fn bake(self, volume: f64, solvent_beads: u64) -> Substitute {
-        Substitute {
-            name: self.name,
-            number: self.quantity.number(volume, solvent_beads),
-        }
+        Substitute { name: self.name, number: self.quantity.number(volume, solvent_beads) }
     }
 }
 
@@ -202,10 +199,8 @@ impl FromStr for SubstituteConfig {
             .next()
             .ok_or("expected a name, then a colon, followed by a quantity".to_string())?
             .to_string();
-        let quantity = words
-            .next()
-            .ok_or("expected a quantifier after the colon".to_string())?
-            .parse()?;
+        let quantity =
+            words.next().ok_or("expected a quantifier after the colon".to_string())?.parse()?;
         Ok(Self { name, quantity })
     }
 }
@@ -234,17 +229,11 @@ impl FromStr for ChargeConfig {
             n => Charge::Known(n.parse::<i64>().map_err(|err| err.to_string())?),
         };
         let (positive, negative) = if let Some(names) = words.next() {
-            names
-                .split_once(',')
-                .ok_or("expected two substitute names separated by a comma")?
+            names.split_once(',').ok_or("expected two substitute names separated by a comma")?
         } else {
             ("NA", "CL")
         };
-        Ok(Self {
-            charge,
-            positive: positive.to_string(),
-            negative: negative.to_string(),
-        })
+        Ok(Self { charge, positive: positive.to_string(), negative: negative.to_string() })
     }
 }
 
@@ -281,10 +270,7 @@ impl ChargeConfig {
             1.. => self.negative,
         };
 
-        Ok(Some(Substitute {
-            name,
-            number: charge.unsigned_abs(),
-        }))
+        Ok(Some(Substitute { name, number: charge.unsigned_abs() }))
     }
 }
 
@@ -304,9 +290,7 @@ impl FromStr for Quantity {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(molarity) = s.strip_suffix('M') {
             // Molarity.
-            return Ok(Self::Molarity(
-                molarity.parse::<f64>().map_err(|err| err.to_string())?,
-            ));
+            return Ok(Self::Molarity(molarity.parse::<f64>().map_err(|err| err.to_string())?));
         }
 
         if let Ok(number) = s.parse::<u64>() {
@@ -315,9 +299,7 @@ impl FromStr for Quantity {
 
         if let Ok(ratio) = s.parse::<f64>() {
             if !(0.0..=1.0).contains(&ratio) {
-                return Err(format!(
-                    "ratio value must satisfy `1.0 >= r >= 0.0`, found {ratio}"
-                ));
+                return Err(format!("ratio value must satisfy `1.0 >= r >= 0.0`, found {ratio}"));
             }
             return Ok(Self::Ratio(ratio));
         }

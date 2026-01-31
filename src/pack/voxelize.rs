@@ -20,10 +20,8 @@ fn overlap(cube_center: Vec3A, sphere_center: Vec3A, sphere_radius_squared: f32)
 pub fn voxelize(structure: &Structure, rotation: Rotation, resolution: f32, radius: f32) -> Voxels {
     // Extract and rotate the points from the structure.
     // And make them aligned (Vec3A) to encourage vectorization as well.
-    let mut points: Box<[Vec3A]> = structure
-        .atoms()
-        .map(|&position| rotation.mul_vec3a(position.into()))
-        .collect();
+    let mut points: Box<[Vec3A]> =
+        structure.atoms().map(|&position| rotation.mul_vec3a(position.into())).collect();
 
     // Invariant: A Structure has at least one atom.
     let npoints = points.len();

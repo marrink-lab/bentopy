@@ -26,17 +26,11 @@ impl Mask {
     pub fn fill<const VALUE: bool>(dimensions: Dimensions) -> Self {
         let dimensions = dimensions.map(|v| v as usize);
         // Invariant: A `Mask` has non-zero dimensions.
-        assert!(
-            dimensions.iter().all(|&v| v > 0),
-            "a mask must have non-zero dimensions"
-        );
+        assert!(dimensions.iter().all(|&v| v > 0), "a mask must have non-zero dimensions");
         let n: usize = dimensions.iter().product();
         let n_backings = n.div_ceil(BACKING_BITS);
         let value = if VALUE { Backing::MAX } else { Backing::MIN };
-        Self {
-            dimensions,
-            backings: vec![value; n_backings].into_boxed_slice(),
-        }
+        Self { dimensions, backings: vec![value; n_backings].into_boxed_slice() }
     }
 
     /// # Panics
@@ -60,10 +54,7 @@ impl Mask {
     fn from_cells_iter(dimensions: Dimensions, cells: impl Iterator<Item = bool>) -> Self {
         let mut mask = Self::new(dimensions);
 
-        for lin_idx in cells
-            .enumerate()
-            .filter_map(|(i, v)| if v { Some(i) } else { None })
-        {
+        for lin_idx in cells.enumerate().filter_map(|(i, v)| if v { Some(i) } else { None }) {
             mask.set_linear_unchecked::<true>(lin_idx)
         }
 
@@ -79,22 +70,18 @@ impl Mask {
     pub fn count<const VALUE: bool>(&self) -> usize {
         // If we're counting the `false` cells, we may overcount when there are trailing bits in
         // the last backing.
-        let overshoot = if VALUE {
-            0
-        } else {
-            self.n_backings() * BACKING_BITS - self.n_cells()
-        };
-        let uncorrected: usize = self
-            .backings
-            .iter()
-            .map(|backing| {
-                if VALUE {
-                    backing.count_ones() as usize
-                } else {
-                    backing.count_zeros() as usize
-                }
-            })
-            .sum();
+        let overshoot = if VALUE { 0 } else { self.n_backings() * BACKING_BITS - self.n_cells() };
+        let uncorrected: usize =
+            self.backings
+                .iter()
+                .map(|backing| {
+                    if VALUE {
+                        backing.count_ones() as usize
+                    } else {
+                        backing.count_zeros() as usize
+                    }
+                })
+                .sum();
         uncorrected - overshoot
     }
 
@@ -230,11 +217,7 @@ impl Mask {
                 (0..w).filter_map(move |x| {
                     let idx = [x, y, z];
                     let lin_idx = self.linear_idx(idx);
-                    if self.query_linear_unchecked::<VALUE>(lin_idx) {
-                        Some(idx)
-                    } else {
-                        None
-                    }
+                    if self.query_linear_unchecked::<VALUE>(lin_idx) { Some(idx) } else { None }
                 })
             })
         })
@@ -256,10 +239,7 @@ impl Mask {
         // For good measure, so the compiler gets it.
         assert_eq!(self.n_backings(), mask.n_backings()); // FIXME: Is this one necessary?
 
-        self.backings
-            .iter_mut()
-            .zip(mask.backings.iter())
-            .for_each(|(s, &m)| *s |= m);
+        self.backings.iter_mut().zip(mask.backings.iter()).for_each(|(s, &m)| *s |= m);
     }
 
     pub fn merge_mask(&mut self, mask: &Mask) {
@@ -271,10 +251,7 @@ impl Mask {
         // For good measure, so the compiler gets it.
         assert_eq!(self.n_backings(), mask.n_backings()); // FIXME: Is this one necessary?
 
-        self.backings
-            .iter_mut()
-            .zip(mask.backings.iter())
-            .for_each(|(s, &m)| *s &= m);
+        self.backings.iter_mut().zip(mask.backings.iter()).for_each(|(s, &m)| *s &= m);
     }
 
     pub fn apply_function(&mut self, f: impl Fn(Position) -> bool) {
@@ -302,14 +279,8 @@ impl Mask {
     // TODO: Periodicity?
     /// Grow the voxels in the [`Mask`] in _x_, _y_, and _z_ directions.
     pub fn grow_approx(&mut self) {
-        const OFFSETS: [I64Vec3; 6] = [
-            I64Vec3::X,
-            I64Vec3::NEG_X,
-            I64Vec3::Y,
-            I64Vec3::NEG_Y,
-            I64Vec3::Z,
-            I64Vec3::NEG_Z,
-        ];
+        const OFFSETS: [I64Vec3; 6] =
+            [I64Vec3::X, I64Vec3::NEG_X, I64Vec3::Y, I64Vec3::NEG_Y, I64Vec3::Z, I64Vec3::NEG_Z];
 
         let old = self.clone();
         let dimensions = self.dimensions();
@@ -365,11 +336,7 @@ impl Mask {
 // Inlining this function helped.
 #[inline(always)]
 const fn normalize_periodic(idx: Position, dimensions: Dimensions) -> Position {
-    [
-        idx[0] % dimensions[0],
-        idx[1] % dimensions[1],
-        idx[2] % dimensions[2],
-    ]
+    [idx[0] % dimensions[0], idx[1] % dimensions[1], idx[2] % dimensions[2]]
 }
 
 mod blocks {
@@ -399,11 +366,7 @@ mod blocks {
                 blocks[lin_idx].push(pos)
             }
 
-            Self {
-                radius,
-                size,
-                blocks,
-            }
+            Self { radius, size, blocks }
         }
 
         pub fn nearby(&self, position: U64Vec3) -> impl Iterator<Item = U64Vec3> + '_ {
@@ -523,10 +486,7 @@ impl BitOrAssign for Mask {
         // For good measure, so the compiler gets it.
         assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
 
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s |= m);
+        self.backings.iter_mut().zip(rhs.backings.iter()).for_each(|(s, &m)| *s |= m);
     }
 }
 
@@ -541,10 +501,7 @@ impl BitAndAssign for Mask {
         // For good measure, so the compiler gets it.
         assert_eq!(self.n_backings(), rhs.n_backings()); // FIXME: Is this one necessary?
 
-        self.backings
-            .iter_mut()
-            .zip(rhs.backings.iter())
-            .for_each(|(s, &m)| *s &= m);
+        self.backings.iter_mut().zip(rhs.backings.iter()).for_each(|(s, &m)| *s &= m);
     }
 }
 
@@ -812,10 +769,7 @@ mod tests {
             [2, 0, 2],
         ];
 
-        assert_eq!(
-            mask.indices_where::<false>().collect::<Vec<_>>(),
-            where_false
-        );
+        assert_eq!(mask.indices_where::<false>().collect::<Vec<_>>(), where_false);
 
         let where_true = [
             [0, 1, 0],
@@ -848,17 +802,11 @@ mod tests {
 
         let where_false = [0, 1, 2, 6, 7, 8, 9, 11, 15, 16, 18, 19, 20];
 
-        assert_eq!(
-            mask.linear_indices_where::<false>().collect::<Vec<_>>(),
-            where_false
-        );
+        assert_eq!(mask.linear_indices_where::<false>().collect::<Vec<_>>(), where_false);
 
         let where_true = [3, 4, 5, 10, 12, 13, 14, 17, 21, 22, 23, 24, 25, 26];
 
-        assert_eq!(
-            mask.linear_indices_where::<true>().collect::<Vec<_>>(),
-            where_true
-        );
+        assert_eq!(mask.linear_indices_where::<true>().collect::<Vec<_>>(), where_true);
     }
 
     #[test]

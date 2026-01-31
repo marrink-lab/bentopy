@@ -42,10 +42,8 @@ impl Space {
         // Otherwise, leave the session background and locations alone. The session background
         // will stay exactly the same, since it was already set up for this set of
         // compartments. The locations are likely still valid.
-        let same_previous_compartments = self
-            .previous_compartments
-            .as_ref()
-            .is_some_and(|prev| prev == &compartment_ids);
+        let same_previous_compartments =
+            self.previous_compartments.as_ref().is_some_and(|prev| prev == &compartment_ids);
         if !same_previous_compartments {
             // Clone the global background, which has all structures stamped onto it.
             self.session_background = self.global_background.clone();
@@ -72,9 +70,7 @@ impl Space {
         Session::new(
             self,
             locations,
-            target
-                .try_into()
-                .expect("target cannot not exceed system word size"),
+            target.try_into().expect("target cannot not exceed system word size"),
         )
     }
 

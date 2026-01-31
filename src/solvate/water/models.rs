@@ -29,12 +29,7 @@ impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_P
         // The number of atoms must be a multiple of the number of atoms per residue.
         const { assert!(NATOMS.is_multiple_of(NATOMS_PER_RES)) }
 
-        Self {
-            resname,
-            names,
-            dimensions,
-            positions,
-        }
+        Self { resname, names, dimensions, positions }
     }
 
     /// Returns solvent residue name for this [`WaterBox`].
@@ -54,11 +49,7 @@ impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_P
 
     /// Return an iterator over the positions must be considered for solvent-structure collisions.
     pub fn positions(&'_ self) -> PositionsIterator<'_> {
-        PositionsIterator {
-            step: NATOMS_PER_RES,
-            idx: 0,
-            positions: &self.positions,
-        }
+        PositionsIterator { step: NATOMS_PER_RES, idx: 0, positions: &self.positions }
     }
 
     pub fn residues(&'_ self) -> ResiduesIterator<'_> {
@@ -137,11 +128,7 @@ impl<'wb> Iterator for ResiduesIterator<'wb> {
         let idx = self.idx;
         self.idx += self.step;
         let positions = self.positions.get(idx..self.idx)?;
-        Some(Self::Item {
-            resname: self.resname,
-            names: self.names,
-            positions,
-        })
+        Some(Self::Item { resname: self.resname, names: self.names, positions })
     }
 }
 

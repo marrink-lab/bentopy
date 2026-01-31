@@ -45,13 +45,7 @@ impl<'s> PlaceMap<'s> {
         let n_cells = size.x as usize * size.y as usize * size.z as usize;
         let n_bytes = positions.len().div_ceil(8);
         let placements = vec![0x00; n_bytes * n_cells].into_boxed_slice();
-        Self {
-            dimensions: size,
-            solvent,
-            positions,
-            placements,
-            _remove: std::marker::PhantomData,
-        }
+        Self { dimensions: size, solvent, positions, placements, _remove: std::marker::PhantomData }
     }
 
     /// Returns the number of cells that make up this [`PlaceMap`]
@@ -169,12 +163,9 @@ impl std::ops::BitOrAssign for PlaceMap<'_> {
         assert_eq!(self.n_cells(), rhs.n_cells());
         assert_eq!(self.solvent, rhs.solvent);
 
-        self.placements
-            .iter_mut()
-            .zip(rhs.placements)
-            .for_each(|(s, r)| {
-                *s |= r;
-            });
+        self.placements.iter_mut().zip(rhs.placements).for_each(|(s, r)| {
+            *s |= r;
+        });
     }
 }
 
@@ -186,12 +177,9 @@ impl std::ops::BitAndAssign for PlaceMap<'_> {
         assert_eq!(self.n_cells(), rhs.n_cells());
         assert_eq!(self.solvent, rhs.solvent);
 
-        self.placements
-            .iter_mut()
-            .zip(rhs.placements)
-            .for_each(|(s, r)| {
-                *s &= r;
-            });
+        self.placements.iter_mut().zip(rhs.placements).for_each(|(s, r)| {
+            *s &= r;
+        });
     }
 }
 
@@ -203,12 +191,9 @@ impl std::ops::BitXorAssign for PlaceMap<'_> {
         assert_eq!(self.n_cells(), rhs.n_cells());
         assert_eq!(self.solvent, rhs.solvent);
 
-        self.placements
-            .iter_mut()
-            .zip(rhs.placements)
-            .for_each(|(s, r)| {
-                *s ^= r;
-            });
+        self.placements.iter_mut().zip(rhs.placements).for_each(|(s, r)| {
+            *s ^= r;
+        });
     }
 }
 
@@ -274,10 +259,7 @@ impl<'ps> PlacementMut<'ps> {
     /// This communicates that a solvent particle cannot be rendered at this spot.
     pub fn set_occupied(&mut self, idx: usize) {
         if idx >= self.len {
-            panic!(
-                "index out of range (length was {} but index was {idx})",
-                self.len
-            )
+            panic!("index out of range (length was {} but index was {idx})", self.len)
         }
 
         let byte = &mut self.bytes[idx / 8];
@@ -291,10 +273,7 @@ impl<'ps> PlacementMut<'ps> {
     /// This function will panic if the provided `idx` exceeds the range represented by this value.
     pub fn get(&self, idx: usize) -> bool {
         if idx >= self.len {
-            panic!(
-                "index out of range (length was {} but index was {idx})",
-                self.len
-            )
+            panic!("index out of range (length was {} but index was {idx})", self.len)
         }
 
         let byte = self.bytes[idx / 8];
@@ -356,10 +335,7 @@ mod tests {
         let n_occupied = 0;
 
         // Set some atom to be occupied.
-        placemap
-            .get_mut(UVec3::new(1, 3, 5))
-            .unwrap()
-            .set_occupied(161);
+        placemap.get_mut(UVec3::new(1, 3, 5)).unwrap().set_occupied(161);
         // Update natoms_total and n_occupied to reflect this.
         let natoms_total = natoms_total - 1;
         let n_occupied = n_occupied + 1;

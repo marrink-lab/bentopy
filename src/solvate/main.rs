@@ -26,9 +26,8 @@ mod water;
 fn main() -> anyhow::Result<()> {
     let config = Args::parse();
     let cutoff = config.cutoff.unwrap_or(config.water_type.default_cutoff());
-    let solvent_cutoff = config
-        .solvent_cutoff
-        .unwrap_or(config.water_type.default_solvent_cutoff());
+    let solvent_cutoff =
+        config.solvent_cutoff.unwrap_or(config.water_type.default_solvent_cutoff());
     eprintln!("Solvent-structure cutoff is set to {cutoff} nm.");
     eprintln!("Solvent-solvent cutoff is set to   {solvent_cutoff} nm.");
 
@@ -54,13 +53,7 @@ fn main() -> anyhow::Result<()> {
     );
     eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
 
-    let volume = structure
-        .boxvecs
-        .as_vec3()
-        .as_dvec3()
-        .to_array()
-        .iter()
-        .product();
+    let volume = structure.boxvecs.as_vec3().as_dvec3().to_array().iter().product();
     let neutralizing_ions = if let Some(charge) = config.charge {
         charge.bake(config.append_topol.as_ref())?
     } else {
@@ -88,9 +81,7 @@ fn main() -> anyhow::Result<()> {
         if !config.no_combine_substitutes {
             let mut piles: Vec<substitute::Substitution<'_>> = Vec::new();
             for substitution in subs {
-                if let Some(pile) = piles
-                    .iter_mut()
-                    .find(|pile| pile.name() == substitution.name())
+                if let Some(pile) = piles.iter_mut().find(|pile| pile.name() == substitution.name())
                 {
                     // Tack this substitution's replacements onto the existing pile.
                     pile.glue(&substitution)
@@ -125,14 +116,8 @@ fn main() -> anyhow::Result<()> {
     let mut writer = io::BufWriter::new(file);
     let buffer_size = config.buffer_size;
     if config.no_write_parallel {
-        write_structure::<false>(
-            &mut writer,
-            &structure,
-            &placemap,
-            &substitutions,
-            buffer_size,
-        )
-        .with_context(|| {
+        write_structure::<false>(&mut writer, &structure, &placemap, &substitutions, buffer_size)
+            .with_context(|| {
             format!("Encountered a problem while writing the output structure to {output_path:?}")
         })?;
     } else {

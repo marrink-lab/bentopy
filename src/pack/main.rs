@@ -24,9 +24,7 @@ struct Summary {
 
 impl Summary {
     fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
+        Self { entries: Vec::new() }
     }
 
     fn push(&mut self, name: String, target: usize, placed: usize, time: f64) {
@@ -89,15 +87,12 @@ fn main() -> anyhow::Result<()> {
     };
 
     // Check whether the compartment masks make any sense.
-    state
-        .check_masks()
-        .context("Encountered a problem while checking the compartment masks")?;
+    state.check_masks().context("Encountered a problem while checking the compartment masks")?;
 
     // Packing.
     let packing_start = std::time::Instant::now();
-    let (placements, summary) = state
-        .pack(&mut io::stderr())
-        .context("Encountered a problem while packing")?;
+    let (placements, summary) =
+        state.pack(&mut io::stderr()).context("Encountered a problem while packing")?;
     let packing_duration = packing_start.elapsed().as_secs_f64();
     eprintln!("Packing process took {packing_duration:.3} s.");
 

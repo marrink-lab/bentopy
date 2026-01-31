@@ -49,11 +49,8 @@ impl State {
             );
 
             // Set up the placement record for this segment.
-            let mut placement = Placement::new(
-                segment.name.clone(),
-                segment.tag.clone(),
-                segment.path.clone(),
-            );
+            let mut placement =
+                Placement::new(segment.name.clone(), segment.tag.clone(), segment.path.clone());
 
             let mut hits = 0;
             let mut tries = 0; // The number of unsuccessful tries.

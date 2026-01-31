@@ -77,10 +77,7 @@ impl Water {
         let mut resnum = 1;
         // TODO: Add the whole resnum atomnum thing back in!
         self.residues()
-            .map(move |res| {
-                res.atoms(&mut atomnum, &mut resnum, translation)
-                    .collect::<Box<[_]>>()
-            })
+            .map(move |res| res.atoms(&mut atomnum, &mut resnum, translation).collect::<Box<[_]>>())
             .filter(move |_atom| {
                 // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
                 // that impossible far before this function is executed. Otherwise, can we make it
@@ -101,15 +98,13 @@ impl Water {
         translation: Vec3,
     ) -> impl Iterator<Item = Vec3> + use<'w, A> {
         // TODO: Add the whole resnum atomnum thing back in!
-        self.positions()
-            .map(move |pos| pos + translation)
-            .filter(move |_atom| {
-                // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
-                // that impossible far before this function is executed. Otherwise, can we make it
-                // a nicer error? Or even an unimplemented!().
-                !occupied
-                    .next()
-                    .expect("occupied should have the same length as the number of residues")
-            })
+        self.positions().map(move |pos| pos + translation).filter(move |_atom| {
+            // TODO: Revisit the expect here. Can this happen in normal use? If so, can we make
+            // that impossible far before this function is executed. Otherwise, can we make it
+            // a nicer error? Or even an unimplemented!().
+            !occupied
+                .next()
+                .expect("occupied should have the same length as the number of residues")
+        })
     }
 }

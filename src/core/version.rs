@@ -7,10 +7,7 @@ pub struct Version {
 
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Self {
-            pkg_version,
-            git_version,
-        } = self;
+        let Self { pkg_version, git_version } = self;
         write!(f, "{pkg_version} ({git_version})")
     }
 }

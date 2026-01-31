@@ -32,14 +32,10 @@ mod report {
     pub(crate) fn error(path: &str, src: &str, err: &Rich<impl std::fmt::Display>) -> String {
         let msg = err.reason().to_string();
         let label = (
-            err.found()
-                .map(|c| c.to_string())
-                .unwrap_or_else(|| "end of input".to_string()),
+            err.found().map(|c| c.to_string()).unwrap_or_else(|| "end of input".to_string()),
             *err.span(),
         );
-        let extra_labels = err
-            .contexts()
-            .map(|(l, s)| (format!("While parsing this {l}"), *s));
+        let extra_labels = err.contexts().map(|(l, s)| (format!("While parsing this {l}"), *s));
 
         let cfg = ariadne::Config::new()
             .with_index_type(ariadne::IndexType::Char)
@@ -71,20 +67,17 @@ mod report {
             .with_index_type(ariadne::IndexType::Char)
             .with_label_attach(ariadne::LabelAttach::Middle);
         for (item, span) in items {
-            Report::build(
-                ReportKind::Custom("Result", Color::Green),
-                (path, span.into_range()),
-            )
-            .with_config(cfg)
-            .with_message(format!("found the following item: {item}"))
-            .with_label(
-                Label::new((path, span.into_range()))
-                    .with_message(item.to_string())
-                    .with_color(Color::Green),
-            )
-            .finish()
-            .eprint((path, Source::from(src)))
-            .unwrap();
+            Report::build(ReportKind::Custom("Result", Color::Green), (path, span.into_range()))
+                .with_config(cfg)
+                .with_message(format!("found the following item: {item}"))
+                .with_label(
+                    Label::new((path, span.into_range()))
+                        .with_message(item.to_string())
+                        .with_color(Color::Green),
+                )
+                .finish()
+                .eprint((path, Source::from(src)))
+                .unwrap();
         }
     }
 
@@ -136,14 +129,11 @@ pub fn parse_config(path: &str, src: &str) -> anyhow::Result<Config> {
     report::placeholders(path, src, &tokens);
 
     let tokens = make_input((0..src.len()).into(), &tokens);
-    let config = parser::parser()
-        .parse(tokens)
-        .into_result()
-        .map_err(|errs| {
-            // Display a nice report.
-            let summary = report::error(path, src, &errs[0]);
-            // Communicate the error upstream.
-            anyhow::anyhow!("Could not parse {path:?}: {summary}")
-        })?;
+    let config = parser::parser().parse(tokens).into_result().map_err(|errs| {
+        // Display a nice report.
+        let summary = report::error(path, src, &errs[0]);
+        // Communicate the error upstream.
+        anyhow::anyhow!("Could not parse {path:?}: {summary}")
+    })?;
     Ok(config)
 }

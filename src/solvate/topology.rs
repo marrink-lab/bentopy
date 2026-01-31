@@ -90,9 +90,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
     }
 
     fn parse_directive(line: &str) -> Option<&str> {
-        line.strip_prefix('[')
-            .and_then(|rest| rest.strip_suffix(']'))
-            .map(str::trim)
+        line.strip_prefix('[').and_then(|rest| rest.strip_suffix(']')).map(str::trim)
     }
 
     fn parse_path_str<'s>(s: &'s str, ln: usize, line: &'s str) -> Result<&'s str> {
@@ -111,10 +109,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
 
     impl Molecule {
         fn new(name: String) -> Self {
-            Self {
-                name,
-                charge: Default::default(),
-            }
+            Self { name, charge: Default::default() }
         }
     }
 
@@ -273,11 +268,8 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                         }
                     }
                     State::Atoms => self.parse_molecule_atom(line).with_context(|| {
-                        let name = self
-                            .current
-                            .as_ref()
-                            .map(|curr| curr.name.as_str())
-                            .unwrap_or("?");
+                        let name =
+                            self.current.as_ref().map(|curr| curr.name.as_str()).unwrap_or("?");
                         format!(
                             "Could not parse atom line at {ln} in {path:?} \
                                     for molecule {name:?}: {line:?}"
@@ -405,9 +397,8 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
     // charge of each individual instance of that moleculetype is. Now we compute the total charge.
     let mut total_charge = 0.0;
     for (name, number) in molecules {
-        let Some(charge): Option<f64> = moleculetypes
-            .iter()
-            .find_map(|m| if m.name == name { Some(m.charge) } else { None })
+        let Some(charge): Option<f64> =
+            moleculetypes.iter().find_map(|m| if m.name == name { Some(m.charge) } else { None })
         else {
             bail!("No moleculetype was defined for {name:?}");
         };

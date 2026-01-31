@@ -161,32 +161,17 @@ impl Atom {
     // ATOM      2  C13 DPPCM 367      31.671 -46.874  39.426  1.00  0.00      MEMB
     /// Read a single "ATOM" or "HETATM" record from a PDB and return an Atom.
     fn from_pdb_atom_line(line: &str) -> Result<Atom> {
-        let serial = line[6..11]
-            .trim()
-            .parse()
-            .context("Could not parse atom serial")?;
+        let serial = line[6..11].trim().parse().context("Could not parse atom serial")?;
         let name = line[12..16].trim().into();
         // NOTE: Even though the PDB specification only regards columns 18..21 as constituting the
         // resname, in practice the character directly after that is also included. This column is
         // not defined by the spec. Especially for telling apart lipids like DPPC and DPPG, it's
         // quite important to include that by-convention resname character. Thanks Abby!
         let resname = line[17..21].trim().into();
-        let resnum = line[22..26]
-            .trim()
-            .parse()
-            .context("Could not parse atom resnum")?;
-        let x = line[30..38]
-            .trim()
-            .parse()
-            .context("Could not parse x coordinate")?;
-        let y = line[38..46]
-            .trim()
-            .parse()
-            .context("Could not parse y coordinate")?;
-        let z = line[46..54]
-            .trim()
-            .parse()
-            .context("Could not parse z coordinate")?;
+        let resnum = line[22..26].trim().parse().context("Could not parse atom resnum")?;
+        let x = line[30..38].trim().parse().context("Could not parse x coordinate")?;
+        let y = line[38..46].trim().parse().context("Could not parse y coordinate")?;
+        let z = line[46..54].trim().parse().context("Could not parse z coordinate")?;
         Ok(Atom {
             name,
             resname,
@@ -199,28 +184,13 @@ impl Atom {
     // `    2WATER  HW3    6   1.326   0.120   0.568  1.9427 -0.8216 -0.0244`
     /// Read a single atom line from a gro file and return an Atom.
     fn from_gro_atom_line(line: &str) -> Result<Atom> {
-        let resnum = line[0..5]
-            .trim()
-            .parse()
-            .context("Could not parse resnum")?;
+        let resnum = line[0..5].trim().parse().context("Could not parse resnum")?;
         let resname = line[5..10].trim().into();
         let name = line[10..15].trim().into(); // Atom name.
-        let num = line[15..20]
-            .trim()
-            .parse()
-            .context("Could not parse atomnum")?; // Atom number.
-        let x = line[20..28]
-            .trim()
-            .parse()
-            .context("Could not parse x coordinate")?;
-        let y = line[28..36]
-            .trim()
-            .parse()
-            .context("Could not parse y coordinate")?;
-        let z = line[36..44]
-            .trim()
-            .parse()
-            .context("Could not parse z coordinate")?;
+        let num = line[15..20].trim().parse().context("Could not parse atomnum")?; // Atom number.
+        let x = line[20..28].trim().parse().context("Could not parse x coordinate")?;
+        let y = line[28..36].trim().parse().context("Could not parse y coordinate")?;
+        let z = line[36..44].trim().parse().context("Could not parse z coordinate")?;
         Ok(Atom {
             name,
             resname,
@@ -232,13 +202,7 @@ impl Atom {
 
     /// Create a dummy atom.
     pub fn dummy() -> Self {
-        Self {
-            name: "DUMMY".into(),
-            resname: "DUMMY".into(),
-            resnum: 0,
-            num: 0,
-            pos: Vec3::ZERO,
-        }
+        Self { name: "DUMMY".into(), resname: "DUMMY".into(), resnum: 0, num: 0, pos: Vec3::ZERO }
     }
 }
 

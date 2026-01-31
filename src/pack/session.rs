@@ -13,11 +13,7 @@ pub struct Session<'s> {
 
 impl<'s> Session<'s> {
     pub fn new(inner: &'s mut Space, locations: &'s mut Locations, target: usize) -> Self {
-        Self {
-            inner,
-            locations,
-            target,
-        }
+        Self { inner, locations, target }
     }
 
     pub fn target(&self) -> usize {
@@ -53,11 +49,7 @@ impl Session<'_> {
         }
 
         // We're out of locations. We'll try and renew once.
-        self.locations.renew(
-            self.inner
-                .session_background
-                .linear_indices_where::<false>(),
-        );
+        self.locations.renew(self.inner.session_background.linear_indices_where::<false>());
 
         // If the result is still `None`, there is nothing we can do anymore.
         self.locations.pop(rng, self.target)
@@ -78,16 +70,9 @@ impl Session<'_> {
 
     pub fn stamp(&mut self, voxels: &Voxels, location: Position) {
         let location = U64Vec3::from_array(location);
-        for idx in voxels
-            .indices_where::<true>()
-            .map(|idx| U64Vec3::from_array(idx) + location)
-        {
-            self.inner
-                .global_background
-                .set_periodic(idx.to_array(), true);
-            self.inner
-                .session_background
-                .set_periodic(idx.to_array(), true);
+        for idx in voxels.indices_where::<true>().map(|idx| U64Vec3::from_array(idx) + location) {
+            self.inner.global_background.set_periodic(idx.to_array(), true);
+            self.inner.session_background.set_periodic(idx.to_array(), true);
         }
     }
 
@@ -123,12 +108,7 @@ impl Locations {
     const RENEW_THRESHOLD: f64 = 0.1;
 
     pub fn new() -> Self {
-        Self {
-            indices: Vec::new(),
-            used: 0,
-            threshold: 0,
-            cursor: 0,
-        }
+        Self { indices: Vec::new(), used: 0, threshold: 0, cursor: 0 }
     }
 
     /// Renew the locations from an iterator of locations.

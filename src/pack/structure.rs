@@ -155,10 +155,7 @@ impl Structure {
     ///
     /// Invariant: Assumes that the structure is centered.
     pub fn bounding_sphere(&self) -> f32 {
-        self.atoms()
-            .map(|atom| atom.length())
-            .max_by(f32::total_cmp)
-            .unwrap() // Invariant: A structure has at least one atom.
+        self.atoms().map(|atom| atom.length()).max_by(f32::total_cmp).unwrap() // Invariant: A structure has at least one atom.
     }
 }
 

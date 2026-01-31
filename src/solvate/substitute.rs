@@ -9,10 +9,7 @@ pub struct Substitution<'sol> {
 
 impl<'sol> Substitution<'sol> {
     pub fn new(name: impl Into<AtomName>, placemap: PlaceMap<'sol>) -> Self {
-        Self {
-            name: name.into(),
-            placemap,
-        }
+        Self { name: name.into(), placemap }
     }
 
     pub fn natoms(&self) -> usize {
@@ -102,10 +99,7 @@ pub fn substitute<'sol>(
 
         old_placemap ^= placemap.clone();
         let substitute_placemap = !old_placemap;
-        substitutions.push(Substitution::new(
-            substitute.name.as_str(),
-            substitute_placemap,
-        ));
+        substitutions.push(Substitution::new(substitute.name.as_str(), substitute_placemap));
         eprintln!("Took {:.3} s.", start.elapsed().as_secs_f32());
     }
 

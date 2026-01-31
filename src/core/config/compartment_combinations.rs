@@ -49,9 +49,7 @@ fn consume_whitespace(input: &str) -> &str {
 /// Tokenize a single ID.
 fn tokenize_id<'s>(mut input: &'s str, tokens: &mut Vec<Token>) -> &'s str {
     // Either, the end of the token is the end of `input`, whitespace, or a closing parenthesis.
-    let end = input
-        .find(|ch: char| ch.is_whitespace() || ch == ')')
-        .unwrap_or(input.len());
+    let end = input.find(|ch: char| ch.is_whitespace() || ch == ')').unwrap_or(input.len());
     let id;
     (id, input) = input.split_at(end);
     // Make sure we're not accidentally emitting an empty id. This can happen if we're at the end
@@ -157,9 +155,7 @@ fn parse_operands_until_close(
 /// Returns the next item or `None` when the [`Token::Close`] for this level in the three is hit.
 fn parse_next_item(tokens: &mut &[Token]) -> Result<Option<Expression>, ParseExpressionError> {
     let token;
-    (token, *tokens) = tokens
-        .split_first()
-        .ok_or(ParseExpressionError::UnexpectedEnd)?;
+    (token, *tokens) = tokens.split_first().ok_or(ParseExpressionError::UnexpectedEnd)?;
     let expr = match token {
         Token::Id(id) => Expression::Id(id.to_owned()),
         Token::Not => Expression::Not(Box::new(

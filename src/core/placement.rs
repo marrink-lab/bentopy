@@ -47,12 +47,7 @@ pub struct Placement {
 impl Placement {
     /// Creates a new [`Placement`].
     pub fn new(name: String, tag: Option<String>, path: PathBuf) -> Self {
-        Self {
-            name,
-            tag,
-            path,
-            batches: Default::default(),
-        }
+        Self { name, tag, path, batches: Default::default() }
     }
 
     /// Returns the optional tag of this [`Placement`].
@@ -83,10 +78,7 @@ impl Batch {
     ///   must be applied by the caller.
     /// - The provided `rotation` is internally converted and stored in row-major order.
     pub fn new(rotation: Rotation, positions: Vec<Position>) -> Self {
-        Self {
-            rotation: rotation.transpose().to_cols_array_2d(),
-            positions,
-        }
+        Self { rotation: rotation.transpose().to_cols_array_2d(), positions }
     }
 
     /// Returns the 3×3 rotation matrix of this [`Batch`].

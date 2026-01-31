@@ -319,11 +319,7 @@ pub struct Axes {
 
 impl Default for Axes {
     fn default() -> Self {
-        Self {
-            x: true,
-            y: true,
-            z: true,
-        }
+        Self { x: true, y: true, z: true }
     }
 }
 
@@ -354,10 +350,6 @@ impl std::str::FromStr for Axes {
             ));
         }
 
-        Ok(Self {
-            x: s.contains('x'),
-            y: s.contains('y'),
-            z: s.contains('z'),
-        })
+        Ok(Self { x: s.contains('x'), y: s.contains('y'), z: s.contains('z') })
     }
 }

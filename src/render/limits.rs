@@ -51,23 +51,13 @@ impl FromStr for Limits {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let Ok([minx, maxx, miny, maxy, minz, maxz]): Result<[Option<f32>; 6], _> = s
-            .split(',')
-            .map(|v| v.trim().parse().ok())
-            .collect::<Vec<_>>()
-            .try_into()
+        let Ok([minx, maxx, miny, maxy, minz, maxz]): Result<[Option<f32>; 6], _> =
+            s.split(',').map(|v| v.trim().parse().ok()).collect::<Vec<_>>().try_into()
         else {
             let n = s.split(',').count();
             return Err(format!("expected 6 values, found {n}"));
         };
 
-        Ok(Self {
-            minx,
-            maxx,
-            miny,
-            maxy,
-            minz,
-            maxz,
-        })
+        Ok(Self { minx, maxx, miny, maxy, minz, maxz })
     }
 }

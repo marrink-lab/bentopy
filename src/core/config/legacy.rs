@@ -77,14 +77,8 @@ impl std::fmt::Display for Shape {
 #[serde(rename_all = "lowercase")]
 pub enum Mask {
     Shape(Shape),
-    Analytical {
-        shape: Shape,
-        center: Option<[f32; 3]>,
-        radius: Option<f32>,
-    },
-    Voxels {
-        path: PathBuf,
-    },
+    Analytical { shape: Shape, center: Option<[f32; 3]>, radius: Option<f32> },
+    Voxels { path: PathBuf },
     Combination(CombinationExpression),
 }
 
@@ -235,10 +229,8 @@ mod convert {
                 binary: impl Fn(Box<Expr>, Box<Expr>) -> Expr,
             ) -> Expr {
                 // We recursively convert the children first.
-                let exprs: Vec<config::Expr<CompartmentID>> = expressions
-                    .into_iter()
-                    .map(|expression| expression.into())
-                    .collect();
+                let exprs: Vec<config::Expr<CompartmentID>> =
+                    expressions.into_iter().map(|expression| expression.into()).collect();
                 // Then, we stitch them together into a tree.
                 let flat = exprs;
                 flat.into_iter()
@@ -264,18 +256,16 @@ mod convert {
                     Shape::Spherical => panic!("a sphere without a radius is an undefined shape"),
                     Shape::Cuboid | Shape::None => config::Mask::All,
                 },
-                Mask::Analytical {
-                    shape: Shape::Spherical,
-                    center,
-                    radius,
-                } => config::Mask::Shape(config::Shape::Sphere {
-                    center: match center {
-                        None => config::Anchor::Center,
-                        Some(center) => config::Anchor::Point(center),
-                    },
-                    // TODO: This sucks but is true.
-                    radius: radius.expect("a sphere without a radius is an undefined shape"),
-                }),
+                Mask::Analytical { shape: Shape::Spherical, center, radius } => {
+                    config::Mask::Shape(config::Shape::Sphere {
+                        center: match center {
+                            None => config::Anchor::Center,
+                            Some(center) => config::Anchor::Point(center),
+                        },
+                        // TODO: This sucks but is true.
+                        radius: radius.expect("a sphere without a radius is an undefined shape"),
+                    })
+                }
                 Mask::Analytical {
                     shape: Shape::Cuboid | Shape::None,
                     // Cursed that these could be set, but we'll just keep quit about it.
@@ -294,10 +284,7 @@ mod convert {
     impl From<Compartment> for config::Compartment {
         fn from(compartment: Compartment) -> Self {
             let Compartment { id, mask } = compartment;
-            config::Compartment {
-                id,
-                mask: mask.into(),
-            }
+            config::Compartment { id, mask: mask.into() }
         }
     }
 
@@ -402,26 +389,10 @@ mod convert {
     impl From<Config> for config::Config {
         fn from(config: Config) -> Self {
             let Config {
-                general:
-                    General {
-                        seed,
-                        bead_radius,
-                        max_tries_mult,
-                        max_tries_rot_div,
-                    },
-                space:
-                    Space {
-                        size,
-                        resolution,
-                        compartments,
-                        periodic,
-                    },
+                general: General { seed, bead_radius, max_tries_mult, max_tries_rot_div },
+                space: Space { size, resolution, compartments, periodic },
                 segments,
-                output:
-                    Output {
-                        title,
-                        topol_includes,
-                    },
+                output: Output { title, topol_includes },
             } = config;
 
             // More cursed canonical rule id logic.
@@ -543,11 +514,7 @@ mod convert {
                 None
             };
             // Bit silly, but let's match this already ugly structure for clarity.
-            let periodic = if periodic != defaults::PERIODIC {
-                Some(periodic)
-            } else {
-                None
-            };
+            let periodic = if periodic != defaults::PERIODIC { Some(periodic) } else { None };
 
             config::Config {
                 general: config::General {
@@ -563,11 +530,7 @@ mod convert {
                     resolution: Some(resolution as f64),
                     periodic,
                 },
-                includes: topol_includes
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(Into::into)
-                    .collect(),
+                includes: topol_includes.unwrap_or_default().into_iter().map(Into::into).collect(),
                 constraints,
                 compartments,
                 segments: segments.into_iter().map(Into::into).collect(),
@@ -588,9 +551,9 @@ mod convert {
         pub fn parse_rule(expr: &RuleExpression) -> Result<Rule, ParseRuleError> {
             match expr {
                 RuleExpression::Rule(s) => Rule::from_str(s),
-                RuleExpression::Or(exprs) => Ok(Rule::Or(
-                    exprs.iter().map(parse_rule).collect::<Result<_, _>>()?,
-                )),
+                RuleExpression::Or(exprs) => {
+                    Ok(Rule::Or(exprs.iter().map(parse_rule).collect::<Result<_, _>>()?))
+                }
             }
         }
 
@@ -607,22 +570,15 @@ mod convert {
                     format!("{{win/{id}'{distance}}}")
                 }
                 Rule::Or(rules) => {
-                    let ids = rules
-                        .iter()
-                        .map(canonical_id_compartment)
-                        .collect::<Vec<_>>()
-                        .join("'");
+                    let ids =
+                        rules.iter().map(canonical_id_compartment).collect::<Vec<_>>().join("'");
                     format!("{{or/{ids}}}")
                 }
             }
         }
 
         pub fn canonical_id_rotation_axes(axes: config::Axes) -> String {
-            let axes = axes
-                .list()
-                .iter()
-                .map(ToString::to_string)
-                .collect::<String>();
+            let axes = axes.list().iter().map(ToString::to_string).collect::<String>();
             format!("{{axes/{axes}}}")
         }
 
@@ -630,10 +586,7 @@ mod convert {
             compartment_ids: &[CompartmentID],
             rule_ids: &[CompartmentID],
         ) -> String {
-            assert!(
-                !compartment_ids.is_empty(),
-                "expected at least one compartment"
-            );
+            assert!(!compartment_ids.is_empty(), "expected at least one compartment");
             assert!(!rule_ids.is_empty(), "expected at least one rule");
 
             let rids = rule_ids.join("'");
@@ -690,16 +643,8 @@ mod convert {
                             .map_err(ParseRuleError::ParseScalarError)?;
 
                         let poscon = match kind {
-                            "greater_than" => Limit {
-                                axis,
-                                op: Op::GreaterThan,
-                                value,
-                            },
-                            "less_than" => Limit {
-                                axis,
-                                op: Op::LessThan,
-                                value,
-                            },
+                            "greater_than" => Limit { axis, op: Op::GreaterThan, value },
+                            "less_than" => Limit { axis, op: Op::LessThan, value },
                             _ => unreachable!(), // By virtue of this branch's pattern.
                         };
                         Ok(Rule::Position(poscon))
@@ -758,9 +703,7 @@ mod convert {
                     "x" => Ok(Self::X),
                     "y" => Ok(Self::Y),
                     "z" => Ok(Self::Z),
-                    weird => Err(format!(
-                        "expected one of 'x', 'y', or 'z', but found {weird:?}"
-                    )),
+                    weird => Err(format!("expected one of 'x', 'y', or 'z', but found {weird:?}")),
                 }
             }
         }
