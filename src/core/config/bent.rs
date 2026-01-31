@@ -39,7 +39,7 @@ mod report {
         );
         let extra_labels = err
             .contexts()
-            .map(|(l, s)| (format!("while parsing this {l}"), *s));
+            .map(|(l, s)| (format!("While parsing this {l}"), *s));
 
         let cfg = ariadne::Config::new()
             .with_index_type(ariadne::IndexType::Char)
@@ -124,7 +124,7 @@ pub fn parse_config(path: &str, src: &str) -> anyhow::Result<Config> {
         // Display a nice report.
         let summary = report::error(path, src, &errs[0]);
         // Communicate the error upstream.
-        anyhow::anyhow!("could not lex {path:?}: {summary}")
+        anyhow::anyhow!("Could not lex {path:?}: {summary}")
     })?;
 
     if std::env::var("BENTOPY_SHOW_TOKENS").is_ok_and(|v| v.parse::<bool>().unwrap_or_default()) {
@@ -143,7 +143,7 @@ pub fn parse_config(path: &str, src: &str) -> anyhow::Result<Config> {
             // Display a nice report.
             let summary = report::error(path, src, &errs[0]);
             // Communicate the error upstream.
-            anyhow::anyhow!("could not parse {path:?}: {summary}")
+            anyhow::anyhow!("Could not parse {path:?}: {summary}")
         })?;
     Ok(config)
 }

@@ -162,11 +162,11 @@ impl Mask {
         let array = npz.by_name(&first_name)?.unwrap(); // We just asserted the name exists.
         let Ok(dimensions): Result<[u64; 3], _> = array.shape().to_vec().try_into() else {
             let shape = array.shape();
-            bail!("a voxel map must have three dimensions, found {shape:?}");
+            bail!("A voxel map must have three dimensions, found {shape:?}");
         };
         if dimensions != expected_dimensions {
             bail!(
-                "the dimensions of the voxel map do not match those defined in the configuration, \
+                "The dimensions of the voxel map do not match those defined in the configuration, \
                     expected {expected_dimensions:?}, found {dimensions:?}"
             )
         }

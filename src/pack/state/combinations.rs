@@ -8,7 +8,7 @@ pub fn execute(expr: &Expr<CompartmentID>, compartments: &[Compartment]) -> anyh
             let compartment = compartments
                 .iter()
                 .find(|c| &c.id == id)
-                .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                .ok_or(anyhow::anyhow!("Mask with id {id:?} not (yet) defined"))?;
             compartment.mask.clone()
         }
         Expr::Not(expr) => !execute(expr, compartments)?,

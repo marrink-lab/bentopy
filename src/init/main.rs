@@ -78,7 +78,7 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
 
     // Try to parse the config.
     let config = Config::parse_bent(&input.to_string_lossy(), &s)
-        .context(format!("could not parse {input:?} as a bentopy input file"))?;
+        .context(format!("Could not parse {input:?} as a bentopy input file"))?;
     eprintln!("Successfully parsed {input:?}.");
 
     // If desired, print a crazy expanded debug struct.
@@ -194,13 +194,13 @@ fn convert(input: PathBuf, output: PathBuf) -> Result<()> {
     let config = match kind {
         Kind::Bent => {
             let config = Config::parse_bent(path, &s)
-                .context(format!("could not parse {path:?} as a bentopy input file"))?;
+                .context(format!("Could not parse {path:?} as a bentopy input file"))?;
             eprintln!("Successfully parsed {path:?}.");
             config
         }
         Kind::Json => {
             let config: legacy::Config = serde_json::from_str(&s).context(format!(
-                "could not parse {path:?} as a legacy json input file"
+                "Could not parse {path:?} as a legacy json input file"
             ))?;
             eprintln!("Successfully parsed {path:?} (legacy input file).");
             eprint!("Attempting to convert to new input configuration format... ");

@@ -49,7 +49,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
     // warning."
     skip_to_section(&mut lines, "system");
     // The next line is the system title.
-    let (_ln, _title) = lines.next().context("expected system title")?;
+    let (_ln, _title) = lines.next().context("Expected system title")?;
 
     // "After [ system ] the only allowed directive is [ molecules ]."
     skip_to_section(&mut lines, "molecules");
@@ -57,12 +57,12 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
     for (ln, line) in lines {
         // Parse a molecule.
         let Some((name, number)) = line.split_once(char::is_whitespace) else {
-            bail!("expected molecule declaration at line {ln}, found {line:?}");
+            bail!("Expected molecule declaration at line {ln}, found {line:?}");
         };
         let number: MoleculeNumber = number
             .trim_start()
             .parse()
-            .with_context(|| format!("expected an integer, found {number:?} at line {ln}"))?;
+            .with_context(|| format!("Expected an integer, found {number:?} at line {ln}"))?;
         *molecules.entry(name).or_default() += number;
     }
 
@@ -97,10 +97,10 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
 
     fn parse_path_str<'s>(s: &'s str, ln: usize, line: &'s str) -> Result<&'s str> {
         let front = s.trim_start().strip_prefix('"').with_context(|| {
-            format!("expected the start of a quoted file path at line {ln}, found {line:?}")
+            format!("Expected the start of a quoted file path at line {ln}, found {line:?}")
         })?;
         front.strip_suffix('"').with_context(|| {
-            format!("expected the end of a quoted file path at line {ln}, found {line:?}")
+            format!("Expected the end of a quoted file path at line {ln}, found {line:?}")
         })
     }
 
@@ -177,7 +177,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                             let mut full_path = PathBuf::from(parent);
                             full_path.push(relative_path);
                             self.parse(&full_path)
-                                .with_context(|| format!("could not parse {full_path:?}"))?;
+                                .with_context(|| format!("Could not parse {full_path:?}"))?;
                         }
 
                         // Change the conditionals stack.
@@ -185,7 +185,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                             let symbol = rest
                                 .split_whitespace()
                                 .next()
-                                .context("expected a definition name")?;
+                                .context("Expected a definition name")?;
                             // We go a level deeper.
                             let current = self.defined.contains(symbol);
                             let parent_active = self.is_active();
@@ -195,7 +195,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                             let symbol = rest
                                 .split_whitespace()
                                 .next()
-                                .context("expected a definition name")?;
+                                .context("Expected a definition name")?;
                             // We go a level deeper.
                             let current = !self.defined.contains(symbol);
                             let parent_active = self.is_active();
@@ -203,14 +203,14 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                         }
                         "else" => {
                             let prev = self.stack.pop().context(
-                                "encountered #else directive without preceding #ifdef or #ifndef",
+                                "Encountered #else directive without preceding #ifdef or #ifndef",
                             )?;
                             // Invert our activity state in the else branch.
                             let parent_active = self.is_active();
                             self.stack.push(parent_active && !prev);
                         }
                         "endif" => {
-                            self.stack.pop().context("popped too far!")?; // Pop down a level.
+                            self.stack.pop().context("Popped too far!")?; // Pop down a level.
                         }
 
                         // Important to not consider any #define or #undef directives when we are
@@ -219,14 +219,14 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                             let symbol = rest
                                 .split_whitespace()
                                 .next()
-                                .context("expected a definition name")?;
+                                .context("Expected a definition name")?;
                             self.defined.insert(symbol.to_string());
                         }
                         "undef" if self.is_active() => {
                             let symbol = rest
                                 .split_whitespace()
                                 .next()
-                                .context("expected a definition name")?;
+                                .context("Expected a definition name")?;
                             self.defined.insert(symbol.to_string());
                         }
 
@@ -264,7 +264,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                     State::None => {}
                     State::AtomTypes => self.parse_atom_parameters(line).with_context(|| {
                         format!(
-                            "could not parse atom parameters line at {ln} in {path:?}: {line:?}"
+                            "Could not parse atom parameters line at {ln} in {path:?}: {line:?}"
                         )
                     })?,
                     State::MoleculeType => {
@@ -279,7 +279,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                             .map(|curr| curr.name.as_str())
                             .unwrap_or("?");
                         format!(
-                            "could not parse atom line at {ln} in {path:?} \
+                            "Could not parse atom line at {ln} in {path:?} \
                                     for molecule {name:?}: {line:?}"
                         )
                     })?,
@@ -326,7 +326,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
             // A. Read in the first six fields as strings
             let fields = line.split_whitespace().collect::<Vec<_>>();
             if fields.len() < 6 {
-                bail!("too few fields in atom type definition");
+                bail!("Too few fields in atom type definition");
             }
 
             let field_is_single_char = |idx: usize| {
@@ -344,7 +344,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
                 //    an alphabetical character we have bonded types, otherwise atomic numbers.
                 3
             } else {
-                bail!("the particle type for this atom line cannot be reliably determined")
+                bail!("The particle type for this atom line cannot be reliably determined")
             };
 
             // TODO: Small string optimization?
@@ -361,23 +361,23 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
         fn parse_molecule_atom(&mut self, line: &str) -> Result<()> {
             let mut fields = line.split_whitespace();
             let Some(current) = self.current.as_mut() else {
-                bail!("cannot read an atoms section without a prior [ moleculetype ] directive")
+                bail!("Cannot read an atoms section without a prior [ moleculetype ] directive")
             };
 
             // Fields: nr, atom type, residue number, residue name, atom name, charge group number, q(e), m(u).
-            let atom_type_name = fields.nth(1).context("expected atom type name")?;
+            let atom_type_name = fields.nth(1).context("Expected atom type name")?;
             // If the moleculetype atom contains a charge, that overrides the charge set in the
             // forcefield parameters for that atomtype.
             let charge = if let Some(charge) = fields.nth(4) {
                 charge
                     .parse()
-                    .with_context(|| format!("could not parse charge value in atom line"))?
+                    .with_context(|| format!("Could not parse charge value in atom line"))?
             } else if let Some(&charge) = self.atoms.get(atom_type_name) {
                 charge
             } else {
                 // I think this would be considered an error in the eyes of GROMACS as well.
                 bail!(
-                    "atom type {atom_type_name} was not previously defined \
+                    "Atom type {atom_type_name} was not previously defined \
                             and has no charge value in this atom line"
                 )
             };
@@ -396,7 +396,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
         let mut context = Context::default();
         context
             .parse(topol_path.as_ref())
-            .with_context(|| format!("problem while parsing main topology file {topol_path:?}"))?;
+            .with_context(|| format!("Problem while parsing main topology file {topol_path:?}"))?;
         context.wrap_up();
         context.molecules
     };
@@ -409,7 +409,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
             .iter()
             .find_map(|m| if m.name == name { Some(m.charge) } else { None })
         else {
-            bail!("no moleculetype was defined for {name:?}");
+            bail!("No moleculetype was defined for {name:?}");
         };
 
         // Report any fractional charges of individual structures as warnings. This makes it much
@@ -424,7 +424,7 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
     // TODO: This threshold can be set with greater care maybe. Just a guess.
     const FRACTIONAL_CHARGE_THRESHOLD: f64 = 0.01;
     if f64::fract(total_charge.round() - total_charge).abs() > FRACTIONAL_CHARGE_THRESHOLD {
-        bail!("the system charge should be an integer value, but it is {total_charge}");
+        bail!("The system charge should be an integer value, but it is {total_charge}");
     }
     let total_charge = total_charge.round() as i64;
 

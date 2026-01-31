@@ -182,7 +182,7 @@ impl State {
                     let compartment = compartments
                         .iter()
                         .find(|c| c.id == id)
-                        .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                        .ok_or(anyhow::anyhow!("Mask with id {id:?} not (yet) defined"))?;
                     let mask = &compartment.mask;
                     let voxel_distance = (distance / resolution) as u64;
                     Compartment {
@@ -196,7 +196,7 @@ impl State {
                     let compartment = compartments
                         .iter()
                         .find(|c| c.id == id)
-                        .ok_or(anyhow::anyhow!("mask with id {id:?} not (yet) defined"))?;
+                        .ok_or(anyhow::anyhow!("Mask with id {id:?} not (yet) defined"))?;
                     let source = &compartment.mask;
                     let voxel_distance = (distance / resolution) as u64;
                     // First, the same step as for within.
@@ -268,7 +268,7 @@ impl State {
                     let rotation_axes = if let Some(id) = seg.rules.first() {
                          match constraints
                             .get(id)
-                            .ok_or(anyhow::anyhow!("constraint with id {id:?} is not defined"))? {
+                            .ok_or(anyhow::anyhow!("Constraint with id {id:?} is not defined"))? {
                                 config::Rule::RotationAxes(axes) => *axes,
                             }
                     } else {
@@ -404,7 +404,7 @@ impl State {
                 // We know there is at least one compartment.
                 // TODO: Don't we already check this upstream?
                 .ok_or(anyhow::anyhow!(
-                    "no valid compartments ({ids_formatted}) declared for segment '{name}'"
+                    "No valid compartments ({ids_formatted}) declared for segment '{name}'"
                 ))?;
 
             if self.verbose {
@@ -429,7 +429,7 @@ impl State {
                     }
                 }
                 bail!(
-                    "the compartments '{ids_formatted}' together preclude any placement of segment '{name}'"
+                    "The compartments '{ids_formatted}' together preclude any placement of segment '{name}'"
                 );
             }
 

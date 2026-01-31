@@ -18,7 +18,7 @@ impl Molecule {
             if line.starts_with("ATOM") || line.starts_with("HETATM") {
                 let ln = ln + 1;
                 let atom = Atom::from_pdb_atom_line(line)
-                    .context(format!("could not parse atom on line {ln}"))?;
+                    .context(format!("Could not parse atom on line {ln}"))?;
                 atoms.push(atom);
             }
         }
@@ -30,19 +30,19 @@ impl Molecule {
     fn from_gro(gro: &str) -> Result<Self> {
         let mut atoms = Vec::new();
         let mut lines = gro.lines().enumerate();
-        let (_ln, _title) = lines.next().context("expected a title line")?;
+        let (_ln, _title) = lines.next().context("Expected a title line")?;
         let n_atoms: usize = lines
             .next()
-            .context("expected the number of atoms")?
+            .context("Expected the number of atoms")?
             .1
             .trim()
             .parse()
-            .context("could not parse the number of atoms")?;
+            .context("Could not parse the number of atoms")?;
         // Read the atoms.
         for (ln, line) in lines.take(n_atoms) {
             let ln = ln + 1;
             let atom = Atom::from_gro_atom_line(line)
-                .context(format!("could not parse atom on line {ln}"))?;
+                .context(format!("Could not parse atom on line {ln}"))?;
             atoms.push(atom);
         }
         // We don't check for the presence and correctness of the box vectors, even though they
@@ -164,7 +164,7 @@ impl Atom {
         let serial = line[6..11]
             .trim()
             .parse()
-            .context("could not parse atom serial")?;
+            .context("Could not parse atom serial")?;
         let name = line[12..16].trim().into();
         // NOTE: Even though the PDB specification only regards columns 18..21 as constituting the
         // resname, in practice the character directly after that is also included. This column is
@@ -174,19 +174,19 @@ impl Atom {
         let resnum = line[22..26]
             .trim()
             .parse()
-            .context("could not parse atom resnum")?;
+            .context("Could not parse atom resnum")?;
         let x = line[30..38]
             .trim()
             .parse()
-            .context("could not parse x coordinate")?;
+            .context("Could not parse x coordinate")?;
         let y = line[38..46]
             .trim()
             .parse()
-            .context("could not parse y coordinate")?;
+            .context("Could not parse y coordinate")?;
         let z = line[46..54]
             .trim()
             .parse()
-            .context("could not parse z coordinate")?;
+            .context("Could not parse z coordinate")?;
         Ok(Atom {
             name,
             resname,
@@ -202,25 +202,25 @@ impl Atom {
         let resnum = line[0..5]
             .trim()
             .parse()
-            .context("could not parse resnum")?;
+            .context("Could not parse resnum")?;
         let resname = line[5..10].trim().into();
         let name = line[10..15].trim().into(); // Atom name.
         let num = line[15..20]
             .trim()
             .parse()
-            .context("could not parse atomnum")?; // Atom number.
+            .context("Could not parse atomnum")?; // Atom number.
         let x = line[20..28]
             .trim()
             .parse()
-            .context("could not parse x coordinate")?;
+            .context("Could not parse x coordinate")?;
         let y = line[28..36]
             .trim()
             .parse()
-            .context("could not parse y coordinate")?;
+            .context("Could not parse y coordinate")?;
         let z = line[36..44]
             .trim()
             .parse()
-            .context("could not parse z coordinate")?;
+            .context("Could not parse z coordinate")?;
         Ok(Atom {
             name,
             resname,
@@ -250,13 +250,13 @@ pub fn load_molecule<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Molecu
     let molecule =
         match path.as_ref().extension().and_then(|s| s.to_str()) {
             Some("gro") => Molecule::from_gro(&data)
-                .context(format!("could not parse .gro file at {path:?}"))?,
+                .context(format!("Could not parse .gro file at {path:?}"))?,
             Some("pdb") => Molecule::from_pdb(&data)
-                .context(format!("could not parse .pdb file at {path:?}"))?,
+                .context(format!("Could not parse .pdb file at {path:?}"))?,
             None | Some(_) => {
                 eprintln!("WARNING: Assuming {path:?} is a pdb file.");
                 Molecule::from_pdb(&data)
-                    .context(format!("could not parse file at {path:?} as .pdb"))?
+                    .context(format!("Could not parse file at {path:?} as .pdb"))?
             }
         };
 
