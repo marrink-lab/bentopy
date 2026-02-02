@@ -361,9 +361,9 @@ pub fn determine_system_charge<P: AsRef<std::path::Path> + std::fmt::Debug>(
             // If the moleculetype atom contains a charge, that overrides the charge set in the
             // forcefield parameters for that atomtype.
             let charge = if let Some(charge) = fields.nth(4) {
-                charge
-                    .parse()
-                    .with_context(|| format!("Could not parse charge value in atom line"))?
+                charge.parse().with_context(|| {
+                    format!("Could not parse charge value {charge:?} in atom line")
+                })?
             } else if let Some(&charge) = self.atoms.get(atom_type_name) {
                 charge
             } else {
