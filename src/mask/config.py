@@ -54,7 +54,6 @@ def setup_parser(parser=None):
     parser.add_argument(
         "-l",
         "--labels",
-        nargs=1, # Make sure that we can also safely provide negative number arguments.
         action="append",
         type=process_labels_to_mask,
         help="""Write compartments to some mask based on a list of labels.
@@ -172,13 +171,34 @@ def setup_parser(parser=None):
     )
     return parser
 
+
+def fix_negative_arguments(argv):
+    """
+    Scan the arguments for patterns that look like a label selection (e.g.,
+    `-1:mask.npz`) and prepend a space such that it is not interpreted as a
+    command-line flag by argparse.  This is such a hack, but it works.
+    """
+    fixed_argv = []
+
+    for arg in argv:
+        if ":" in arg and arg.startswith("-"):
+            # Prepend a space.
+            fixed_argv.append(" " + arg)
+        else:
+            fixed_argv.append(arg)
+
+    return fixed_argv
+
+
 def parse_args():
+    import sys
+
+    print(f"Raw Arguments: {sys.argv}")
+    fixed_argv = fix_negative_arguments(sys.argv[1:])
+    print(f"Fixed Arguments: {fixed_argv}")
+
     parser = setup_parser()
-    args = parser.parse_args()
-    # Because we use both nargs=1 and action="append", we need to unpack our
-    # values. Sucks but it works.
-    if args.labels is not None:
-        args.labels = [l for [l] in args.labels]
+    args = parser.parse_args(fixed_argv)
 
     # Make sure that --exclude-outside is accepted iff --visualize-labels is
     # given.
