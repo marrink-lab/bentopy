@@ -193,11 +193,8 @@ def fix_negative_arguments(argv):
 def parse_args():
     import sys
 
-    print(f"Raw Arguments: {sys.argv}")
-    fixed_argv = fix_negative_arguments(sys.argv[1:])
-    print(f"Fixed Arguments: {fixed_argv}")
-
     parser = setup_parser()
+    fixed_argv = fix_negative_arguments(sys.argv[1:])
     args = parser.parse_args(fixed_argv)
 
     # Make sure that --exclude-outside is accepted iff --visualize-labels is
