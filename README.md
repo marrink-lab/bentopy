@@ -64,12 +64,12 @@ please cite our work.
 _Bentopy_ can be installed through `pip`.
 
 ```console
-pip install bentopy==0.2.0a10
+pip install bentopy==1.0.0b6
 ```
 
 > [!NOTE]
-> As you can see, we recommend you install an alpha version. This will soon
-> become a _bentopy_ 1.0 beta, release candidate, and eventually the proper 1.0
+> As you can see, we recommend you install a beta version. This will soon
+> become a _bentopy_ 1.0 release candidate, and eventually the proper 1.0
 > release.
 >
 > This is the version described by the current documentation.
