@@ -1,7 +1,7 @@
-import warnings
 import pickle
-from time import time
+import warnings
 from pathlib import Path
+from time import time
 
 import MDAnalysis as mda
 import numpy as np
@@ -89,9 +89,9 @@ def mask(args):
         selection,
         resolution=args.containment_resolution,
         morph=morph,
-        max_offset=0, # We accept any result of voxelization.
+        max_offset=0,  # We accept any result of voxelization.
         verbose=args.verbose,
-        no_mapping=True, # Mapping takes some time and is not used at all in this context.
+        no_mapping=True,  # Mapping takes some time and is not used at all in this context.
     )
     duration = time() - start
     log(f"Done in {duration:.3} s.")
@@ -114,7 +114,9 @@ def mask(args):
     labels_path = args.visualize_labels
     if labels_path is not None:
         if args.exclude_outside:
-            negative_root_nodes = set(rn for rn in containment.voxel_containment.root_nodes if rn < 0)
+            negative_root_nodes = set(
+                rn for rn in containment.voxel_containment.root_nodes if rn < 0
+            )
             nodes = set(containment.voxel_containment.nodes) - negative_root_nodes
         else:
             nodes = containment.voxel_containment.nodes
@@ -128,8 +130,9 @@ def mask(args):
             labels_u.atoms.write(labels_path)
             log("done.")
         else:
-            log(f"Could not write labels to {labels_path}, because there are no voxels to write!")
-
+            log(
+                f"Could not write labels to {labels_path}, because there are no voxels to write!"
+            )
 
     # Let's select our labels.
     possible_labels = npc(containment.voxel_containment.nodes)
@@ -149,8 +152,10 @@ def mask(args):
             labels[:] = list(final_labels)
             for label in labels:
                 if label not in possible_labels:
-                    log(f"ERROR: {label} for '{mask_path}' is not a "
-                        "valid compartment label.")
+                    log(
+                        f"ERROR: {label} for '{mask_path}' is not a "
+                        "valid compartment label."
+                    )
                     return 1
     else:
         log("No label selection was provided.")
@@ -168,7 +173,9 @@ def mask(args):
         # Get our compartment by masking out all voxels that have our selected labels.
         compartment = containment.voxel_containment.get_voxel_mask(labels)
         # Produce our final output mask according to the specified output mask resolution.
-        zoomed = compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
+        zoomed = (
+            compartment.repeat(zoom, axis=0).repeat(zoom, axis=1).repeat(zoom, axis=2)
+        )
 
         if not reported:
             # Report a summary of the final masks's dimensions.
@@ -177,7 +184,9 @@ def mask(args):
             mask_res = args.mask_resolution
             mask_shape = zoomed.shape
             mask_size = tuple(npc(np.array(mask_shape) * mask_res))
-            log(f"Size of final voxel masks is {mask_shape} at a {mask_res} nm resolution.")
+            log(
+                f"Size of final voxel masks is {mask_shape} at a {mask_res} nm resolution."
+            )
             log(f"This corresponds to a final mask size of {mask_size} nm.")
             reported = True
 

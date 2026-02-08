@@ -1,6 +1,6 @@
-from typing import Literal
 import argparse
 from pathlib import Path
+from typing import Literal
 
 EPILOG = """
 Compartments are determined using the MDVContainment package created by Bart Bruininks.
@@ -14,8 +14,10 @@ DEFAULT_MASK_RESOLUTION = 0.5
 
 def parse_label(label: str) -> int | None:
     match label:
-        case "autofill": return None
-        case n: return int(n)
+        case "autofill":
+            return None
+        case n:
+            return int(n)
 
 
 def process_labels_to_mask(labels_to_mask: str) -> tuple[list[int | None], str]:
@@ -146,7 +148,7 @@ def setup_parser(parser=None):
         dest="morph",
         action="store_const",
         const="",
-        help="Disable morphological operations."
+        help="Disable morphological operations.",
     )
     parser.add_argument(
         "--no-cache",

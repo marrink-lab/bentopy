@@ -1,11 +1,12 @@
 import argparse
 from pathlib import Path
-from time import time
 from sys import stderr
+from time import time
 
 import freud
 import MDAnalysis as mda
 import numpy as np
+
 
 def log(*args, **kwargs):
     print(*args, **kwargs, file=stderr)
@@ -41,7 +42,9 @@ def check(args):
                 if args.ignore_same_resname and a.resname == b.resname:
                     continue
                 collision = True
-                distance = np.linalg.norm(a.position - b.position) / 10.0  # From Å to nm.
+                distance = (
+                    np.linalg.norm(a.position - b.position) / 10.0
+                )  # From Å to nm.
                 new_low = min_distance is not None and min_distance > distance
                 if new_low or min_distance is None:
                     min_distance = distance
@@ -50,7 +53,7 @@ def check(args):
                     "(new smallest distance)" if new_low else "",
                 )
                 if collisions is not None:
-                    collisions.append(a.position )
+                    collisions.append(a.position)
                 if args.exit_early:
                     break
         log("Done.")
@@ -61,7 +64,10 @@ def check(args):
     if args.output_collisions is not None:
         natoms = len(collisions)
         if natoms > 0:
-            log(f"Writing {natoms} collision coordinates to {args.output_collisions}... ", end="")
+            log(
+                f"Writing {natoms} collision coordinates to {args.output_collisions}... ",
+                end="",
+            )
             start = time()
             positions = np.array(collisions)
             assert positions.shape == (natoms, 3)
