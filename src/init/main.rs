@@ -92,15 +92,11 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
 
     // TODO: Implement these.
     // eprintln!("NOTE: This is a work-in-progress utility. Notable lacking lints are:");
-    // eprintln!("      - check if the referenced structures exist,");
     // eprintln!("      - check if the compartment combinations are well-formed,");
     // eprintln!("      - check if the constraint combinations are well-formed,");
-    // eprintln!("      - check if the referenced masks actually exist,");
     // eprintln!("      - check if the referenced masks are of a congruent size,");
-    // eprintln!("      - check if the referenced itp includes actually exist,");
     // eprintln!("      - check if the segment names exist in the referenced itps,");
     // eprintln!("      - check if the analytical compartment geometries lie within the dimensions,");
-    // eprintln!("      - check for orphan rules and compartments,");
     // eprintln!("      - check if the rules apply within the dimensions.");
 
     // Now, we actually check if it is semantically correct.
@@ -119,9 +115,21 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
             problems += 1;
         }
     }
+    // Compartments should refer to masks that exist.
+    for compartment in &config.compartments {
+        let id = compartment.id.as_str();
+        let path = match &compartment.mask {
+            bentopy::core::config::Mask::Voxels(path) => path,
+            _ => continue,
+        };
+        if !path.try_exists()? {
+            println!("Error: Compartment {id} refers to a non-existent mask path: {path:?}.");
+            problems += 1;
+        }
+    }
     // There should be at least one segment.
     if config.compartments.is_empty() {
-        println!("Warning: No segments declared. At least one segment should be declared.");
+        println!("Error: No segments declared. At least one segment should be declared.");
         problems += 1;
     }
     // Segments should refer to compartments that exist.
@@ -134,7 +142,14 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
             }
         }
     }
-    // There should be no duplicate rule names.
+    // Includes should exist.
+    for path in &config.includes {
+        if !path.try_exists()? {
+            println!("Warning: Include path is not accessible from current location: {path:?}.");
+            problems += 1;
+        }
+    }
+    // There should be no duplicate constraint names.
     let mut rules = HashSet::with_capacity(config.constraints.len());
     for constraint in &config.constraints {
         let id = constraint.id.as_str();
@@ -149,6 +164,58 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
         for id in segment.rules.iter() {
             if !rules.contains(id.as_str()) {
                 println!("Error: Segment {name} refers to an undeclared constraint: {id}.");
+                problems += 1;
+            }
+        }
+    }
+    // Segments should refer to structures that exist.
+    for segment in &config.segments {
+        let name = segment.name();
+        let path = &segment.path;
+        if !path.try_exists()? {
+            println!("Error: Segment {name} refers to a non-existent structure path: {path:?}.");
+            problems += 1;
+        }
+    }
+    // All defined compartments should be referred to.
+    // TODO: This is much better conceptualized as a tree with orphans, but for
+    // now this will do.
+    {
+        let mut unused_ids: HashSet<&str, std::hash::RandomState> =
+            HashSet::from_iter(config.compartments.iter().map(|c| c.id.as_str()));
+        // A compartment may be defined purely to be used in a compartment
+        // combination.
+        for compartent in &config.compartments {
+            match &compartent.mask {
+                bentopy::core::config::Mask::All
+                | bentopy::core::config::Mask::Voxels(_)
+                | bentopy::core::config::Mask::Shape(_)
+                | bentopy::core::config::Mask::Limits(_) => {}
+                // These refer directly to one compartment id.
+                bentopy::core::config::Mask::Within { distance: _, id }
+                | bentopy::core::config::Mask::Around { distance: _, id } => {
+                    unused_ids.remove(id.as_str());
+                }
+                bentopy::core::config::Mask::Combination(expr) => {
+                    let used_ids = expr.terms();
+                    for used_id in used_ids {
+                        unused_ids.remove(used_id.as_str());
+                    }
+                }
+            };
+        }
+        // Any compartments that are left unused should be referred to by at
+        // least one segment.
+        for segment in config.segments {
+            for used_id in segment.compartment_ids {
+                unused_ids.remove(used_id.as_str());
+            }
+        }
+
+        if !unused_ids.is_empty() {
+            println!("Warning: The following compartment ids are defined but not used:");
+            for id in unused_ids {
+                println!("         - {id}");
                 problems += 1;
             }
         }
