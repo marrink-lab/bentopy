@@ -1,5 +1,7 @@
 use anyhow::Result;
 
+use std::collections::HashSet;
+use std::hash::Hash;
 use std::path::PathBuf;
 
 pub mod bent;
@@ -77,6 +79,35 @@ impl<T: std::fmt::Display> std::fmt::Display for Expr<T> {
             Self::Or(l, r) => write!(f, "({l} or {r})"),
             Self::And(l, r) => write!(f, "({l} and {r})"),
         }
+    }
+}
+
+impl<T> Expr<T> {
+    /// Returns an iterator over references to the values of all `Term`s in this [`Expr`].
+    pub fn terms(&self) -> HashSet<&T>
+    where
+        T: Hash + Eq,
+    {
+        fn dive<'t, 'e: 't, T>(mut terms: HashSet<&'t T>, expr: &'e Expr<T>) -> HashSet<&'t T>
+        where
+            T: Hash + Eq,
+        {
+            match expr {
+                Expr::Term(term) => {
+                    terms.insert(term);
+                }
+                Expr::Not(expr) => {
+                    terms = dive(terms, expr);
+                }
+                Expr::Or(a, b) | Expr::And(a, b) => {
+                    terms = dive(terms, a.as_ref());
+                    terms = dive(terms, b.as_ref());
+                }
+            }
+            terms
+        }
+
+        dive(Default::default(), self)
     }
 }
 
