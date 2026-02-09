@@ -157,8 +157,8 @@ fn validate(input: PathBuf, verbose: bool) -> Result<()> {
     // Report the number of problems.
     match problems {
         0 => println!("It appears there are no problems with this file."),
-        1 => println!("Detected one problem."),
-        n => println!("Detected {n} problems."),
+        1 => bail!("Detected one problem."),
+        n => bail!("Detected {n} problems."),
     }
 
     Ok(())
