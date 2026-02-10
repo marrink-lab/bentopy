@@ -23,14 +23,14 @@ available.
   and concepts.
 	- This includes [Examples][wiki-examples] of how different _bentopy_
 	  tools can be used to construct simple and more sophisticated systems.
-- Martini Workshop 2025: [Bentopy: from simple packing to building cellular
-  models][workshop], an in-depth tutorial. (Note that its current state is
-  outdated, and relies on _bentopy_ v0.1.0. An updated tutorial is in progress
-  and will soon be published.)
+- The in-depth tutorial: [Bentopy: from simple packing to building cellular
+  models][tutorial]. This is an updated version of the tutorial presented at the
+  [Martini Workshop 2025][workshop].
 
 [wiki]: https://github.com/marrink-lab/bentopy/wiki
 [wiki-examples]: https://github.com/marrink-lab/bentopy/wiki/Examples
-[workshop]: https://cgmartini.nl/docs/tutorials/Martini3/Bentopy
+[tutorial]: https://cgmartini.nl/docs/tutorials/Martini3/Bentopy
+[workshop]: https://cgmartini.nl/docs/tutorials/Martini3/workshop
 
 ## Citation
 
