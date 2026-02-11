@@ -8,6 +8,7 @@ use eightyseven::structure::ResName;
 use bentopy::core::{citation::CITATION, version::VERSION};
 
 use crate::topology::determine_system_charge;
+use crate::water::Water;
 
 /// Solvate.
 #[derive(Debug, Parser)]
@@ -68,6 +69,26 @@ pub struct Args {
     pub periodic_mode: PeriodicMode,
 
     /// Define substitutes for solvent residues, such as ions.
+    ///
+    /// A substitute is defined according to the scheme <name>:<quantity>. For
+    /// example, 150 mM NaCl can be described as `-s NA:0.15Ms -s CL:0.15Ms`.
+    ///
+    /// Quantities can be specified as follows.
+    ///
+    /// - Molar concentration with respect to solvent quantity:
+    ///   floating point number followed by an 'Ms' suffix.
+    ///   (Example: `-s NA:0.15Ms` replaces 150 mM of solvent residues with NA, determined based on the remaining solvent quantity.)
+    ///
+    /// - Molar concentration with respect to box volume:
+    ///   floating point number followed by an 'M' suffix.
+    ///   (Example: `-s NA:0.15M` replaces 150 mM of solvent residues with NA, determined based on the box volume.)
+    ///   This behaviour is the same as that of many other solvation tools.
+    ///
+    /// - Count: an unsigned integer.
+    ///   (Example: `-s NA:100` replaces 100 solvent residues with NA.)
+    ///
+    /// - Ratio: a floating point number.
+    ///   (Example: `-s NA:0.1` replaces 10% of solvent residues are replaced with NA.)
     #[arg(short, long = "substitute")]
     pub substitutes: Vec<SubstituteConfig>,
 
@@ -185,8 +206,8 @@ pub struct SubstituteConfig {
 impl SubstituteConfig {
     /// Bake into a [`Substitute`] according to a final volume in nm³ and some number of valid
     /// solvent beads.
-    pub fn bake(self, volume: f64, solvent_beads: u64) -> Substitute {
-        Substitute { name: self.name, number: self.quantity.number(volume, solvent_beads) }
+    pub fn bake(self, volume: f64, solvent_beads: u64, water: Water) -> Substitute {
+        Substitute { name: self.name, number: self.quantity.number(volume, solvent_beads, water) }
     }
 }
 
@@ -280,17 +301,26 @@ enum Quantity {
     Number(u64),
     /// A fraction of the valid solvent beads.
     Ratio(f64),
-    /// Molarity in mol/L.
-    Molarity(f64),
+    /// Molarity in mol/L with respect to the box volume.
+    MolarityBox(f64),
+    /// Molarity in mol/L with respect to the remaining solvent volume.
+    MolaritySolvent(f64),
 }
 
 impl FromStr for Quantity {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Molarity (with respect to box volume).
         if let Some(molarity) = s.strip_suffix('M') {
-            // Molarity.
-            return Ok(Self::Molarity(molarity.parse::<f64>().map_err(|err| err.to_string())?));
+            let molarity = molarity.parse::<f64>().map_err(|err| err.to_string())?;
+            return Ok(Self::MolarityBox(molarity));
+        }
+
+        // Molarity (with respect to remaining solvent volume).
+        if let Some(molarity) = s.strip_suffix("Ms") {
+            let molarity = molarity.parse::<f64>().map_err(|err| err.to_string())?;
+            return Ok(Self::MolaritySolvent(molarity));
         }
 
         if let Ok(number) = s.parse::<u64>() {
@@ -311,13 +341,22 @@ impl FromStr for Quantity {
 impl Quantity {
     /// Given some volume in nm³ and some number of initial valid solvent beads, determine the
     /// number of beads according to this [`Quantity`].
-    fn number(self, volume: f64, solvent_beads: u64) -> u64 {
+    fn number(self, volume: f64, solvent_beads: u64, water: Water) -> u64 {
         const N_AVOGADRO: f64 = 6.0221415e23; // per mol.
-        let volume_liter = volume * 1e-24;
         let number = match self {
             Quantity::Number(number) => number,
             Quantity::Ratio(ratio) => (solvent_beads as f64 * ratio).round() as u64,
-            Quantity::Molarity(molarity) => (volume_liter * molarity * N_AVOGADRO).round() as u64,
+            Quantity::MolarityBox(molarity) => {
+                let volume_liter = volume * 1e-24;
+                (volume_liter * molarity * N_AVOGADRO).round() as u64
+            }
+            Quantity::MolaritySolvent(molarity) => {
+                /// The molarity of water in mol/L at 1 bar, 300K.
+                const MOLARITY_WATER: f64 = 55.34;
+                let solvent_quantity = solvent_beads * water.waters_per_res() as u64;
+                let n = (molarity * solvent_quantity as f64) / (MOLARITY_WATER + molarity);
+                n.round() as u64
+            }
         };
         assert!(
             number <= solvent_beads,

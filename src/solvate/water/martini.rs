@@ -1,6 +1,6 @@
 /// From the standard Martini water box.
 #[allow(clippy::approx_constant)]
-pub const MARTINI: WaterBox<400, 1> = WaterBox::new(
+pub const MARTINI: WaterBox<400, 1, 4> = WaterBox::new(
     "W",
     ["W"],
     Vec3::new(3.64428, 3.64428, 3.64428),

@@ -1,7 +1,7 @@
 /// Positions from Gromacs /usr/local/gromacs/share/gromacs/top/spc216.gro.
 ///
 /// Listed in OW, HW1, HW2 order as in the gro.
-pub const TIP3P: WaterBox<648, 3> = WaterBox::new(
+pub const TIP3P: WaterBox<648, 3, 1> = WaterBox::new(
     "SOL",
     ["OW", "HW1", "HW2"],
     Vec3::new(1.86206, 1.86206, 1.86206),

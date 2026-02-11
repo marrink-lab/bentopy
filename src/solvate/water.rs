@@ -65,6 +65,13 @@ impl Water {
         }
     }
 
+    pub fn waters_per_res(&self) -> usize {
+        match self {
+            Water::Martini => models::MARTINI.waters_per_res(),
+            Water::Tip3P => models::TIP3P.waters_per_res(),
+        }
+    }
+
     /// Returns an iterator over the accepted atoms, ready to be written out.
     pub fn spray<'w, 'a: 'w, A: Iterator<Item = bool>>(
         &'w self,

@@ -4,7 +4,7 @@ use glam::Vec3;
 use crate::convert::Convert;
 
 /// A cuboid water box.
-pub struct WaterBox<const NATOMS: usize, const NATOMS_PER_RES: usize> {
+pub struct WaterBox<const NATOMS: usize, const NATOMS_PER_RES: usize, const WATERS_PER_RES: usize> {
     // TODO: Make this ResName and AtomName.
     resname: &'static str,
     names: [&'static str; NATOMS_PER_RES],
@@ -18,7 +18,9 @@ pub struct WaterBox<const NATOMS: usize, const NATOMS_PER_RES: usize> {
     positions: [Vec3; NATOMS],
 }
 
-impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_PER_RES> {
+impl<const NATOMS: usize, const NATOMS_PER_RES: usize, const WATERS_PER_RES: usize>
+    WaterBox<NATOMS, NATOMS_PER_RES, WATERS_PER_RES>
+{
     /// Creates a new [`WaterBox`].
     pub const fn new(
         resname: &'static str,
@@ -40,6 +42,11 @@ impl<const NATOMS: usize, const NATOMS_PER_RES: usize> WaterBox<NATOMS, NATOMS_P
     /// Returns the number of points per residue for this [`WaterBox`].
     pub const fn residue_points(&self) -> usize {
         NATOMS_PER_RES
+    }
+
+    /// Returns the number of waters per residue for this [`WaterBox`].
+    pub const fn waters_per_res(&self) -> usize {
+        WATERS_PER_RES
     }
 
     /// Returns the dimensions of this [`WaterBox`].
