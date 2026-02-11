@@ -82,7 +82,8 @@ pub struct Args {
     /// - Molar concentration with respect to box volume:
     ///   floating point number followed by an 'M' suffix.
     ///   (Example: `-s NA:0.15M` replaces 150 mM of solvent residues with NA, determined based on the box volume.)
-    ///   This behaviour is the same as that of many other solvation tools.
+    ///   This behaviour is equivalent to that of many other solvation tools, such as `gmx genion`.
+    // See https://gitlab.com/gromacs/gromacs/-/blob/release-2026/src/gromacs/gmxpreprocess/genion.cpp#L553
     ///
     /// - Count: an unsigned integer.
     ///   (Example: `-s NA:100` replaces 100 solvent residues with NA.)

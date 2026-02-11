@@ -101,7 +101,31 @@ Options:
           [default: periodic]
 
   -s, --substitute <SUBSTITUTES>
-          Define substitutes for solvent residues, such as ions
+          Define substitutes for solvent residues, such as ions.
+
+          A substitute is defined according to the scheme <name>:<quantity>.
+          For example, 150 mM NaCl can be described as
+            `-s NA:0.15Ms -s CL:0.15Ms`.
+
+          Quantities can be specified as follows.
+
+          - Molar concentration with respect to solvent quantity:
+            floating point number followed by an 'Ms' suffix.
+            (Example: `-s NA:0.15Ms` replaces 150 mM of solvent residues with
+            NA, determined based on the remaining solvent quantity.)
+
+          - Molar concentration with respect to box volume: floating point
+            number followed by an 'M' suffix.
+            (Example: `-s NA:0.15M` replaces 150 mM of solvent residues with NA,
+            determined based on the box volume.) This behaviour is equivalent to
+            that of many other solvation tools, such as `gmx genion`.
+
+          - Count: an unsigned integer.
+            (Example: `-s NA:100` replaces 100 solvent residues with NA.)
+
+          - Ratio: a floating point number.
+            (Example: `-s NA:0.1` replaces 10% of solvent residues are replaced
+            with NA.)
 
       --charge <CHARGE>
           Neutralize the system charge with additional ions.
@@ -187,7 +211,7 @@ systems. By substituting solvent residues with ions or other residues in this
 solvation process, a great speed-up is possible over other methods.
 
 ```console
-$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15M -s CL:0.15M
+$ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15Ms -s CL:0.15Ms
 ```
 
 To specify a substitution, provide a name and a quantifier, separated by a
@@ -195,10 +219,24 @@ colon: `<name>:<quantity>`.
 
 A quantity can be expressed in any of the following ways:
 
-- `<float>M`: _molarity_, determine the number of substitutions based on the
-  volume of the output structure dimensions.
+- `<float>Ms`: _solvent molarity_, determine the number of substitutions based
+  remaining solvent quantity.
+
+  $$n_\text{X} = \frac{c_\text{X} \cdot n_\text{solvent}}{c_\text{X} + c_\text{water}}$$
+  where $c_\text{water} = 55.34 \ \text{M}$ at 1 bar, 300 K.
+- `<float>M`: _box volume molarity_, determine the number of substitutions based
+  on the volume of the output structure dimensions. Note that this is
+  classically how many solvation/ion placement tools interpret molarity, such as
+  [`gmx genion`][genion]. Especially for systems with a large non-solvent volume
+  (say, a membrane with an embedded protein), computing the ion counts based on
+  the box volume may lead to a much higher effective ion concentration than
+  expected.
+
+  $$n_\text{X} = c_\text{X} \cdot V_\text{box} \cdot N_\text{A}$$
 - `<float>`: _ratio_, the fraction of valid solvent beads to replace.
 - `<integer>`: _number_, a set number of substitutions to make.
+
+[genion]: https://gitlab.com/gromacs/gromacs/-/blob/release-2026/src/gromacs/gmxpreprocess/genion.cpp#L553
 
 #### Neutralizing structure charge
 
