@@ -125,7 +125,7 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
 {
     let operator = |s: &'static str| just(s).labelled(s);
     let integer = any()
-        .filter(move |c: &char| c.is_digit(10))
+        .filter(char::is_ascii_digit)
         .repeated()
         .at_least(1)
         .ignored()
