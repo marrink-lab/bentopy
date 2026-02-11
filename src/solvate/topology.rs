@@ -123,7 +123,7 @@ fn skip_to_section<'s>(
     skip_while(lines, |line| parse_directive(line) != Some(directive))
 }
 
-const fn is_sufficiently_integer_charge(charge: f64) -> bool {
+fn is_sufficiently_integer_charge(charge: f64) -> bool {
     /// The maximum allowable deviation from an integer for the total charge of a system.
     ///
     /// This value was picked in an informed but ultimately arbitrary way. Open to more deeply reasoned
