@@ -107,6 +107,11 @@ Options:
           For example, 150 mM NaCl can be described as
             `-s NA:0.15Ms -s CL:0.15Ms`.
 
+          A shorthand for this is `-s NA,CL:0.15Ms`. Note that this shorthand
+          respects stoichiometry for ions such as MgCl₂: `-s MG,CL@2:0.026Ms`. The
+          `@2` here is used to indicate the stoichiometric ratio of Mg:Cl::1:2 for
+          the dissociated magnesium chloride.
+
           Quantities can be specified as follows.
 
           - Molar concentration with respect to solvent quantity:
@@ -216,6 +221,16 @@ $ bentopy-solvate -i structure.gro -o solvated.gro -s NA:0.15Ms -s CL:0.15Ms
 
 To specify a substitution, provide a name and a quantifier, separated by a
 colon: `<name>:<quantity>`.
+
+#### Substitute names
+
+The name can be a single residue name, or a set of residue names separated by
+commas, like `-s NA,CL:0.15Ms`. In order to describe stoichiometric ratios of
+salts, you can use the `@<number>` notation. For example, a 0.026 M MgCl₂ can be
+described as `-s MG,CL@2:0.026Ms`. The `@2` here is used to indicate the
+stoichiometric ratio of Mg:Cl::1:2 for the dissociated magnesium chloride.
+
+#### Quantity
 
 A quantity can be expressed in any of the following ways:
 

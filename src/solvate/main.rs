@@ -62,7 +62,7 @@ fn main() -> anyhow::Result<()> {
     let substitutes = config
         .substitutes
         .into_iter()
-        .map(|sc| sc.bake(volume, placemap.unoccupied_count() as u64, placemap.solvent))
+        .flat_map(|sc| sc.bake(volume, placemap.unoccupied_count() as u64, placemap.solvent))
         .chain(neutralizing_ions)
         .collect::<Vec<_>>();
 

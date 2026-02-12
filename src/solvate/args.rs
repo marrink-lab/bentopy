@@ -73,15 +73,22 @@ pub struct Args {
     /// A substitute is defined according to the scheme <name>:<quantity>. For
     /// example, 150 mM NaCl can be described as `-s NA:0.15Ms -s CL:0.15Ms`.
     ///
+    /// A shorthand for this is `-s NA,CL:0.15Ms`. Note that this shorthand
+    /// respects stoichiometry for ions such as MgCl₂: `-s MG,CL@2:0.026Ms`. The
+    /// `@2` here is used to indicate the stoichiometric ratio of Mg:Cl::1:2 for
+    /// the dissociated magnesium chloride.
+    ///
     /// Quantities can be specified as follows.
     ///
     /// - Molar concentration with respect to solvent quantity:
     ///   floating point number followed by an 'Ms' suffix.
-    ///   (Example: `-s NA:0.15Ms` replaces 150 mM of solvent residues with NA, determined based on the remaining solvent quantity.)
+    ///   (Example: `-s NA:0.15Ms` replaces 150 mM of solvent residues with NA,
+    ///   determined based on the remaining solvent quantity.)
     ///
     /// - Molar concentration with respect to box volume:
     ///   floating point number followed by an 'M' suffix.
-    ///   (Example: `-s NA:0.15M` replaces 150 mM of solvent residues with NA, determined based on the box volume.)
+    ///   (Example: `-s NA:0.15M` replaces 150 mM of solvent residues with NA,
+    ///   determined based on the box volume.)
     ///   This behaviour is equivalent to that of many other solvation tools, such as `gmx genion`.
     // See https://gitlab.com/gromacs/gromacs/-/blob/release-2026/src/gromacs/gmxpreprocess/genion.cpp#L553
     ///
@@ -198,17 +205,28 @@ pub enum PeriodicMode {
     Deny,
 }
 
+type SubstituteMultiplier = std::num::NonZeroU64;
+
 #[derive(Debug, Clone)]
 pub struct SubstituteConfig {
-    name: String,
+    names: Box<[(String, SubstituteMultiplier)]>,
     quantity: Quantity,
 }
 
 impl SubstituteConfig {
     /// Bake into a [`Substitute`] according to a final volume in nm³ and some number of valid
     /// solvent beads.
-    pub fn bake(self, volume: f64, solvent_beads: u64, water: Water) -> Substitute {
-        Substitute { name: self.name, number: self.quantity.number(volume, solvent_beads, water) }
+    pub fn bake(
+        self,
+        volume: f64,
+        solvent_beads: u64,
+        water: Water,
+    ) -> impl Iterator<Item = Substitute> {
+        let base_number = self.quantity.number(volume, solvent_beads, water);
+        self.names.into_iter().map(move |(name, multiplier)| Substitute {
+            name,
+            number: base_number * multiplier.get(),
+        })
     }
 }
 
@@ -217,13 +235,34 @@ impl FromStr for SubstituteConfig {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut words = s.split(':');
-        let name = words
+        let names = words
             .next()
-            .ok_or("expected a name, then a colon, followed by a quantity".to_string())?
+            .ok_or("expected names, then a colon, followed by a quantity".to_string())?
             .to_string();
+        let names = names
+            .split(',')
+            .map(|name| {
+                if let Some((name, ratio)) = name.split_once('@') {
+                    let name = name.trim().to_owned();
+                    let ratio = ratio
+                        .parse()
+                        .map_err(|e| format!("could not parse stoichiometric ratio {ratio:?}: {e}"))
+                        .and_then(|ratio: u64| {
+                            SubstituteMultiplier::try_from(ratio).map_err(|e| {
+                                format!(
+                                    "stoichiometric ratio must be a nonzero unsigned integer: {e}"
+                                )
+                            })
+                        });
+                    ratio.map(|ratio: SubstituteMultiplier| (name, ratio))
+                } else {
+                    Ok((name.trim().to_owned(), 1.try_into().unwrap()))
+                }
+            })
+            .collect::<Result<Box<[_]>, _>>()?;
         let quantity =
             words.next().ok_or("expected a quantifier after the colon".to_string())?.parse()?;
-        Ok(Self { name, quantity })
+        Ok(Self { names, quantity })
     }
 }
 
