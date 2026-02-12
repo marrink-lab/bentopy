@@ -64,15 +64,8 @@ please cite our work.
 _Bentopy_ can be installed through `pip`.
 
 ```console
-pip install bentopy==1.0.0b6
+pip install bentopy
 ```
-
-> [!NOTE]
-> As you can see, we recommend you install a beta version. This will soon
-> become a _bentopy_ 1.0 release candidate, and eventually the proper 1.0
-> release.
->
-> This is the version described by the current documentation.
 
 For most Linux platforms, pre-built binaries are available and will be
 installed automatically through `pip`. For other platforms, such as macOS, a
