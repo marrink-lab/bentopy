@@ -247,14 +247,17 @@ is supported.
 
 ```console
 bentopy-solvate -i merged.gro -o solvated.gro -t topol.top \
-	-s NA:0.15M -s CL:0.15M --charge neutral
+	-s NA,CL:0.15Ms --charge neutral
 ```
 
 _Solvate the structure in `packed.gro` with Martini waters and output the
-result to `solvated.gro`. Substitute water residues for ions at 0.15M NaCl.
-Make additional ion substitutions to neutralize the charge of `packed.gro`
-based on the provided topology. The number of added waters and ions will be
-appended to `topol.top`._
+result to `solvated.gro`. Substitute water residues for ions at 0.15 M NaCl
+with respect to the remaining solvent[^molar]. Make additional ion substitutions
+to neutralize the charge of `packed.gro` based on the provided topology. The
+number of added waters and ions will be appended to `topol.top`._
+
+[^molar]: For molarity with respect to box size, like `gmx genion` does, use
+the `M` suffix.
 
 A thorough description of the command is [provided in the `bentopy-solvate`
 README](src/solvate/README.md).
