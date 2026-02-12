@@ -239,31 +239,34 @@ impl FromStr for SubstituteConfig {
             .next()
             .ok_or("expected names, then a colon, followed by a quantity".to_string())?
             .to_string();
+
         let names = names
             .split(',')
             .map(|name| {
                 if let Some((name, ratio)) = name.split_once('@') {
                     let name = name.trim().to_owned();
-                    let ratio = ratio
-                        .parse()
-                        .map_err(|e| format!("could not parse stoichiometric ratio {ratio:?}: {e}"))
-                        .and_then(|ratio: u64| {
-                            SubstituteMultiplier::try_from(ratio).map_err(|e| {
-                                format!(
-                                    "stoichiometric ratio must be a nonzero unsigned integer: {e}"
-                                )
-                            })
-                        });
+                    let ratio = parse_ratio(ratio);
                     ratio.map(|ratio: SubstituteMultiplier| (name, ratio))
                 } else {
                     Ok((name.trim().to_owned(), 1.try_into().unwrap()))
                 }
             })
-            .collect::<Result<Box<[_]>, _>>()?;
+            .collect::<Result<_, _>>()?;
         let quantity =
             words.next().ok_or("expected a quantifier after the colon".to_string())?.parse()?;
         Ok(Self { names, quantity })
     }
+}
+
+fn parse_ratio(ratio: &str) -> Result<SubstituteMultiplier, <SubstituteConfig as FromStr>::Err> {
+    ratio
+        .parse()
+        .map_err(|e| format!("could not parse stoichiometric ratio {ratio:?}: {e}"))
+        .and_then(|ratio: u64| {
+            SubstituteMultiplier::try_from(ratio).map_err(|e| {
+                format!("stoichiometric ratio must be a nonzero unsigned integer: {e}")
+            })
+        })
 }
 
 #[derive(Debug, Clone)]
