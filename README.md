@@ -26,11 +26,13 @@ available.
 - The in-depth tutorial: [Bentopy: from simple packing to building cellular
   models][tutorial]. This is an updated version of the tutorial presented at the
   [Martini Workshop 2025][workshop].
+- A [video] of Marieke walking through the tutorial.
 
 [wiki]: https://github.com/marrink-lab/bentopy/wiki
 [wiki-examples]: https://github.com/marrink-lab/bentopy/wiki/Examples
 [tutorial]: https://cgmartini.nl/docs/tutorials/Martini3/Bentopy
 [workshop]: https://cgmartini.nl/docs/tutorials/Martini3/workshop
+[video]: https://youtu.be/C4LYZokS_t4
 
 ## Citation
 
