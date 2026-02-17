@@ -1,7 +1,8 @@
+use std::collections::BTreeSet;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use bentopy::core::placement::{Placement, PlacementList};
 use bentopy::core::utilities::CLEAR_LINE;
 use glam::Vec3;
@@ -269,6 +270,317 @@ fn write_gro(
     Ok(placed)
 }
 
+fn write_cif(
+    writer: &mut impl io::Write,
+    placements: &PlacementList,
+    limits: Limits,
+    mode: Mode,
+    ignore_tags: bool,
+    verbose: bool,
+) -> Result<Box<[(String, usize)]>> {
+    use std::collections::BTreeMap;
+
+    let placements_slice = &placements.placements;
+    let molecules = mode.prepare_molecules(placements_slice, ignore_tags, verbose)?;
+    let min_limits = Vec3::new(
+        limits.minx.unwrap_or_default(),
+        limits.miny.unwrap_or_default(),
+        limits.minz.unwrap_or_default(),
+    );
+
+    writeln!(writer, "data_bentopy")?;
+    writeln!(writer, "#")?;
+
+    let placed: Box<[(String, usize)]> = placements_slice
+        .iter()
+        .zip(&molecules)
+        .map(|(p, _)| {
+            let n_placed = p
+                .batches
+                .iter()
+                .map(|b| b.positions.iter().filter(|&&pos| limits.is_inside(pos)).count())
+                .sum::<usize>();
+            (p.name.clone(), n_placed)
+        })
+        .collect();
+    let entity_asym_ids: Vec<Vec<String>> = molecules
+        .iter()
+        .enumerate()
+        .map(|(idx, molecule)| {
+            let entity_id = idx + 1;
+            let mut set = BTreeSet::new();
+            for atom in &molecule.atoms {
+                set.insert(cif_asym_id(entity_id, &atom.chain));
+            }
+            if set.is_empty() {
+                set.insert(cif_asym_id(entity_id, ""));
+            }
+            set.into_iter().collect()
+        })
+        .collect();
+
+    writeln!(writer, "loop_")?;
+    writeln!(writer, "_entity.id")?;
+    writeln!(writer, "_entity.details")?;
+    writeln!(writer, "_entity.formula_weight")?;
+    writeln!(writer, "_entity.pdbx_description")?;
+    writeln!(writer, "_entity.pdbx_ec")?;
+    writeln!(writer, "_entity.pdbx_entities_per_biological_unit")?;
+    writeln!(writer, "_entity.pdbx_formula_weight_exptl")?;
+    writeln!(writer, "_entity.pdbx_formula_weight_exptl_method")?;
+    writeln!(writer, "_entity.pdbx_fragment")?;
+    writeln!(writer, "_entity.pdbx_modification")?;
+    writeln!(writer, "_entity.pdbx_mutation")?;
+    writeln!(writer, "_entity.pdbx_number_of_molecules")?;
+    writeln!(writer, "_entity.pdbx_parent_entity_id")?;
+    writeln!(writer, "_entity.pdbx_target_id")?;
+    writeln!(writer, "_entity.src_method")?;
+    writeln!(writer, "_entity.type")?;
+    for (idx, (placement, (_, n_molecules))) in placements_slice.iter().zip(placed.iter()).enumerate() {
+        let entity_id = idx + 1;
+        let description = cif_quote(&placement.name);
+        let source_filename = placement
+            .path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_string();
+        let fragment = cif_quote(&source_filename);
+        writeln!(
+            writer,
+            "{entity_id} . 0 {description} . . . . {fragment} . . {n_molecules} . . . polymer"
+        )?;
+    }
+    writeln!(writer, "#")?;
+
+    writeln!(writer, "loop_")?;
+    writeln!(writer, "_atom_site.group_PDB")?;
+    writeln!(writer, "_atom_site.id")?;
+    writeln!(writer, "_atom_site.type_symbol")?;
+    writeln!(writer, "_atom_site.label_atom_id")?;
+    writeln!(writer, "_atom_site.label_comp_id")?;
+    writeln!(writer, "_atom_site.label_asym_id")?;
+    writeln!(writer, "_atom_site.label_entity_id")?;
+    writeln!(writer, "_atom_site.label_seq_id")?;
+    writeln!(writer, "_atom_site.Cartn_x")?;
+    writeln!(writer, "_atom_site.Cartn_y")?;
+    writeln!(writer, "_atom_site.Cartn_z")?;
+    writeln!(writer, "_atom_site.occupancy")?;
+    writeln!(writer, "_atom_site.B_iso_or_equiv")?;
+    writeln!(writer, "_atom_site.pdbx_PDB_model_num")?;
+    let mut atom_id = 1usize;
+    for (idx, molecule) in molecules.iter().enumerate() {
+        let entity_id = idx + 1;
+        for atom in &molecule.atoms {
+            let asym_id = cif_asym_id(entity_id, &atom.chain);
+            let x = atom.pos.x as f64 * 10.0;
+            let y = atom.pos.y as f64 * 10.0;
+            let z = atom.pos.z as f64 * 10.0;
+            writeln!(
+                writer,
+                "ATOM {atom_id} C {} {} {asym_id} {entity_id} {} {x:.3} {y:.3} {z:.3} 1.00 0.00 1",
+                atom.name,
+                atom.resname,
+                atom.resnum
+            )?;
+            atom_id += 1;
+        }
+    }
+    writeln!(writer, "#")?;
+
+    #[derive(Clone)]
+    struct Operator {
+        id: usize,
+        rot: [[f32; 3]; 3],
+        tr: [f32; 3],
+    }
+
+    let mut op_ids_by_transform: BTreeMap<String, usize> = BTreeMap::new();
+    let mut operators: Vec<Operator> = Vec::new();
+    let mut per_entity_operator_ids: Vec<Vec<usize>> = Vec::new();
+    for (placement, molecule) in placements_slice.iter().zip(&molecules) {
+        let mut entity_ops = Vec::new();
+        for batch in &placement.batches {
+            let rot = batch.rotation;
+            let rotated = rotate_molecule(molecule, &batch.rotation());
+            let min = rotated.min() + min_limits;
+            let m = row_major_to_mmcif_matrix(rot);
+            for tr in &batch.positions {
+                if !limits.is_inside(*tr) {
+                    continue;
+                }
+                let tr = [tr[0] - min.x, tr[1] - min.y, tr[2] - min.z];
+                let key = format!(
+                    "{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6}|{:.6},{:.6},{:.6}",
+                    m[0],
+                    m[1],
+                    m[2],
+                    m[3],
+                    m[4],
+                    m[5],
+                    m[6],
+                    m[7],
+                    m[8],
+                    tr[0],
+                    tr[1],
+                    tr[2]
+                );
+                let id = if let Some(id) = op_ids_by_transform.get(&key) {
+                    *id
+                } else {
+                    let id = op_ids_by_transform.len() + 1;
+                    op_ids_by_transform.insert(key, id);
+                    operators.push(Operator { id, rot, tr });
+                    id
+                };
+                entity_ops.push(id);
+            }
+        }
+        entity_ops.sort_unstable();
+        entity_ops.dedup();
+        per_entity_operator_ids.push(entity_ops);
+    }
+    operators.sort_by_key(|op| op.id);
+
+    writeln!(writer, "loop_")?;
+    writeln!(writer, "_pdbx_struct_assembly.id")?;
+    writeln!(writer, "_pdbx_struct_assembly.details")?;
+    writeln!(writer, "_pdbx_struct_assembly.method_details")?;
+    writeln!(writer, "_pdbx_struct_assembly.oligomeric_details")?;
+    writeln!(writer, "_pdbx_struct_assembly.oligomeric_count")?;
+    let n_instances: usize = placed.iter().map(|(_, n)| *n).sum();
+    writeln!(writer, "1 'author_and_software_defined_assembly' bentopy ? {n_instances}")?;
+    writeln!(writer, "#")?;
+
+    writeln!(writer, "loop_")?;
+    writeln!(writer, "_pdbx_struct_assembly_gen.assembly_id")?;
+    writeln!(writer, "_pdbx_struct_assembly_gen.oper_expression")?;
+    writeln!(writer, "_pdbx_struct_assembly_gen.asym_id_list")?;
+    for (idx, operator_ids) in per_entity_operator_ids.iter().enumerate() {
+        let asym_id_list = entity_asym_ids[idx].join(",");
+        let oper_expression = cif_quote(&format!("({})", compress_ranges(operator_ids)));
+        writeln!(writer, "1 {oper_expression} {asym_id_list}")?;
+    }
+    writeln!(writer, "#")?;
+
+    writeln!(writer, "loop_")?;
+    writeln!(writer, "_pdbx_struct_oper_list.id")?;
+    writeln!(writer, "_pdbx_struct_oper_list.type")?;
+    writeln!(writer, "_pdbx_struct_oper_list.name")?;
+    writeln!(writer, "_pdbx_struct_oper_list.symmetry_operation")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[1][1]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[1][2]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[1][3]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.vector[1]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[2][1]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[2][2]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[2][3]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.vector[2]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[3][1]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[3][2]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.matrix[3][3]")?;
+    writeln!(writer, "_pdbx_struct_oper_list.vector[3]")?;
+    for op in operators {
+        let op_type = if op.id == 1 { "identity operation" } else { "point symmetry operation" };
+        let m = row_major_to_mmcif_matrix(op.rot);
+        writeln!(
+            writer,
+            "{id} '{}' ? ? {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6} {:.6}",
+            op_type,
+            m[0],
+            m[1],
+            m[2],
+            op.tr[0] as f64 * 10.0,
+            m[3],
+            m[4],
+            m[5],
+            op.tr[1] as f64 * 10.0,
+            m[6],
+            m[7],
+            m[8],
+            op.tr[2] as f64 * 10.0,
+            id = op.id
+        )?;
+    }
+    writeln!(writer, "#")?;
+
+    Ok(placed)
+}
+
+fn cif_quote(value: &str) -> String {
+    let escaped = value.replace('\'', "''");
+    format!("'{escaped}'")
+}
+
+fn cif_asym_id(idx: usize, chain: &str) -> String {
+    let base = cif_entity_code(idx);
+    let chain = chain.trim();
+    if chain.is_empty() {
+        format!("{base}A")
+    } else {
+        format!("{base}{chain}")
+    }
+}
+
+fn cif_entity_code(mut idx: usize) -> String {
+    const ALPH: &[u8; 26] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let mut out = Vec::new();
+    while idx > 0 {
+        let rem = (idx - 1) % 26;
+        out.push(ALPH[rem] as char);
+        idx = (idx - 1) / 26;
+    }
+    out.reverse();
+    out.into_iter().collect()
+}
+
+fn compress_ranges(ids: &[usize]) -> String {
+    if ids.is_empty() {
+        return "1".to_string();
+    }
+
+    let mut parts = Vec::new();
+    let mut start = ids[0];
+    let mut prev = ids[0];
+    for &id in &ids[1..] {
+        if id == prev + 1 {
+            prev = id;
+            continue;
+        }
+        if start == prev {
+            parts.push(start.to_string());
+        } else {
+            parts.push(format!("{start}-{prev}"));
+        }
+        start = id;
+        prev = id;
+    }
+
+    if start == prev {
+        parts.push(start.to_string());
+    } else {
+        parts.push(format!("{start}-{prev}"));
+    }
+
+    parts.join(",")
+}
+
+fn row_major_to_mmcif_matrix(rot: [[f32; 3]; 3]) -> [f32; 9] {
+    // bentopy stores batch.rotation as RowMajorRotation.
+    // mmCIF _pdbx_struct_oper_list.matrix[i][j] is also row/column indexed, so no transpose.
+    [
+        rot[0][0],
+        rot[0][1],
+        rot[0][2],
+        rot[1][0],
+        rot[1][1],
+        rot[1][2],
+        rot[2][0],
+        rot[2][1],
+        rot[2][2],
+    ]
+}
+
 /// Write out the topology as a `top` file.
 ///
 /// See the Gromacs manual entry on the [top file][top_manual].
@@ -348,15 +660,28 @@ pub fn render(args: Args) -> anyhow::Result<()> {
     eprintln!("Writing structure to {output_path:?}... ");
     let t0 = std::time::Instant::now();
     let outfile = std::fs::File::create(&output_path)?;
-    let placed = write_gro(
-        &mut std::io::BufWriter::new(outfile),
-        &placements,
-        limits.unwrap_or_default(),
-        mode,
-        resnum_mode,
-        ignore_tags,
-        verbose,
-    )?;
+    let limits = limits.unwrap_or_default();
+    let extension = output_path.extension().and_then(|s| s.to_str()).map(|s| s.to_ascii_lowercase());
+    let placed = match extension.as_deref() {
+        Some("gro") => write_gro(
+            &mut std::io::BufWriter::new(outfile),
+            &placements,
+            limits,
+            mode,
+            resnum_mode,
+            ignore_tags,
+            verbose,
+        )?,
+        Some("cif") | Some("mmcif") => write_cif(
+            &mut std::io::BufWriter::new(outfile),
+            &placements,
+            limits,
+            mode,
+            ignore_tags,
+            verbose,
+        )?,
+        _ => bail!("Unsupported output extension for {output_path:?}. Use .gro, .cif, or .mmcif."),
+    };
     eprintln!("{CLEAR_LINE}Done in {:.3} s.", t0.elapsed().as_secs_f32());
     eprintln!(
         "Wrote {} placements of {} different kinds of structures.",

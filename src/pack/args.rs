@@ -65,6 +65,7 @@ pub struct Args {
     /// Display verbose output.
     #[arg(short, long)]
     pub verbose: bool,
+
 }
 
 #[derive(Debug, Clone, ValueEnum)]
