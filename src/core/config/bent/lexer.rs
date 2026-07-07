@@ -147,7 +147,8 @@ pub fn lexer<'s>() -> impl Parser<'s, &'s str, Vec<Spanned<Token<'s>>>, extra::E
         just("uM").or(just("µM")).to(1e-6),
         just("nM").to(1e-9),
         just("pM").to(1e-12),
-    ));
+    ))
+    .then_ignore(any().filter(|c: &char| c.is_whitespace()));
     let concentration =
         leniant_float.clone().then(unit).map(|(v, u)| Token::Concentration(v * u)).boxed();
     let section = components::identifier()
