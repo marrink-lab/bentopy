@@ -212,8 +212,10 @@ where
     I: BorrowInput<'ts, Token = Token<'s>, Span = SimpleSpan>,
 {
     let identifier = select! { Token::Ident(ident) => ident.to_owned() };
-    let name = identifier;
-    let tag = identifier;
+    let string = select! { Token::String(string) => string.to_owned() };
+    let identifier_or_string = choice((identifier, string));
+    let name = identifier_or_string;
+    let tag = identifier_or_string;
     let id = name.then(just(Token::Colon).ignore_then(tag).or_not());
     let number = select! { Token::Number(Number::Integer(n)) => n }.map(Quantity::Number);
     let molarity = select! { Token::Concentration(c) => c }.map(Quantity::Concentration);
